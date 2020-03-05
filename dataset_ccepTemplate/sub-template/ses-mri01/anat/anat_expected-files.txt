@@ -1,6 +1,7 @@
 THIS FILE SHOULD NOT BE IN ANY FOLDER, JUST FOR TEMPLATES PURPOSES
 dataset/sub-template/ses-template01/anat/
 	sub-template_ses-template01_acq-template_ce-label_rec-label_run-index_modality-label.nii.gz
+	sub-template_ses-template01_acq-template_ce-label_rec-label_run-index_modality-label.json
 	sub-template_ses-template01_acq-template_ce-label_rec-label_run-index_mod-label_defacemask.nii.gz
 
 *_defacemask.nii.gz If the structural images included in the dataset were defaced (to protect identity of participants) one CAN provide the binary mask that was used to remove facial features in the form of _defacemask files. In such cases the OPTIONAL mod-<label> key/value pair corresponds to modality label for eg: T1w, inplaneT1, referenced by a defacemask image. E.g., sub-01_mod-T1w_defacemask.nii.gz.
