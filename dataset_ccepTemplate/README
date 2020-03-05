@@ -1,3 +1,20 @@
 This file should describe the nature of the raw data or the derived data. 
 In the case of the existence of a derivatives folder, they RECOMMEND including details about the software stack and settings used to generate the results. 
 Inclusion of non-imaging objects that improve reproducibility are encouraged (scripts, settings files, etc.). MUST be either in ASCII or UTF-8 encoding.
+
+
+Expected Files in:
+dataset/sub-template/ses-template01/ieeg/
+	sub-template_ses-template01_task-<label>[_run-<index>]_ieeg.<manufacturer_specific_extension>
+        sub-template_ses-template01_task-<label>[_run-<index>]_ieeg.json
+	sub-template_ses-template01_task-<label>[_run-<index>]_channels.tsv
+	sub-template_ses-template01_space-<label>_electrodes.tsv
+	sub-template_ses-template01_space-<label>_coordsystem.json
+	sub-template_ses-template01_acq-<label>_photo.jpg
+
+
+Expected files in:
+dataset/sub-template/ses-template01/anat/
+	sub-template_ses-template01_acq-template_ce-label_rec-label_run-index_modality-label.nii.gz
+	sub-template_ses-template01_acq-template_ce-label_rec-label_run-index_modality-label.json
+	sub-template_ses-template01_acq-template_ce-label_rec-label_run-index_mod-label_defacemask.nii.gz

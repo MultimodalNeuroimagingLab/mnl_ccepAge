@@ -1,5 +1,5 @@
 THIS FILE SHOULD NOT BE IN ANY FOLDER, JUST FOR TEMPLATES PURPOSES
-dataset/sub-template/ses-template01/eeg/
+dataset/sub-template/ses-template01/ieeg/
 	sub-template_ses-template01_task-<label>[_run-<index>]_ieeg.<manufacturer_specific_extension>
         sub-template_ses-template01_task-<label>[_run-<index>]_ieeg.json
 	sub-template_ses-template01_task-<label>[_run-<index>]_channels.tsv
