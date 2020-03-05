@@ -1,0 +1,15 @@
+{
+    "onset": "REQUIRED ",
+    "duration": "REQUIRED",
+    "offset": "OPTIONAL",
+    "trial_type": "RECOMMENDED",
+    "electrodes_involved_onset": "RECOMMENDED",
+    "electrodes_involved_offset": "RECOMMENDED",
+    "sample_start": "RECOMMENDED",
+    "sample_end": "RECOMMENDED",
+    "electrical_stimulation_type": "RECOMMENDED",
+    "electrical_stimulation_site": "RECOMMENDED",
+    "electrical_stimulation_site_num": "RECOMMENDED",
+    "electrical_stimulation_current": "RECOMMENDED",
+    "notes": "RECOMMENDED"
+}

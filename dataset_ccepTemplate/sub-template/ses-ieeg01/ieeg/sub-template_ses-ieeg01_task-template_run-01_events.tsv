@@ -1,0 +1,4 @@
+onset	duration	offset	trial_type	electrodes_involved_onset	electrodes_involved_offset	sample_start	sample_end	electrical_stimulation_type	electrical_stimulation_site	electrical_stimulation_site_num	electrical_stimulation_current	notes
+20	0.0002	20.0002	electrical_stimulation	n/a	n/a	40000	40000	biphasic	T01-T02	1 2	0.0002	ccep_squarewavepulse
+25	5	30	artefact	all	all	50000	100000	n/a	n/a	n/a	n/a	motion_noise
+

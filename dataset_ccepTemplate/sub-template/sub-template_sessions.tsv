@@ -1,0 +1,4 @@
+session_id	acq_time	modality	tasks	misc_comments
+ses-eeg01	1919-11-31T13:45:30	eeg	rest	n/a
+ses-mri01	1920-10-31T13:45:30	func,anat,dwi,fmap	language,rest	n/a
+ses-ecog01	1920-12-31T13:45:30	ieeg	language,ccep	n/a

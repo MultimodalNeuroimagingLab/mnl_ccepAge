@@ -1,0 +1,8 @@
+{
+    "IntendedFor": "Should point to the defaced MRI with path relative to the project folder. Note that this file should have the same coordinate system specified in iEEGCoordinateSystem. For example, T1: sub-<label>/ses-<label>/anat/sub-01_T1w.nii.gz" ,
+    "iEEGCoordinateSystem": "REQUIRED",
+    "iEEGCoordinateUnits": "REQUIRED",
+    "iEEGCoordinateSystemDescription": "RECOMMENDED",
+    "iEEGCoordinateProcessingDescription": "RECOMMENDED",
+    "iEEGCoordinateProcessingReference": "RECOMMENDED"
+}
