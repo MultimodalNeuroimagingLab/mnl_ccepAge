@@ -1,0 +1,15 @@
+{
+    "name": "Required. Name of the electrode contact point ",
+    "x": "Required. X position. The position of the center the electrode in xyz space in millimeters or pixels and are specified in _*space-_electrode.json",
+    "y": "Required. Y position. The position of the center the electrode in xyz space in millimeters or pixels and are specified in _*space-_electrode.json",
+    "z": "Required. Z position. The position of the center the electrode in xyz space in millimeters or pixels and are specified in _*space-_electrode.json",
+	"size": "Required. Surface area of the electrode, in mm^2",
+	"material": "Optional",
+	"manufacturer": "Optional. To specify the manufacturer for each electrode if electrodes were manufactured by more than one company",
+	"group": "Optional. Specify the group that the electrode is a part of. Note that any group specified here should match a group specified in *_channels.tsv",
+    "hemisphere": "Optional. Specify the hemisphere in which the electrode is placed, one of 'L' or 'R'",
+    "type": "Optional",
+    "impedance": "Optional. Impedance of the electrode in kOhm",
+    "dimension": "Optional. Size of the group (grid/strip/probe) that this electrode belongs to. Must be of form 'AxB' with the smallest dimension first ",
+    "seizure_onset_zone": "XXXXX"
+}

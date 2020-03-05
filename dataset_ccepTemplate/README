@@ -1,0 +1,3 @@
+This file should describe the nature of the raw data or the derived data. 
+In the case of the existence of a derivatives folder, they RECOMMEND including details about the software stack and settings used to generate the results. 
+Inclusion of non-imaging objects that improve reproducibility are encouraged (scripts, settings files, etc.). MUST be either in ASCII or UTF-8 encoding.

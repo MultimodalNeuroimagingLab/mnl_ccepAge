@@ -1,0 +1,19 @@
+{
+  "Name": "REQUIRED. Name of the dataset",
+  "BIDSVersion": "REQUIRED. For instance 1.2.1",
+  "License": "CC BY NC (at least)",
+  "Authors": ["Multimodal Neuroimaging Laboratory",
+  "author 2"
+  ],
+  "Acknowledgements": "OPTIONAL",
+  "HowToAcknowledge": "OPTIONAL. Instructions how researchers using this dataset should acknowledge the original authors. This field can also be used to define a publication that should be cited in publications that use the dataset.",
+  "Funding": [
+    "OPTIONAL. Sources of funding Grant number",
+    "Example. National Institute of Health..."
+  ],
+  "ReferencesAndLinks": [
+    "OPTIONAL. List of references to publication that contain information on the dataset, or links",
+    "Example. Citation of a paper"
+  ],
+  "DatasetDOI": "The Document Object Identifier of the dataset (not the corresponding paper)"
+}

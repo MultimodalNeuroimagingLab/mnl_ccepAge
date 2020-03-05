@@ -1,0 +1,48 @@
+{
+    "participant_id": {
+        "Description": "anonymized participant IDs of XP2 dataset"
+    },
+    "age": {
+        "Description": "age of the participant",
+        "Units": "Years"
+    },
+    "sex": {
+        "Description": "sex of the participant",
+        "Levels": {
+            "M": "male",
+            "F": "female"
+        }
+    },
+    "handedness": {
+        "Description": "Preferred use of the right hand, left hand, or one or the other depending on the task",
+        "Levels": {
+            "R": "Righthander. Tendency to use the right hand more naturally",
+            "L": "Lefthander. Tendency to use the left hand more naturally",
+            "A": "Ambidexter."
+        }
+    },
+    "race": {
+        "Description": "Race of the participant ",
+        "Levels": {
+            "1": "American Indian/Alaska Native",
+            "2": "Asian",
+            "3": "Hawaiian or Pacific Islander",
+            "4": "Black or African American",
+            "5": "White",
+            "6": "More than one race",
+            "7": "Unknown or not reported"
+        }
+    },
+    "phenotype": {
+        "Description": "Phenotype/diagnosis for the subject",
+        "Levels": {
+            "example": "type of epilepsy description"
+        }
+    },
+    "phenotype_description": {
+        "Description": "Description of the phenotype for the subject"
+    },
+    "misc_comments": {
+        "Description": "Miscellaneous comments on study, interview, methodology relevant to this form data"
+    }
+}
