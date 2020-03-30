@@ -1,0 +1,22 @@
+
+# no mac stuff in the git
+.AppleDouble
+.LSOverride
+.DS_Store
+**/.DS_Store
+__MACOSX
+**/__MACOSX
+
+# no windows stuff either
+desktop.ini
+**/desktop.ini
+
+# No data files
+*.mat
+
+# No matlab backup scripts 
+*.m~
+*.asv
+
+# No personalDataPath
+personalDataPath.m
