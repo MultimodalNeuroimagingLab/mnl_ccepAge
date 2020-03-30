@@ -69,5 +69,50 @@ params.epoch_length = 5; % total epoch length in sec, default = 5
 params.epoch_prestim_length = 2;%: prestimulus epoch length in sec, default = 2
 params.baseline_subtract = 0; % subtract median baseline from each trial
 
-[average_ccep,average_ccep_names] = ccep_averageConditions(data,srate,ccep_events,stim_pair_nr,stim_pair_name,params);
+[average_ccep,average_ccep_names,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
 
+%%
+saveName = fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub],...
+    ['sub-' bids_sub '_ses-' bids_ses '_task-' bids_task '_run-' bids_runs{run_nr} '_averageCCEPs.mat']);
+
+if ~exist(fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub]),'dir')
+    mkdir(fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub]))
+    sprintf(['making dir:\n',...
+        fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub])])
+end
+
+save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels')
+
+%%
+
+elnrs_plot = good_channels;
+
+for ll = 20%:length(elnrs_plot)
+    el_plot = elnrs_plot(ll);
+    figure('Position',[0 0 700 700]),hold on
+    for kk = 1:length(average_ccep_names)        
+        this_ccep_plot = squeeze(average_ccep(el_plot,kk,:));
+%         this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
+        
+        plot(tt,kk*500+zeros(size(tt)),'Color',[.8 .8 .8])
+        plot(tt,kk*500+this_ccep_plot)
+    end
+    xlim([-.2 1])
+    set(gca,'YTick',500*[1:length(average_ccep_names)],'YTickLabel',average_ccep_names)
+    title([channel_names{el_plot}])
+    
+    ylabel('stimulated electrodes')
+    xlabel('time(s)')
+    
+    % add amplitude bar
+    plot([0.9 0.9],[1000 1500],'k','LineWidth',2)
+    text(0.91,1250,['500 ' native2unicode(181,'latin1') 'V'])
+
+    % filename
+    figureName = fullfile(myDataPath,'derivatives','av_ccep_figures',['sub-' bids_sub],...
+        ['sub-' bids_sub '_ses-' bids_ses '_task-' bids_task '_run-' bids_runs{run_nr} '_incomingCCEP_el' channel_names{el_plot}]);
+    set(gcf,'PaperPositionMode','auto')
+    print('-dpng','-r300',figureName)
+    print('-depsc','-r300',figureName)
+    close all
+end

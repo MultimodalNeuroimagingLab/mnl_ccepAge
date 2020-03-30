@@ -1,6 +1,6 @@
-function [average_ccep,average_ccep_names] = ccep_averageConditions(data,srate,events_table,stim_pair_nr,stim_pair_name,params)
+function [average_ccep,average_ccep_names,tt] = ccep_averageConditions(data,srate,events_table,channel_names,stim_pair_nr,stim_pair_name,params)
 %
-% function [average_ccep,average_ccep_names] = ccep_averageConditions(data,srate,events_table,stim_pair_nr,stim_pair_name,params)
+% function [average_ccep,average_ccep_names] = ccep_averageConditions(data,srate,events_table,channel_names,stim_pair_nr,stim_pair_name,params)
 % calculates average across condition numbers for ccep data 
 %
 % input 
@@ -17,6 +17,7 @@ function [average_ccep,average_ccep_names] = ccep_averageConditions(data,srate,e
 % output
 %   average_ccep: electrodes X condition (stim pair) X time
 %   average_ccep_names: ccep condition (stim pair) names
+%   tt: time for each epoch
 %
 % Dora Hermes, 2020, Multimodal Neuroimaging Lab
 % Dorien van Blooijs, 2020, UMC Utrecht
@@ -38,9 +39,9 @@ nr_channels = size(data,1);
 tt = (1:epoch_length*srate)/srate - epoch_prestim_length;
 
 % initialize output
-average_ccep = NaN(nr_channels,max(stim_pair_nr),epoch_length*srate);
+average_ccep = NaN(nr_channels,max(stim_pair_nr),round(epoch_length*srate));
 average_ccep_names = cell(max(stim_pair_nr),1);
-
+%%
 for kk = 1:max(stim_pair_nr) % condition number
     disp(['loading data for condition ' int2str(kk) ' out of ' int2str(max(stim_pair_nr))])
     
@@ -51,14 +52,18 @@ for kk = 1:max(stim_pair_nr) % condition number
     average_ccep_names{kk} = stim_pair_name{these_epochs(1)};
     
     % initialize matrix with this epoch type (channels X conditions X time)
-    these_epochs_data = NaN(nr_channels,length(these_epochs),epoch_length*srate);
+    these_epochs_data = NaN(nr_channels,length(these_epochs),round(epoch_length*srate));
     
     % for this condition number (kk), load each epoch (ll)
     
     for ll = 1:length(these_epochs)
         
-        ll_start = round((events_table.onset(these_epochs(ll))-epoch_prestim_length)*srate);
-        ll_end = round((events_table.onset(these_epochs(ll))+epoch_length-epoch_prestim_length)*srate);
+        % the onset has errors
+%         ll_start = round((events_table.onset(these_epochs(ll))-epoch_prestim_length)*srate);
+%         ll_end = round((events_table.onset(these_epochs(ll))+epoch_length-epoch_prestim_length)*srate);
+        % the sample_start is correct
+        ll_start = round(events_table.sample_start(these_epochs(ll)) - epoch_prestim_length*srate);
+        ll_end = round(events_table.sample_start(these_epochs(ll)) + (epoch_length-epoch_prestim_length)*srate);
         
         % load data
         if ~isnan(ll_start)
@@ -78,3 +83,22 @@ for kk = 1:max(stim_pair_nr) % condition number
     
     clear these_epochs_data ll_start ll_end
 end
+
+%% set stimulated electrodes to NaN
+
+for kk = 1:size(average_ccep,2) % epochs
+    % stimulated electrode names
+    el1 = extractBefore(average_ccep_names{kk},'-');
+    el2 = extractAfter(average_ccep_names{kk},'-');
+    
+    % stimulated electrode index in the data
+    el1_nr = ismember(channel_names,el1);
+    el2_nr = ismember(channel_names,el2);
+    
+    % set to NaN
+    average_ccep(el1_nr==1,kk,:) = NaN;
+    average_ccep(el2_nr==1,kk,:) = NaN;
+    
+    clear el1 el2 el1_nr el2_nr% housekeeping
+end
+
