@@ -15,6 +15,8 @@ function [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(events_table
 %   - stim_pair_nr & stim_pair_name have length of the events table
 %   - stim_pair_nr indicates a condition number, starts at 1
 %   - stim_pair_name contains the stim pair name (F02-F01 is switched to F01-F02)
+%
+% dhermes, 2020, Multimodal Neuroimaging Lab
 
 % include all events if input of events_include is empty
 if isempty(events_include)
