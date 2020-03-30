@@ -1,66 +1,46 @@
 %
 % This script can be used as workflow script to create average CCEPs 
 % for the CCEP data in the RESPect database.
-
-
+%
 % Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, 2019 
+%
 
 %% Set paths
-% set rootpath
-dataRootPath = fullfile('~/Documents/data/ccep/');
 
-% add folder with functions and scripts
-addpath(fullfile('~/Documents','git','ccep'))
-% add ecogBasicCode to path
-addpath(fullfile('~/Documents','git','ecogBasicCode')) 
-% be sure the JSONio toolbox is added to the path
-addpath(fullfile('~/Documents','git','JSONio'))
+myDataPath = setLocalDataPath(1);
 
 
 %% Metadata: fill in yourself
 
 % add subject(s) information
-subjects = {'RESP0574'};
-sessions = {'1'};
-tasks = {'SPESclin'};
-runs = {'021358'};
-
-% do I need this?
-hemi_smalls = {'l'};
-hemi_caps = {'L'};
-hemi_small = hemi_smalls{s};
-hemi_cap = hemi_caps{s};
+bids_sub = 'RESP0276';
+bids_ses = '1';
+bids_task = 'SPESclin';
+bids_runs = {'021448'};
 
 
-%% load data
+%% load data and events
 
-s = 1;
-ccepSet.subj = subjects{s};
-ccepSet.ses = sessions{s};
-ccepSet.task = tasks{s};
-ccepSet.run = runs{s};
-
-% load the data, as BrainVision BIDS format
-ieeg_name = fullfile(dataRootPath,['sub-' ccepSet.subj], ...
-    ['ses-' ccepSet.ses],'ieeg',...
-    ['sub-' ccepSet.subj '_ses-' ccepSet.ses ...
-    '_task-' ccepSet.task '_run-' ccepSet.run '_ieeg.eeg']);
-data = ft_read_data(ieeg_name,'dataformat','brainvision_eeg');
-data_hdr = ft_read_header(ieeg_name,'dataformat','brainvision_eeg');
+run_nr = 1;
 
 % load the events.tsv
-events_name = fullfile(dataRootPath,['sub-' ccepSet.subj], ...
-    ['ses-' ccepSet.ses],'ieeg',...
-    ['sub-' ccepSet.subj '_ses-' ccepSet.ses ...
-    '_task-' ccepSet.task '_run-' ccepSet.run '_events.tsv']);
+events_name = fullfile(myDataPath,['sub-' bids_sub], ...
+    ['ses-' bids_ses],'ieeg',...
+    ['sub-' bids_sub '_ses-' bids_ses ...
+    '_task-' bids_task '_run-' bids_runs{run_nr} '_events.tsv']);
 ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
 
-% % load the electrodes.tsv
-% electrodes_name = fullfile(dataRootPath,['sub-' ccepSet.subj], ...
-%     ['ses-' ccepSet.ses],'ieeg',...
-%     ['sub-' ccepSet.subj '_ses-' ccepSet.ses ...
-%     '_electrode_positions_fouratlases.tsv']);
-% electrodes_table = readtable(electrodes_name,'Filetype','text','Delimiter','\t', 'ReadVariableNames', true);
+events_include = ismember(ccep_events.sub_type,'SPES');
+[stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include);
+
+% % load the data, as BrainVision BIDS format
+% ieeg_name = fullfile(myDataPath,['sub-' bids_sub], ...
+%     ['ses-' bids_ses],'ieeg',...
+%     ['sub-' bids_sub '_ses-' bids_ses ...
+%     '_task-' bids_task '_run-' bids_runs{run_nr} '_ieeg.eeg']);
+% data = ft_read_data(ieeg_name,'dataformat','brainvision_eeg');
+% data_hdr = ft_read_header(ieeg_name,'dataformat','brainvision_eeg');
+
 
 %% epoch
 
