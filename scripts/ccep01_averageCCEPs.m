@@ -6,50 +6,53 @@
 %
 
 %% Set paths
-
+clc
+clear
 myDataPath = setLocalDataPath(1);
-
 
 %% Metadata: fill in yourself
 
 % add subject(s) information
-bids_sub = 'RESP0276';
-bids_ses = '1';
-bids_task = 'SPESclin';
-bids_runs = {'021448'};
+bids_sub = ['sub-' input('Patient number (RESPXXXX): ','s')];
+bids_ses = input('Session number (ses-X): ','s');
+bids_task = 'task-SPESclin';
 
+% choose between available runs
+files = dir(fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
+    [bids_sub '_' bids_ses '_' bids_task '_*'  '_events.tsv']));
+names = {files.name};
+strings = cellfun(@(x) x(strfind(names{1},'run-'):strfind(names{1},'run-')+9), names, 'UniformOutput', false);
+stringsz = [repmat('%s, ',1,size(strings,2)-1),'%s'];
+
+bids_runs = input(sprintf(['Choose one of these runs: \n' stringsz '\n'],strings{:}),'s');
+
+clear files names strings stringsz
 
 %% load events
 
-run_nr = 1;
-
 % load the events.tsv
-events_name = fullfile(myDataPath,['sub-' bids_sub], ...
-    ['ses-' bids_ses],'ieeg',...
-    ['sub-' bids_sub '_ses-' bids_ses ...
-    '_task-' bids_task '_run-' bids_runs{run_nr} '_events.tsv']);
+events_name = fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
+    [bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_events.tsv']);
 ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
 
 % generate vector for averaging across trials
 % TODO: add an exclusion of trials with noise yet !
+% TODO: add options to separate F1-F2 from F2-F1?
+% TODO: add option to separate based on stimulation currents?
 events_include = ismember(ccep_events.sub_type,'SPES');
 [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include);
-
 
 %% load data and channels
 
 % load the data, as BrainVision BIDS format
-ieeg_name = fullfile(myDataPath,['sub-' bids_sub], ...
-    ['ses-' bids_ses],'ieeg',...
-    ['sub-' bids_sub '_ses-' bids_ses ...
-    '_task-' bids_task '_run-' bids_runs{run_nr} '_ieeg.eeg']);
+ieeg_name = fullfile(myDataPath.input, bids_sub, bids_ses,'ieeg',...
+    [ bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_ieeg.eeg']);
 data = ft_read_data(ieeg_name,'dataformat','brainvision_eeg');
 data_hdr = ft_read_header(ieeg_name,'dataformat','brainvision_eeg');
 
-channels_tsv_name = fullfile(myDataPath,['sub-' bids_sub], ...
-    ['ses-' bids_ses],'ieeg',...
-    ['sub-' bids_sub '_ses-' bids_ses ...
-    '_task-' bids_task '_run-' bids_runs{run_nr} '_channels.tsv']);
+channels_tsv_name = fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
+    [ bids_sub '_' bids_ses ...
+    '_' bids_task '_' bids_runs '_channels.tsv']);
 channels_table = readtable(channels_tsv_name,'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
 
 %% get necessary parameters from data
@@ -69,50 +72,29 @@ params.epoch_length = 5; % total epoch length in sec, default = 5
 params.epoch_prestim_length = 2;%: prestimulus epoch length in sec, default = 2
 params.baseline_subtract = 0; % subtract median baseline from each trial
 
+% TODO: remove bad channels
 [average_ccep,average_ccep_names,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
 
-%%
-saveName = fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub],...
-    ['sub-' bids_sub '_ses-' bids_ses '_task-' bids_task '_run-' bids_runs{run_nr} '_averageCCEPs.mat']);
+saveName = fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses,...
+    [ bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_averageCCEPs.mat']);
 
-if ~exist(fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub]),'dir')
-    mkdir(fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub]))
+if ~exist(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses),'dir')
+    mkdir(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses))
     sprintf(['making dir:\n',...
-        fullfile(myDataPath,'derivatives','av_ccep',['sub-' bids_sub])])
+        fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses)])
 end
 
 save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels')
 
-%%
+%% detect N1 in each averaged signal
 
-elnrs_plot = good_channels;
+params.amplitude_thresh = 2.6;
+params.n1_peak_range = 100;
+params.srate = srate;
 
-for ll = 20%:length(elnrs_plot)
-    el_plot = elnrs_plot(ll);
-    figure('Position',[0 0 700 700]),hold on
-    for kk = 1:length(average_ccep_names)        
-        this_ccep_plot = squeeze(average_ccep(el_plot,kk,:));
-%         this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
-        
-        plot(tt,kk*500+zeros(size(tt)),'Color',[.8 .8 .8])
-        plot(tt,kk*500+this_ccep_plot)
-    end
-    xlim([-.2 1])
-    set(gca,'YTick',500*[1:length(average_ccep_names)],'YTickLabel',average_ccep_names)
-    title([channel_names{el_plot}])
-    
-    ylabel('stimulated electrodes')
-    xlabel('time(s)')
-    
-    % add amplitude bar
-    plot([0.9 0.9],[1000 1500],'k','LineWidth',2)
-    text(0.91,1250,['500 ' native2unicode(181,'latin1') 'V'])
+[n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,params);
 
-    % filename
-    figureName = fullfile(myDataPath,'derivatives','av_ccep_figures',['sub-' bids_sub],...
-        ['sub-' bids_sub '_ses-' bids_ses '_task-' bids_task '_run-' bids_runs{run_nr} '_incomingCCEP_el' channel_names{el_plot}]);
-    set(gcf,'PaperPositionMode','auto')
-    print('-dpng','-r300',figureName)
-    print('-depsc','-r300',figureName)
-    close all
-end
+
+%% plot and save averages per channel
+
+ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs)
