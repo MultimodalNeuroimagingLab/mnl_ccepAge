@@ -13,8 +13,8 @@ myDataPath = setLocalDataPath(1);
 %% Metadata: fill in yourself
 
 % add subject(s) information
-bids_sub = ['sub-' input('Patient number (RESPXXXX): ','s')];
-bids_ses = input('Session number (ses-X): ','s');
+bids_sub = ['sub-' input('Patient number: sub- (RESPXXXX): ','s')];
+bids_ses = ['ses-' input('Session number: ses- (X): ','s')];
 bids_task = 'task-SPESclin';
 
 % choose between available runs
@@ -37,10 +37,10 @@ ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
 
 % generate vector for averaging across trials
 % TODO: add an exclusion of trials with noise yet !
-% TODO: add options to separate F1-F2 from F2-F1?
 % TODO: add option to separate based on stimulation currents?
 events_include = ismember(ccep_events.sub_type,'SPES');
-[stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include);
+params.mergePlusMin = 1;
+[stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include,params);
 
 %% load data and channels
 
