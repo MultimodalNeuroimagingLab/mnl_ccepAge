@@ -36,8 +36,8 @@ events_name = fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
 ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
 
 % generate vector for averaging across trials
-% TODO: add an exclusion of trials with noise yet !
-% TODO: add option to separate based on stimulation currents?
+% TODO: add exclusion of trials with noise
+% TODO: add option to separate based on stimulation currents
 events_include = ismember(ccep_events.sub_type,'SPES');
 params.mergePlusMin = 1;
 [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include,params);
@@ -86,6 +86,9 @@ end
 
 save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels')
 
+% plotting without N1 peaks:
+ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,0)
+
 %% detect N1 in each averaged signal
 
 params.amplitude_thresh = 2.6;
@@ -97,4 +100,6 @@ params.srate = srate;
 
 %% plot and save averages per channel
 
-ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs)
+% plotting with N1 peak detection:
+ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,1)
+
