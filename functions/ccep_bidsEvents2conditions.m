@@ -1,4 +1,4 @@
-function [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(events_table,events_include)
+function [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(events_table,events_include,params)
 % function [stim_pair_nr,stim_pair_name] = bidsEvents2conditions(events_table,events_include)
 % makes a stim_pair vector to average epochs
 %
@@ -32,19 +32,26 @@ stimEl1 = extractBefore(events_table.electrical_stimulation_site,'-');
 % get all stim - electrodes
 stimEl2 = extractAfter(events_table.electrical_stimulation_site,'-');
 
+if params.mergeAmp == 0
+    stimCur = str2double(events_table.electrical_stimulation_current)*1000;
+else 
+    stimCur = NaN(size(events_table,1),1);
+end
+
 condition_type_counter = 0;
 for kk = 1:height(events_table)
 
     % which electrodes are stimulated
     el1 = stimEl1{kk};
     el2 = stimEl2{kk};
-        
+    stimCurel = stimCur(kk);
+    
     % is this trial a stimulation trial: do el1 & el2 have content & can
     % the event be included
     if ~isempty(el1) && ~isempty(el2) && events_include(kk)==1
         % if this trial type does not exist yet & is a stimulation trial
-        if sum(strcmp(stim_pair_name,[el1 '-' el2]))==0 && ... % does el1-el2 already exist?
-                sum(strcmp(stim_pair_name,[el2 '-' el1]))==0 % group el2-el1 with el1-el2
+        if sum(strcmp(stim_pair_name,[el1 '-' el2 '-' num2str(stimCurel) 'mA']))==0 && ... % does el1-el2 already exist?
+                sum(strcmp(stim_pair_name,[el2 '-' el1 '-' num2str(stimCurel) 'mA']))==0 % group el2-el1 with el1-el2
             condition_type_counter = condition_type_counter+1;
             
             % find all trials with el1 & el2 | el2 & el1
@@ -52,7 +59,7 @@ for kk = 1:height(events_table)
                 strcmp(stimEl2,el1) & strcmp(stimEl1,el2);
             trial_nrs = find(theseTrials==1); % number of trials of this type 
             for ll = 1:sum(theseTrials)
-                stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2];   
+                stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2 '-' num2str(stimCurel) 'mA'];   
             end
             stim_pair_nr(theseTrials) = condition_type_counter;   
         end
