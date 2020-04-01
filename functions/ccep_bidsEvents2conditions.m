@@ -44,13 +44,20 @@ stimEl1 = extractBefore(events_table.electrical_stimulation_site,'-');
 % get all stim - electrodes
 stimEl2 = extractAfter(events_table.electrical_stimulation_site,'-');
 
+if params.mergeAmp == 0
+    stimCur = str2double(events_table.electrical_stimulation_current)*1000;
+else 
+    stimCur = NaN(size(events_table,1),1);
+end
+
 condition_type_counter = 0;
 for kk = 1:height(events_table)
 
     % which electrodes are stimulated
     el1 = stimEl1{kk};
     el2 = stimEl2{kk};
-        
+    stimCurel = stimCur(kk);
+    
     % is this trial a stimulation trial: do el1 & el2 have content & can
     % the event be included
     if ~isempty(el1) && ~isempty(el2) && events_include(kk)==1
@@ -84,6 +91,7 @@ for kk = 1:height(events_table)
                     stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2];   
                 end
                 stim_pair_nr(theseTrials) = condition_type_counter;   
+
             end
         end
     end
