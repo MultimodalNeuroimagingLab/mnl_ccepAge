@@ -19,7 +19,7 @@ function [average_ccep,average_ccep_names,tt] = ccep_averageConditions(data,srat
 %   average_ccep_names: ccep condition (stim pair) names
 %   tt: time for each epoch
 %
-% Dora Hermes, 2020, Multimodal Neuroimaging Lab
+% Dora Hermes, 2020, Multimodal Neuroimaging Lab, Mayo Clinic
 % Dorien van Blooijs, 2020, UMC Utrecht
 
 if isempty(params)

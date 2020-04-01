@@ -13,8 +13,8 @@ myDataPath = setLocalDataPath(1);
 %% Metadata: fill in yourself
 
 % add subject(s) information
-bids_sub = ['sub-' input('Patient number (RESPXXXX): ','s')];
-bids_ses = input('Session number (ses-X): ','s');
+bids_sub = ['sub-' input('Patient number: sub- (RESPXXXX): ','s')];
+bids_ses = ['ses-' input('Session number: ses- (X): ','s')];
 bids_task = 'task-SPESclin';
 
 % choose between available runs
@@ -40,6 +40,8 @@ ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
 % TODO: add options to separate F1-F2 from F2-F1?
 events_include = ismember(ccep_events.sub_type,{'SPES','SPESclin'});
 params.mergeAmp = 0;
+params.mergePlusMin = 1;
+
 [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include,params);
 
 %% load data and channels
@@ -86,6 +88,9 @@ end
 
 save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels')
 
+% plotting without N1 peaks:
+ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,0)
+
 %% detect N1 in each averaged signal
 
 params.amplitude_thresh = 2.6;
@@ -97,4 +102,6 @@ params.srate = srate;
 
 %% plot and save averages per channel
 
-ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs)
+% plotting with N1 peak detection:
+ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,1)
+

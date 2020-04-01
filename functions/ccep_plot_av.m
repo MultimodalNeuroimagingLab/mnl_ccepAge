@@ -1,5 +1,37 @@
-function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs)
+function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
+    channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,save_fig)
+%
+% function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
+%     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,save_fig)
+%
+% Function plots average CCEPs across conditions per electrode.
+%
+% input 
+%   average_ccep: electrodes X condition (stim pair) X time
+%   tt: time
+%   n1_peak_sample: electrodes X condition, [] to not show
+%   n1_peak_amplitude: [] or electrodes X condition, [] to not show
+%   average_ccep_names: ccep condition (stim pair) names
+%   channel_names: names of the channels (size electrodes)
+%   good_channels: electrode indices to plot
+%   myDataPath:
+%   bids_sub:
+%   bids_ses:
+%   bids_ses:
+%   bids_task:
+%   bids_runs:
+%   save_fig: 1 to save, 0 not to save
+%
+% Dora Hermes, 2020, Multimodal Neuroimaging Lab, Mayo Clinic
+% Dorien van Blooijs, 2020, UMC Utrecht
 
+if isempty(n1_peak_sample)
+    n1_peak_sample = NaN(size(average_ccep,1),size(average_ccep,2));
+end
+if isempty(n1_peak_amplitude)
+    n1_peak_amplitude = NaN(size(average_ccep,1),size(average_ccep,2));
+end
+    
 elnrs_plot = good_channels;
 
 for ll = 20%1:length(elnrs_plot)
@@ -27,17 +59,19 @@ for ll = 20%1:length(elnrs_plot)
     plot([0.9 0.9],[1000 1500],'k','LineWidth',2)
     text(0.91,1250,['500 ' native2unicode(181,'latin1') 'V'])
     
-    % create folder to save figures
-    if ~ exist(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs),'dir')
-        mkdir(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs));
+    if save_fig==1
+        % create folder to save figures
+        if ~ exist(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs),'dir')
+            mkdir(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs));
+        end
+
+        % filename
+        figureName = fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs,...
+            [bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_incomingCCEP_el' channel_names{el_plot}]);
+        set(gcf,'PaperPositionMode','auto')
+        print('-dpng','-r300',figureName)
+        print('-depsc','-r300',figureName)
     end
-    
-    % filename
-    figureName = fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs,...
-        [bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_incomingCCEP_el' channel_names{el_plot}]);
-    set(gcf,'PaperPositionMode','auto')
-    print('-dpng','-r300',figureName)
-    print('-depsc','-r300',figureName)
 %     close all
 end
 
