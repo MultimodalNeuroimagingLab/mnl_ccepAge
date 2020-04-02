@@ -104,7 +104,8 @@ for jj = 1:size(average_ccep,2)
         else
             
         % subtract median baseline from signal
-        new_signal = squeeze(average_ccep(ii,jj,:)) - signal_median;
+%         new_signal = squeeze(average_ccep(ii,jj,:)) - signal_median;
+        new_signal = squeeze(average_ccep(ii,jj,:));
         % testplot new signal: plot(tt,squeeze(new_signal))
         
         % take area before the stimulation of the new signal and calculate its SD
