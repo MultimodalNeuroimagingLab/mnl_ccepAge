@@ -12,8 +12,8 @@ function [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(events_table
 %           1: merge F01-F02 and F02-F01 (default)
 %           0: see F01-F02 and F02-F01 as separate conditions
 %       params.mergeAmp 
-%           0: merge stimulations of all amplitudes
-%           1: test whether one pair has been stimulated with different
+%           1: merge stimulations of all amplitudes
+%           0: test whether one pair has been stimulated with different
 %               amplitudes and then separate conditions
 %
 % output
@@ -28,6 +28,7 @@ function [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(events_table
 
 if isempty(params)
     params.mergePlusMin = 1;
+    params.mergeAmp = 1;
 end
 
 % include all events if input of events_include is empty
@@ -56,16 +57,19 @@ for kk = 1:height(events_table)
     % which electrodes are stimulated
     el1 = stimEl1{kk};
     el2 = stimEl2{kk};
-    stimCurel = stimCur(kk);
-    
+    if ~isnan(stimCur(kk))
+        stimCurel = ['-' num2str(stimCur(kk)) 'mA'];
+    else
+        stimCurel = '';
+    end
     % is this trial a stimulation trial: do el1 & el2 have content & can
     % the event be included
     if ~isempty(el1) && ~isempty(el2) && events_include(kk)==1
         
         if params.mergePlusMin==1 % merge el1-el with el2-el1
             % if this trial type does not exist yet & is a stimulation trial
-            if sum(strcmp(stim_pair_name,[el1 '-' el2]))==0 && ... % does el1-el2 already exist?
-                    sum(strcmp(stim_pair_name,[el2 '-' el1]))==0 % group el2-el1 with el1-el2
+            if sum(strcmp(stim_pair_name,[el1 '-' el2 stimCurel]))==0 && ... % does el1-el2 already exist?
+                    sum(strcmp(stim_pair_name,[el2 '-' el1 stimCurel]))==0 % group el2-el1 with el1-el2
                 condition_type_counter = condition_type_counter+1;
 
                 % find all trials with el1 & el2 | el2 & el1
@@ -73,7 +77,7 @@ for kk = 1:height(events_table)
                     strcmp(stimEl2,el1) & strcmp(stimEl1,el2);
                 trial_nrs = find(theseTrials==1); % number of trials of this type 
                 for ll = 1:sum(theseTrials)
-                    stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2];   
+                    stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2 stimCurel];   
                 end
                 stim_pair_nr(theseTrials) = condition_type_counter;   
             end
@@ -81,14 +85,14 @@ for kk = 1:height(events_table)
         elseif params.mergePlusMin==0 % separate el1-el with el2-el1
             
             % if this trial type does not exist yet & is a stimulation trial
-            if sum(strcmp(stim_pair_name,[el1 '-' el2]))==0 % el1-el2
+            if sum(strcmp(stim_pair_name,[el1 '-' el2 stimCurel]))==0 % el1-el2
                 condition_type_counter = condition_type_counter+1;
 
                 % find all trials with el1 & el2 
                 theseTrials = strcmp(stimEl1,el1) & strcmp(stimEl2,el2);
                 trial_nrs = find(theseTrials==1); % number of trials of this type 
                 for ll = 1:sum(theseTrials)
-                    stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2];   
+                    stim_pair_name{trial_nrs(ll),1} = [el1 '-' el2 stimCurel];   
                 end
                 stim_pair_nr(theseTrials) = condition_type_counter;   
 
@@ -99,7 +103,3 @@ end
 
 clear el1 el2 trial_nrs theseTrials epoch_type_counter
 
-% should conditions of different amplitudes be separated?
-if params.mergeAmp ==0
-    % TODO
-end

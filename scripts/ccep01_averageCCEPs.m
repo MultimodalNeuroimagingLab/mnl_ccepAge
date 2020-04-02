@@ -89,7 +89,8 @@ end
 save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels')
 
 % plotting without N1 peaks:
-ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,0)
+ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,...
+    good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,0)
 
 %% detect N1 in each averaged signal
 
@@ -102,6 +103,9 @@ params.srate = srate;
 
 %% plot and save averages per channel
 
+params.save_fig = str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
+
 % plotting with N1 peak detection:
-ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,1)
+ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
+    channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
 

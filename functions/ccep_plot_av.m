@@ -1,8 +1,8 @@
 function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
-    channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,save_fig)
+    channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
 %
 % function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
-%     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,save_fig)
+%     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
 %
 % Function plots average CCEPs across conditions per electrode.
 %
@@ -34,7 +34,7 @@ end
     
 elnrs_plot = good_channels;
 
-for ll = 20%1:length(elnrs_plot)
+for ll = 12%1:length(elnrs_plot)
     el_plot = elnrs_plot(ll);
     figure('Position',[0 0 700 700]),hold on
     for kk = 1:length(average_ccep_names)
@@ -59,7 +59,7 @@ for ll = 20%1:length(elnrs_plot)
     plot([0.9 0.9],[1000 1500],'k','LineWidth',2)
     text(0.91,1250,['500 ' native2unicode(181,'latin1') 'V'])
     
-    if save_fig==1
+    if params.save_fig==1
         % create folder to save figures
         if ~ exist(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs),'dir')
             mkdir(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs));
@@ -71,8 +71,10 @@ for ll = 20%1:length(elnrs_plot)
         set(gcf,'PaperPositionMode','auto')
         print('-dpng','-r300',figureName)
         print('-depsc','-r300',figureName)
+    else
+        pause
     end
-%     close all
+    close all
 end
 
 end
