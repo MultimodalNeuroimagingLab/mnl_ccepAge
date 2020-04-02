@@ -12,8 +12,8 @@ function [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(events_table
 %           1: merge F01-F02 and F02-F01 (default)
 %           0: see F01-F02 and F02-F01 as separate conditions
 %       params.mergeAmp 
-%           0: merge stimulations of all amplitudes
-%           1: test whether one pair has been stimulated with different
+%           1: merge stimulations of all amplitudes (default)
+%           0: test whether one pair has been stimulated with different
 %               amplitudes and then separate conditions
 %
 % output
