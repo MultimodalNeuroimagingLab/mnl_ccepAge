@@ -34,7 +34,7 @@ end
     
 elnrs_plot = good_channels;
 
-for ll = 12%1:length(elnrs_plot)
+for ll = 1:length(elnrs_plot)
     el_plot = elnrs_plot(ll);
     figure('Position',[0 0 700 700]),hold on
     for kk = 1:length(average_ccep_names)

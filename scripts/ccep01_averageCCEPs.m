@@ -102,8 +102,9 @@ params.srate = srate;
 
 
 %% plot and save averages per channel
-
-params.save_fig = str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
+if isempty(params.save_fig)
+    params.save_fig = str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
+end
 
 % plotting with N1 peak detection:
 ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
