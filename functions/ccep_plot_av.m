@@ -39,12 +39,12 @@ for ll = 1:length(elnrs_plot)
     figure('Position',[0 0 700 700]),hold on
     for kk = 1:length(average_ccep_names)
         this_ccep_plot = squeeze(average_ccep(el_plot,kk,:));
-        %         this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
+        this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
         
         plot(tt,kk*500+zeros(size(tt)),'Color',[.8 .8 .8])
         plot(tt,kk*500+this_ccep_plot)
         if ~isnan(n1_peak_sample(el_plot,kk))
-            plot(tt(n1_peak_sample(el_plot,kk)),n1_peak_amplitude(el_plot,kk)+kk*500,'o','MarkerEdgeColor','r','MarkerFaceColor','r','MarkerSize',2)
+            plot(tt(n1_peak_sample(el_plot,kk)),n1_peak_amplitude(el_plot,kk)+kk*500,'o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2)
         end
     end
     xlim([-.2 1])

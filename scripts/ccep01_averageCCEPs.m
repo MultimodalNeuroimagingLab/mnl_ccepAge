@@ -75,7 +75,7 @@ params.epoch_prestim_length = 2;%: prestimulus epoch length in sec, default = 2
 params.baseline_subtract = 0; % subtract median baseline from each trial
 
 % TODO: remove bad channels
-[average_ccep,average_ccep_names,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
+[average_ccep,average_ccep_names,ccep,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
 
 saveName = fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses,...
     [ bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_averageCCEPs.mat']);
@@ -89,8 +89,9 @@ end
 save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels')
 
 % plotting without N1 peaks:
+params.save_fig = 0;
 ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,...
-    good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,0)
+    good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
 
 %% detect N1 in each averaged signal
 
@@ -100,11 +101,12 @@ params.srate = srate;
 
 [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,params);
 
+%% check detected N1 in each averaged signal 
+
+[n1_peak_amplitude_check, n1_peak_sample_check ] = ccep_visualcheck_n1peak_ECoG(average_ccep, ccep,average_ccep_names,channel_names,tt,n1_peak_amplitude,n1_peak_sample);
 
 %% plot and save averages per channel
-if isempty(params.save_fig)
-    params.save_fig = str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
-end
+params.save_fig = str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
 
 % plotting with N1 peak detection:
 ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
