@@ -1,4 +1,4 @@
-function [average_ccep,average_ccep_names,tt] = ccep_averageConditions(data,srate,events_table,channel_names,stim_pair_nr,stim_pair_name,params)
+function [average_ccep,average_ccep_names,ccep,tt] = ccep_averageConditions(data,srate,events_table,channel_names,stim_pair_nr,stim_pair_name,params)
 %
 % function [average_ccep,average_ccep_names] = ccep_averageConditions(data,srate,events_table,channel_names,stim_pair_nr,stim_pair_name,params)
 % calculates average across condition numbers for ccep data 
@@ -34,13 +34,14 @@ else
 end
 
 nr_channels = size(data,1);
-    
+max_nr_epochs = max(histcounts(stim_pair_nr,'BinMethod','integers'));
 % set epoch parameters
 tt = (1:epoch_length*srate)/srate - epoch_prestim_length;
 
 % initialize output
 average_ccep = NaN(nr_channels,max(stim_pair_nr),round(epoch_length*srate));
 average_ccep_names = cell(max(stim_pair_nr),1);
+ccep = NaN(nr_channels,max(stim_pair_nr),max_nr_epochs,round(epoch_length*srate));
 %%
 for kk = 1:max(stim_pair_nr) % condition number
     disp(['loading data for condition ' int2str(kk) ' out of ' int2str(max(stim_pair_nr))])
@@ -76,8 +77,10 @@ for kk = 1:max(stim_pair_nr) % condition number
     if baseline_subtract==1
         samples_base = find(tt>-1 & tt<-0.1);
         these_epochs_data = ccep_baselinesubtract(these_epochs_data,samples_base,'median');
-    end    
+    end
     
+    % save all cceps
+    ccep(:,kk,:,:) = these_epochs_data;
     % save average
     average_ccep(:,kk,:) = squeeze(nanmean(these_epochs_data,2));
     
@@ -89,8 +92,11 @@ end
 for kk = 1:size(average_ccep,2) % epochs
     % stimulated electrode names
     el1 = extractBefore(average_ccep_names{kk},'-');
-    el2 = extractAfter(average_ccep_names{kk},'-');
-    
+    if contains(extractAfter(average_ccep_names{kk},'-'),'-') % in case el1 - el2 - XmA is present in average_ccep_names
+        el2 = extractBefore(extractAfter(average_ccep_names{kk},'-'),'-');
+    else
+            el2 = extractAfter(average_ccep_names{kk},'-');
+    end
     % stimulated electrode index in the data
     el1_nr = ismember(channel_names,el1);
     el2_nr = ismember(channel_names,el2);

@@ -1,4 +1,4 @@
-function data_epoch = ieeg_baselinesubtract(data_epoch,samples_base,varargin)
+function data_epoch = ccep_baselinesubtract(data_epoch,samples_base,varargin)
 %
 % function data_epoch = ieeg_baselinesubtract(data_epoch,samples_base,baseline_function)
 % subtracts the mean signal during samples_base from each epoch

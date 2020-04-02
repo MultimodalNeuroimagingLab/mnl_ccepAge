@@ -1,8 +1,8 @@
 function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
-    channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,save_fig)
+    channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
 %
 % function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
-%     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,save_fig)
+%     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
 %
 % Function plots average CCEPs across conditions per electrode.
 %
@@ -34,17 +34,17 @@ end
     
 elnrs_plot = good_channels;
 
-for ll = 20%1:length(elnrs_plot)
+for ll = 1:length(elnrs_plot)
     el_plot = elnrs_plot(ll);
     figure('Position',[0 0 700 700]),hold on
     for kk = 1:length(average_ccep_names)
         this_ccep_plot = squeeze(average_ccep(el_plot,kk,:));
-        %         this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
+        this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
         
         plot(tt,kk*500+zeros(size(tt)),'Color',[.8 .8 .8])
         plot(tt,kk*500+this_ccep_plot)
         if ~isnan(n1_peak_sample(el_plot,kk))
-            plot(tt(n1_peak_sample(el_plot,kk)),n1_peak_amplitude(el_plot,kk)+kk*500,'o','MarkerEdgeColor','r','MarkerFaceColor','r','MarkerSize',2)
+            plot(tt(n1_peak_sample(el_plot,kk)),n1_peak_amplitude(el_plot,kk)+kk*500,'o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2)
         end
     end
     xlim([-.2 1])
@@ -59,7 +59,7 @@ for ll = 20%1:length(elnrs_plot)
     plot([0.9 0.9],[1000 1500],'k','LineWidth',2)
     text(0.91,1250,['500 ' native2unicode(181,'latin1') 'V'])
     
-    if save_fig==1
+    if params.save_fig==1
         % create folder to save figures
         if ~ exist(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs),'dir')
             mkdir(fullfile(myDataPath.output,'derivatives','av_ccep_figures',bids_sub,bids_ses,bids_runs));
@@ -71,8 +71,10 @@ for ll = 20%1:length(elnrs_plot)
         set(gcf,'PaperPositionMode','auto')
         print('-dpng','-r300',figureName)
         print('-depsc','-r300',figureName)
+    else
+        pause
     end
-%     close all
+    close all
 end
 
 end
