@@ -9,7 +9,8 @@ function [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_cc
 %   Threshold factor that needs to be exceeded to detect a peak as
 %   significant peak. This factor is multiplies the minimal pre simulation
 %   standard deviation of 50 uV. amplitude_thresh of 3.4 recommended for
-%   conservative algorithm (50 uV * 3.4 = 170 uV).
+%   conservative algorithm (50 uV * 3.4 = 170 uV). 2.6 is recommended to
+%   have a high sensitivity
 % - n1_peak_range
 %   End point (in ms) of the range in which the algorithm will search for the
 %   peak of the N1. Algorithm will search between 10ms and the end point.
@@ -164,6 +165,7 @@ for jj = 1:size(average_ccep,2)
                 % otherwise give the amplitude the value NaN
             elseif isempty(temp_n1_peaks_samp)
                 n1_peak_amplitude = NaN;
+                n1_peak_sample = NaN;                
             end
             
             % if N1 exceeds positive threshold, it is deleted
