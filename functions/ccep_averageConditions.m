@@ -67,7 +67,7 @@ for kk = 1:max(stim_pair_nr) % condition number
         ll_end = round(events_table.sample_start(these_epochs(ll)) + (epoch_length-epoch_prestim_length)*srate);
         
         % load data
-        if ~isnan(ll_start)
+        if ~isnan(ll_start) && ll_end<size(data,2) && ll_start>0
             these_epochs_data(:,ll,:) = data(:,ll_start+1:ll_end);
         end
         
@@ -79,8 +79,12 @@ for kk = 1:max(stim_pair_nr) % condition number
         these_epochs_data = ccep_baselinesubtract(these_epochs_data,samples_base,'median');
     end
     
-    % save all cceps
-    ccep(:,kk,:,:) = these_epochs_data;
+    if size(these_epochs_data,2) == max_nr_epochs
+        % save all cceps
+        ccep(:,kk,:,:) = these_epochs_data;
+    else
+        ccep(:,kk,1:size(these_epochs_data,2),:) = these_epochs_data;
+    end
     % save average
     average_ccep(:,kk,:) = squeeze(nanmean(these_epochs_data,2));
     
