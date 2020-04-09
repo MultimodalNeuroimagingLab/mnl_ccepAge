@@ -99,6 +99,7 @@ end
 
 
 
+
 figure
 subplot(2,1,1),hold on
 plot(my_output(:,1),1000*my_output(:,2),'.')
@@ -110,6 +111,21 @@ subplot(2,1,2),hold on
 plot(my_output(:,1),my_output(:,3),'.')
 xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(:,1),my_output(:,3),'Type','Pearson');
+title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+
+%% plot all under 40
+
+figure
+subplot(2,1,1),hold on
+plot(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),'.')
+xlabel('age (years)'),ylabel('mean latency (ms)')
+[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,2),'Type','Pearson');
+title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+
+subplot(2,1,2),hold on
+plot(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'.')
+xlabel('age (years)'),ylabel('variance in latency')
+[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 
