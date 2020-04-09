@@ -1,5 +1,7 @@
 function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
+
+
 %
 % function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
 %     channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
