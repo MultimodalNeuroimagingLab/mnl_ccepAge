@@ -1,5 +1,6 @@
 %
-% Script to load detecte N1 responses.
+% Script to load detected N1 responses, combine all in 1 file and assign
+% the Destrieux labels
 % 
 % Dora Hermes, Dorien van Blooijs, 2020
 %
@@ -74,6 +75,7 @@ for kk = 1:length(theseSubs)-1 % skipping last subject because missing N1
         n1Latencies(kk).run(ll).channel_names = thisData.channel_names;
         n1Latencies(kk).run(ll).average_ccep_names = thisData.average_ccep_names;
         n1Latencies(kk).run(ll).good_channels = thisData.good_channels;
+        n1Latencies(kk).run(ll).tt = thisData.tt;
     end
     
 end
@@ -150,7 +152,7 @@ for kk = 1:length(n1Latencies) % loop subjects
                 clear el1_nr
             else
                 n1Latencies(kk).run(ll).channel_DestrieuxLabel{ch} = NaN;
-                n1Latencies(kk).run(ll).channel_DestrieuxLabelNr{ch} = NaN;
+                n1Latencies(kk).run(ll).channel_DestrieuxNr{ch} = NaN;
             end
             
         end
@@ -159,7 +161,6 @@ for kk = 1:length(n1Latencies) % loop subjects
 end
 
 
-    
 %% get ages
 
 % load participants.tsv
@@ -172,6 +173,14 @@ for kk = 1:length(theseSubs)-1 % skipping last subject because missing N1
 end
 
 
+%% here, we should probably save the N1 latency structure
+
+save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies.mat'),'n1Latencies')
+
+
+%%
+%% some plots to check:
+%%
 %% plot means, var etc
 
 % initialize output: age, mean and variance in latency per subject
@@ -182,7 +191,7 @@ for kk = 1:length(n1Latencies)
     my_output(kk,1) = n1Latencies(kk).age;
     allLatencies = [];
     for ll = 1:length(n1Latencies(kk).run)
-        allLatencies = [allLatencies n1Latencies(kk).run(ll).latency]; %#ok<AGROW>
+        allLatencies = [allLatencies n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output(kk,2) = mean(allLatencies);
     my_output(kk,3) = var(allLatencies);
@@ -217,7 +226,7 @@ xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-%% 
+%% what should we do with this?
 
 for kk = 1 :size(n1Latencies,2)
     
