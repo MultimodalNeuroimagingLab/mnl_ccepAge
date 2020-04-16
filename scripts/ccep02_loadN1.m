@@ -86,78 +86,58 @@ for kk = 1:length(n1Latencies) % loop subjects
    
     for ll = 1:length(n1Latencies(kk).run) % loop runs
         
-        % Destrieux labels and numbers for average CCEP stimulated pairs
+        % pre-allocation: Destrieux labels and numbers for average CCEP stimulated pairs
         n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel = cell(size(n1Latencies(kk).run(ll).average_ccep_names,1),2);
         n1Latencies(kk).run(ll).average_ccep_DestrieuxNr = cell(size(n1Latencies(kk).run(ll).average_ccep_names,1),2);
         
-        % Destrieux labels and numbers for measured channels
+        % pre-allocation: Destrieux labels and numbers for measured channels
         n1Latencies(kk).run(ll).channel_DestrieuxLabel = cell(size(n1Latencies(kk).run(ll).channel_names));
         n1Latencies(kk).run(ll).channel_DestrieuxNr = cell(size(n1Latencies(kk).run(ll).channel_names));
         
         % loop through CCEP stimulated pairs
-        for ch = 1:length(n1Latencies(kk).run(ll).average_ccep_names)
+        for chPair = 1:length(n1Latencies(kk).run(ll).average_ccep_names)
             % get stimulated channels
-            stimpchans = strsplit(n1Latencies(kk).run(ll).average_ccep_names{ch},'-');
+            stimpchans = strsplit(n1Latencies(kk).run(ll).average_ccep_names{chPair},'-');
             
-            % get first stimulated channel number in_electrodes.tsv
-            stim_el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,stimpchans{1})==1);
-            
-            % sometimes the stim pair is called TP1 and the channel name is
-            % TP01, we need to check for this
-            if isempty(stim_el1_nr)
-                % insert a zero and check
-                newName = insertBefore(stimpchans{1},length(stimpchans{1}),'0');
-                stim_el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,newName)==1);
-                if isempty(stim_el1_nr)
-                    disp(['no match for ' stimpchans{1}])
+            for ch = 1:2
+                % get first stimulated channel number in_electrodes.tsv
+                stim_el_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,stimpchans{ch})==1);
+                
+                % sometimes the stim pair is called TP1 and the channel name is
+                % TP01, we need to check for this
+                if isempty(stim_el_nr)
+                    % insert a zero and check
+                    newName = insertBefore(stimpchans{1},length(stimpchans{1}),'0');
+                    stim_el_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,newName)==1);
+                    if isempty(stim_el_nr)
+                        disp(['no match for ' stimpchans{1}])
+                    end
                 end
+                
+                n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{chPair,ch} = ...
+                    n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el_nr};
+                n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{chPair,ch} = ...
+                    n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el_nr};
             end
-            
-            n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{ch,1} = ...
-                n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el1_nr};
-            n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{ch,1} = ...
-                n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el1_nr};
-            
-            % get second stimulated channel number in_electrodes.tsv
-            stim_el2_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,stimpchans{2})==1);
-            
-            % sometimes the stim pair is called TP1 and the channel name is
-            % TP01, we need to check for this
-            if isempty(stim_el2_nr)
-                % insert a zero and check
-                newName = insertBefore(stimpchans{2},length(stimpchans{2}),'0');
-                stim_el2_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,newName)==1);
-                if isempty(stim_el2_nr)
-                    disp(['no match for ' stimpchans{2}])
-                end
-            end
-            
-            n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{ch,2} = ...
-                n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el2_nr};
-            n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{ch,2} = ...
-                n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el2_nr};
-            
-            clear stim_el1_nr stim_el2_nr stimpchans % housekeeping
+            clear stim_el_nr stimpchans % housekeeping
         end
         
         % loop through channels
-        for ch = 1:length(n1Latencies(kk).run(ll).channel_names)            
+        for chSig = 1:length(n1Latencies(kk).run(ll).channel_names)            
             % get channel number in_electrodes.tsv
-            el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,n1Latencies(kk).run(ll).channel_names{ch})==1);
+            el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,n1Latencies(kk).run(ll).channel_names{chSig})==1);
             if ~isempty(el1_nr)
-                n1Latencies(kk).run(ll).channel_DestrieuxLabel{ch} = ...
+                n1Latencies(kk).run(ll).channel_DestrieuxLabel{chSig} = ...
                     n1Latencies(kk).elecs_tsv.Destrieux_label_text{el1_nr};
-                n1Latencies(kk).run(ll).channel_DestrieuxNr{ch} = ...
+                n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = ...
                     n1Latencies(kk).elecs_tsv.Destrieux_label{el1_nr};
                 clear el1_nr
             else
-                n1Latencies(kk).run(ll).channel_DestrieuxLabel{ch} = NaN;
-                n1Latencies(kk).run(ll).channel_DestrieuxNr{ch} = NaN;
-            end
-            
+                n1Latencies(kk).run(ll).channel_DestrieuxLabel{chSig} = NaN;
+                n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = NaN;
+            end            
         end
-    end
-    
+    end    
 end
 
 
@@ -178,7 +158,6 @@ end
 save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies.mat'),'n1Latencies')
 
 
-%%
 %% some plots to check:
 %%
 %% plot means, var etc
@@ -226,23 +205,3 @@ xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-%% what should we do with this?
-
-for kk = 1 :size(n1Latencies,2)
-    
-    DKT = str2double(n1Latencies(kk).elecs_tsv.DKTatlas_label);
-    DKTamat = zeros(40,40); % collumns = stimulated, rows = responders
-    
-    for run = 1 : size(n1Latencies(kk).run,2)
-        
-        for cc = 1: size(n1Latencies(kk).run(run).n1_peak_sample,2)
-            
-            DKTstim = DKT(n1Latencies(kk).run(run).average_ccep_nums(cc,:));
-            DKTresp = DKT(~isnan(n1Latencies(kk).run(run).n1_peak_sample(:,cc)));
-            DKTamat(DKTresp(~isnan(DKTresp)), DKTstim(1)) = DKTamat(DKTresp(~isnan(DKTresp)),DKTstim(1)) +1;
-            DKTamat(DKTresp(~isnan(DKTresp)), DKTstim(2)) = DKTamat(DKTresp(~isnan(DKTresp)),DKTstim(2)) +1;
-       end
-    end
-    
-    n1Latencies(kk).DKTamat = DKTamat;
-end
