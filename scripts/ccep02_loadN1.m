@@ -1,5 +1,6 @@
 %
-% Script to load detecte N1 responses.
+% Script to load detected N1 responses, combine all in 1 file and assign
+% the Destrieux labels
 % 
 % Dora Hermes, Dorien van Blooijs, 2020
 %
@@ -62,30 +63,104 @@ for kk = 1:length(theseSubs)-1 % skipping last subject because missing N1
     n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
     n1Latencies(kk).elecs_tsv = read_tsv(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
         [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']));
-    
+        
     for ll = 1:length(theseSubs(kk).run)
+        
         clear thisData
         thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',theseSubs(kk).name,theseSubs(kk).ses,...
             theseSubs(kk).run{ll});
         thisData = load(thisRun);
-        n1Latencies(kk).run(ll).latency = thisData.tt(thisData.n1_peak_sample(~isnan(thisData.n1_peak_sample)));
+        n1Latencies(kk).run(ll).allLatencies = thisData.tt(thisData.n1_peak_sample(~isnan(thisData.n1_peak_sample)));
         n1Latencies(kk).run(ll).n1_peak_sample = thisData.n1_peak_sample;
+        n1Latencies(kk).run(ll).channel_names = thisData.channel_names;
+        n1Latencies(kk).run(ll).average_ccep_names = thisData.average_ccep_names;
         n1Latencies(kk).run(ll).good_channels = thisData.good_channels;
+        n1Latencies(kk).run(ll).tt = thisData.tt;
+    end
+    
+end
+
+%% get Freesurfer labels for stimulation and recording pair
+
+for kk = 1:length(n1Latencies) % loop subjects
+   
+    for ll = 1:length(n1Latencies(kk).run) % loop runs
         
-        % stimpnums
-        for ch = 1:size(thisData.average_ccep_names,1)
-            stimpchans = strsplit(thisData.average_ccep_names{ch},'-');
+        % Destrieux labels and numbers for average CCEP stimulated pairs
+        n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel = cell(size(n1Latencies(kk).run(ll).average_ccep_names,1),2);
+        n1Latencies(kk).run(ll).average_ccep_DestrieuxNr = cell(size(n1Latencies(kk).run(ll).average_ccep_names,1),2);
+        
+        % Destrieux labels and numbers for measured channels
+        n1Latencies(kk).run(ll).channel_DestrieuxLabel = cell(size(n1Latencies(kk).run(ll).channel_names));
+        n1Latencies(kk).run(ll).channel_DestrieuxNr = cell(size(n1Latencies(kk).run(ll).channel_names));
+        
+        % loop through CCEP stimulated pairs
+        for ch = 1:length(n1Latencies(kk).run(ll).average_ccep_names)
+            % get stimulated channels
+            stimpchans = strsplit(n1Latencies(kk).run(ll).average_ccep_names{ch},'-');
             
-            for nn = 1:2
-                stimpnums(ch,nn) =  find(strcmp(thisData.channel_names,stimpchans{nn})==1);
+            % get first stimulated channel number in_electrodes.tsv
+            stim_el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,stimpchans{1})==1);
+            
+            % sometimes the stim pair is called TP1 and the channel name is
+            % TP01, we need to check for this
+            if isempty(stim_el1_nr)
+                % insert a zero and check
+                newName = insertBefore(stimpchans{1},length(stimpchans{1}),'0');
+                stim_el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,newName)==1);
+                if isempty(stim_el1_nr)
+                    disp(['no match for ' stimpchans{1}])
+                end
+            end
+            
+            n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{ch,1} = ...
+                n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el1_nr};
+            n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{ch,1} = ...
+                n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el1_nr};
+            
+            % get second stimulated channel number in_electrodes.tsv
+            stim_el2_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,stimpchans{2})==1);
+            
+            % sometimes the stim pair is called TP1 and the channel name is
+            % TP01, we need to check for this
+            if isempty(stim_el2_nr)
+                % insert a zero and check
+                newName = insertBefore(stimpchans{2},length(stimpchans{2}),'0');
+                stim_el2_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,newName)==1);
+                if isempty(stim_el2_nr)
+                    disp(['no match for ' stimpchans{2}])
+                end
+            end
+            
+            n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{ch,2} = ...
+                n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el2_nr};
+            n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{ch,2} = ...
+                n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el2_nr};
+            
+            clear stim_el1_nr stim_el2_nr stimpchans % housekeeping
+        end
+        
+        % loop through channels
+        for ch = 1:length(n1Latencies(kk).run(ll).channel_names)            
+            % get channel number in_electrodes.tsv
+            el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,n1Latencies(kk).run(ll).channel_names{ch})==1);
+            if ~isempty(el1_nr)
+                n1Latencies(kk).run(ll).channel_DestrieuxLabel{ch} = ...
+                    n1Latencies(kk).elecs_tsv.Destrieux_label_text{el1_nr};
+                n1Latencies(kk).run(ll).channel_DestrieuxNr{ch} = ...
+                    n1Latencies(kk).elecs_tsv.Destrieux_label{el1_nr};
+                clear el1_nr
+            else
+                n1Latencies(kk).run(ll).channel_DestrieuxLabel{ch} = NaN;
+                n1Latencies(kk).run(ll).channel_DestrieuxNr{ch} = NaN;
             end
             
         end
-        n1Latencies(kk).run(ll).average_ccep_nums = stimpnums;
-        
     end
-end
     
+end
+
+
 %% get ages
 
 % load participants.tsv
@@ -98,9 +173,17 @@ for kk = 1:length(theseSubs)-1 % skipping last subject because missing N1
 end
 
 
+%% here, we should probably save the N1 latency structure
+
+save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies.mat'),'n1Latencies')
+
+
+%%
+%% some plots to check:
+%%
 %% plot means, var etc
 
-% initializa output: age, mean and variance in latency per subject
+% initialize output: age, mean and variance in latency per subject
 my_output = NaN(length(n1Latencies)-1,3);
 
 % get variable per subject
@@ -108,7 +191,7 @@ for kk = 1:length(n1Latencies)
     my_output(kk,1) = n1Latencies(kk).age;
     allLatencies = [];
     for ll = 1:length(n1Latencies(kk).run)
-        allLatencies = [allLatencies n1Latencies(kk).run(ll).latency]; %#ok<AGROW>
+        allLatencies = [allLatencies n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output(kk,2) = mean(allLatencies);
     my_output(kk,3) = var(allLatencies);
@@ -143,7 +226,7 @@ xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-%% 
+%% what should we do with this?
 
 for kk = 1 :size(n1Latencies,2)
     
