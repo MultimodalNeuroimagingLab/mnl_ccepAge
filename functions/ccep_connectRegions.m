@@ -1,9 +1,12 @@
-function ccep_connectRegions(n1Latencies,region_start,region_end)
+function [out] = ccep_connectRegions(n1Latencies,region_start,region_end)
 
 if strcmp(region_start,'temporal')
     % temporal areas:
-    % G_temporal_inf, G_temporal_middle
-    roi_start = {'37','38'};
+%     % G_temporal_inf, G_temporal_middle
+%     roi_start = {'37','38'};
+    % G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
+    % G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
+    roi_start = {'37','38','34','23','21'};
 elseif strcmp(region_start,'frontal')
     % frontal areas:
     % G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
@@ -16,11 +19,16 @@ elseif strcmp(region_start,'occipital')
     % occipital areas:
     % G_occipital_middle G_oc-temp_med-Lingual Pole_occipital
     roi_start = {'19','22','42'};
+elseif strcmp(region_start,'central')
+    % sensorimotor:
+    % G_postcentral G_precentral S_central
+    roi_start = {'28','29','46'};
 end
 
 if strcmp(region_end,'temporal')
-    roi_end = {'37','38'};
-    
+%     roi_end = {'37','38'};
+    roi_end = {'37','38','34','23','21'};
+
 elseif strcmp(region_end,'frontal')
     roi_end =  {'14';'15';'12'}; % maybe add 16: G_front_sup
     
@@ -29,6 +37,9 @@ elseif strcmp(region_end,'parietal')
     
 elseif strcmp(region_end,'occipital')
     roi_end = {'19','22','42'};
+    
+elseif strcmp(region_end,'central')
+    roi_end = {'28','29','46'};
 end
 
 out = [];
@@ -67,31 +78,5 @@ for kk = 1:length(n1Latencies) % loop subjects
     end
 end
 
-%% figure
-
-outInd = 1;
-
-% initialize output: age, mean and variance in latency per subject
-my_output = NaN(length(out(outInd).sub),3);
-
-% get variable per subject
-for kk = 1:length(out(outInd).sub)
-    my_output(kk,1) = out(outInd).sub(kk).age;
-    my_output(kk,2) = nanmean(out(outInd).sub(kk).latencies);
-    my_output(kk,3) = nanvar(out(outInd).sub(kk).latencies);
-end
-
-figure
-subplot(2,1,1),hold on
-plot(my_output(:,1),1000*my_output(:,2),'b.')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
-title([region_start ' to ' region_end   ', r=' num2str(r,3) ' p=' num2str(p,3)])
-
-subplot(2,1,2),hold on
-plot(my_output(:,1),my_output(:,3),'r.')
-xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(~isnan(my_output(:,3)),1),my_output(~isnan(my_output(:,3)),3),'Type','Pearson');
-title([region_start ' to ' region_end   ', r=' num2str(r,3) ' p=' num2str(p,3)])
 
 end

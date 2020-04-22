@@ -3,11 +3,86 @@
 
 %% connections from one region to another
 
-%%% need to wrap this in a function where we can enter 2 areas of interest
-region_start = input('Choose roi where connections start [temporal, frontal, parietal, occipital]: ','s');
-region_end = input('Choose roi where connections end [temporal, frontal, parietal, occipital]: ','s');
+% region_start = input('Choose roi where connections start [temporal, frontal, parietal, occipital]: ','s');
+% region_end = input('Choose roi where connections end [temporal, frontal, parietal, occipital]: ','s');
 
-ccep_connectRegions(n1Latencies,region_start,region_end)
+region_start = 'occipital';
+region_end = 'occipital';
+
+out = ccep_connectRegions(n1Latencies,region_start,region_end);
+
+% initialize output: age, mean and variance in latency per subject
+my_output = NaN(length(out.sub),3);
+
+% get variable per subject
+for kk = 1:length(out.sub)
+    my_output(kk,1) = out.sub(kk).age;
+    my_output(kk,2) = nanmean(out.sub(kk).latencies);
+    my_output(kk,3) = nanvar(out.sub(kk).latencies);
+end
+
+figure
+plot(my_output(:,1),1000*my_output(:,2),'k.','MarkerSize',10)
+xlabel('age (years)'),ylabel('mean dT (ms)')
+[r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
+title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+
+%% figure latency connections from one region to another
+clear out
+regions_connect = {'temporal','central','parietal','frontal'};
+conn_matrix = [1 1; 1 2; 1 3; 1 4; 2 1; 2 2; 2 3; 2 4; 3 1; 3 2; 3 3; 3 4; 4 1; 4 2; 4 3; 4 4];
+
+for outInd = 1:size(conn_matrix,1)
+    region_start = regions_connect{conn_matrix(outInd,1)};
+    region_end = regions_connect{conn_matrix(outInd,2)};
+    temp = ccep_connectRegions(n1Latencies,region_start,region_end);
+    out{outInd} = temp;
+    out{outInd}.name = {region_start,region_end};
+end
+
+%%
+figure('position',[0 0 700 700])
+for outInd = 1:size(conn_matrix,1)
+
+    % initialize output: age, mean and variance in latency per subject
+    my_output = NaN(length(out{outInd}.sub),3);
+
+    % get variable per subject
+    for kk = 1:length(out{outInd}.sub)
+        my_output(kk,1) = out{outInd}.sub(kk).age;
+        my_output(kk,2) = nanmean(out{outInd}.sub(kk).latencies);
+        my_output(kk,3) = nanvar(out{outInd}.sub(kk).latencies);
+    end
+    
+    subplot(4,4,outInd),hold on
+    plot(my_output(:,1),1000*my_output(:,2),'k.','MarkerSize',10)
+    xlabel('age (years)'),ylabel('mean dT (ms)')
+    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
+%     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
+    title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+    xlim([0 60]), ylim([0 100])
+    
+    % Yeatman et al., fit a second order polynomial:
+    % y  = w1* age^2 * w2*age + w3
+    [P,S] = polyfit(my_output(~isnan(my_output(:,2)),1),1000*my_output(~isnan(my_output(:,2)),2),2);
+    x_age = [1:1:50];
+    y_fit = P(1)*x_age.^2 + P(2)*x_age + P(3);
+    plot(x_age,y_fit,'r')
+
+    % Let's fit a first order polynomial:
+    % y  =  w1*age + w2
+    [P,S] = polyfit(my_output(~isnan(my_output(:,2)),1),1000*my_output(~isnan(my_output(:,2)),2),1);
+    x_age = [1:1:50];
+    y_fit = P(1)*x_age + P(2);
+    plot(x_age,y_fit,'r')
+end
+
+figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
 
 %% overview of number of connections from one region to another
 
