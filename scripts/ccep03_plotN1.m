@@ -3,11 +3,11 @@
 
 %% connections from one region to another
 
-% region_start = input('Choose roi where connections start [temporal, frontal, parietal, occipital]: ','s');
-% region_end = input('Choose roi where connections end [temporal, frontal, parietal, occipital]: ','s');
+region_start = input('Choose roi where connections start [temporal, frontal, parietal, occipital]: ','s');
+region_end = input('Choose roi where connections end [temporal, frontal, parietal, occipital]: ','s');
 
-region_start = 'occipital';
-region_end = 'occipital';
+% region_start = 'occipital';
+% region_end = 'occipital';
 
 out = ccep_connectRegions(n1Latencies,region_start,region_end);
 
@@ -77,6 +77,10 @@ for outInd = 1:size(conn_matrix,1)
     plot(x_age,y_fit,'r')
 end
 
+if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
+    mkdir(fullfile(myDataPath.output,'derivatives','age'));    
+end
+
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1');
 
 set(gcf,'PaperPositionMode','auto')
@@ -131,3 +135,4 @@ title('Connections between regions in all subjects')
 xlabel('Responding Destrieux region')
 ylabel('Stimulated Destrieux region')
 
+%% 
