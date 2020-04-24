@@ -53,11 +53,9 @@ end
 
 %% run through all N1 data
 
-% !subject number 61 did not have any n1_peak_sample data!
-
 n1Latencies = [];
 
-for kk = 1:length(theseSubs)-1 % skipping last subject because missing N1
+for kk = 1:length(theseSubs) % skipping last subject because missing N1
     disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
     
     n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
@@ -146,7 +144,7 @@ end
 % load participants.tsv
 sub_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
     
-for kk = 1:length(theseSubs)-1 % skipping last subject because missing N1
+for kk = 1:length(theseSubs)
     thisSubName = extractAfter(theseSubs(kk).name,'sub-');
     [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
     n1Latencies(kk).age = sub_info.age(thisSubInd);
