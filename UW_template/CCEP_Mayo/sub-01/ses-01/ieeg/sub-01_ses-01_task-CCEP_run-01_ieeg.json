@@ -1,0 +1,45 @@
+{
+    "TaskName": "CCEPmayo",
+    "SamplingFrequency": 12207,
+    "PowerLineFrequency": 60,
+    "SoftwareFilters": "n/a",
+    "DCOffsetCorrection": "n/a",
+    "HardwareFilters": {
+        "HighpassFilter": {
+            "CutoffFrequency": []
+        },
+        "LowpassFilter": {
+            "CutoffFrequency": []
+        }
+    },
+    "Manufacturer": "TDT",
+    "ManufacturersModelName": "",
+    "TaskDescription": "",
+    "Instructions": "",
+    "CogAtlasID": "",
+    "CogPOID": "",
+    "InstitutionName": "University of Washington",
+    "InstitutionAddress": "",
+    "DeviceSerialNumber": "",
+    "ECOGChannelCount": 0,
+    "SEEGChannelCount": 0,
+    "EEGChannelCount": 0,
+    "EOGChannelCount": 0,
+    "ECGChannelCount": 0,
+    "EMGChannelCount": 0,
+    "MiscChannelCount": 0,
+    "TriggerChannelCount": 0,
+    "RecordingDuration": 0,
+    "RecordingType": "continuous",
+    "EpochLength": 0,
+    "SubjectArtefactDescription": "",
+    "SoftwareVersions": "",
+    "iEEGReference": "",
+    "ElectrodeManufacturer": "",
+    "ElectrodeManufacturersModelName": "",
+    "iEEGGround": "",
+    "iEEGPlacementScheme": "",
+    "iEEGElectrodeGroups": "",
+    "ElectricalStimulation": true,
+    "ElectricalStimulationParameters": "Single pulse stimulation with a square wave biphasic pulse, 200 microsecond duration, 6mA amplitude, delivered about every 5 seconds"
+}
