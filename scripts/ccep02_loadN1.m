@@ -55,14 +55,14 @@ end
 
 n1Latencies = [];
 
-for kk = 1:length(theseSubs) 
+for kk = 1%:length(theseSubs) 
     disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
     
     n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
     n1Latencies(kk).elecs_tsv = read_tsv(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
         [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']));
         
-    for ll = 1:length(theseSubs(kk).run)
+    for ll = 1%:length(theseSubs(kk).run)
         
         clear thisData
         thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',theseSubs(kk).name,theseSubs(kk).ses,...
@@ -73,7 +73,8 @@ for kk = 1:length(theseSubs)
         n1Latencies(kk).run(ll).channel_names = thisData.channel_names;
         n1Latencies(kk).run(ll).average_ccep_names = thisData.average_ccep_names;
         n1Latencies(kk).run(ll).good_channels = thisData.good_channels;
-        n1Latencies(kk).run(ll).average_ccep = thisData.average_ccep;
+        % loading all average cceps makes it too heavy on the memory
+        % n1Latencies(kk).run(ll).average_ccep = thisData.average_ccep;
         n1Latencies(kk).run(ll).tt = thisData.tt;
     end
     
