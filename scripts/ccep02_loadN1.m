@@ -51,18 +51,39 @@ for kk = 1:length(theseSubs)
 
 end
 
-%% run through all N1 data
+%% initialize N1latencies and get subject label and age
 
 n1Latencies = [];
 
-for kk = 1%:length(theseSubs) 
+% load participants.tsv
+sub_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
+
+for kk = 1:length(theseSubs) 
     disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
     
+    % add subject age
+    thisSubName = extractAfter(theseSubs(kk).name,'sub-');
+    [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
+    n1Latencies(kk).id = thisSubName;
+    n1Latencies(kk).age = sub_info.age(thisSubInd);
+    
+    % get number of runs and electrodes info
     n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
     n1Latencies(kk).elecs_tsv = read_tsv(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
         [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']));
+    
+end
+
+% optional save the n1Latencies structure, add more fields later as neccesary
+save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+
+save(fullfile('/Fridge/users/dora/ccep/dataBIDS/','derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+
+%% load all N1 data
+for kk = 1:length(theseSubs)
+    disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
         
-    for ll = 1%:length(theseSubs(kk).run)
+    for ll = 1:length(theseSubs(kk).run)
         
         clear thisData
         thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',theseSubs(kk).name,theseSubs(kk).ses,...
@@ -140,22 +161,6 @@ for kk = 1:length(n1Latencies) % loop subjects
     end    
 end
 
-
-%% get ages
-
-% load participants.tsv
-sub_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
-    
-for kk = 1:length(theseSubs)
-    thisSubName = extractAfter(theseSubs(kk).name,'sub-');
-    [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
-    n1Latencies(kk).age = sub_info.age(thisSubInd);
-end
-
-
-%% here, we should probably save the N1 latency structure
-
-save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies.mat'),'n1Latencies')
 
 %% some plots to check:
 %%
