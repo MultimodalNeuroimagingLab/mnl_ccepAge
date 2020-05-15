@@ -65,6 +65,7 @@ for kk = 1:length(theseSubs)
     thisSubName = extractAfter(theseSubs(kk).name,'sub-');
     [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
     n1Latencies(kk).id = thisSubName;
+    n1Latencies(kk).ses = theseSubs(kk).ses;
     n1Latencies(kk).age = sub_info.age(thisSubInd);
     
     % get number of runs and electrodes info
@@ -75,9 +76,12 @@ for kk = 1:length(theseSubs)
 end
 
 % optional save the n1Latencies structure, add more fields later as neccesary
-save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+% save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
 
-save(fullfile('/Fridge/users/dora/ccep/dataBIDS/','derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+%% or skip the previous box and load
+
+load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+
 
 %% load all N1 data
 for kk = 1:length(theseSubs)
@@ -94,7 +98,8 @@ for kk = 1:length(theseSubs)
         n1Latencies(kk).run(ll).channel_names = thisData.channel_names;
         n1Latencies(kk).run(ll).average_ccep_names = thisData.average_ccep_names;
         n1Latencies(kk).run(ll).good_channels = thisData.good_channels;
-        % loading all average cceps makes it too heavy on the memory
+        % loading all average cceps here makes it very heavy on the memory,
+        %   do this later
         % n1Latencies(kk).run(ll).average_ccep = thisData.average_ccep;
         n1Latencies(kk).run(ll).tt = thisData.tt;
     end
@@ -137,8 +142,14 @@ for kk = 1:length(n1Latencies) % loop subjects
                 
                 n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{chPair,ch} = ...
                     n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el_nr};
-                n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{chPair,ch} = ...
-                    n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el_nr};
+                if isnumeric(n1Latencies(kk).elecs_tsv.Destrieux_label)
+                    n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{chPair,ch} = ...
+                        int2str(n1Latencies(kk).elecs_tsv.Destrieux_label(stim_el_nr));
+                else
+                    n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{chPair,ch} = ...
+                        n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el_nr};
+                    
+                end
             end
             clear stim_el_nr stimpchans % housekeeping
         end
@@ -150,8 +161,13 @@ for kk = 1:length(n1Latencies) % loop subjects
             if ~isempty(el1_nr)
                 n1Latencies(kk).run(ll).channel_DestrieuxLabel{chSig} = ...
                     n1Latencies(kk).elecs_tsv.Destrieux_label_text{el1_nr};
-                n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = ...
-                    n1Latencies(kk).elecs_tsv.Destrieux_label{el1_nr};
+                if isnumeric(n1Latencies(kk).elecs_tsv.Destrieux_label)
+                    n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = ...
+                        int2str(n1Latencies(kk).elecs_tsv.Destrieux_label(el1_nr));
+                else
+                    n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = ...
+                        n1Latencies(kk).elecs_tsv.Destrieux_label{el1_nr};
+                end
                 clear el1_nr
             else
                 n1Latencies(kk).run(ll).channel_DestrieuxLabel{chSig} = NaN;
@@ -209,108 +225,7 @@ xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-
 %%
-% temporal areas:
-% G_temporal_inf, G_temporal_middle
-% roi = {'37','38'};
-% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
-% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
-roi{1} = {'37','38','34','23','21'};
-roi_name{1} = 'temporal';
-% frontal areas:
-% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi{2} = {'14';'15';'12'}; % maybe add 16: G_front_sup
-roi_name{2} = 'frontal';% parietal areas:
-% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
-roi{3} = {'25','26','27'};
-roi_name{3} = 'parietal';% occipital areas:
-% G_occipital_middle G_oc-temp_med-Lingual Pole_occipital
-roi{4} = {'19','22','42'};
-roi_name{4} = 'occipital';% sensorimotor:
-% G_postcentral G_precentral S_central
-roi{5} = {'28','29','46'};
-roi_name{5} = 'central';
 
-average_ccep_age = cell(max([n1Latencies.age]),1);
-for kk = 1: size(n1Latencies,2)
-    
-   age = n1Latencies(kk).age;
-   average_ccep_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2),5*2048); % [roi_start, roi_end,run,tt]
-   
-   for ll = 1:size(n1Latencies(kk).run,2)
-       
-       if size(n1Latencies(kk).run(ll).average_ccep,3) == 5*2048 % ERROR WHEN fs is not 2048Hz....
-           
-           for rr = 1:size(roi,2)
-               % find stimulation pair within specific region
-               chanPair = find(sum(contains(n1Latencies(kk).run(ll).average_ccep_DestrieuxNr,roi{rr}),2)>0);
-               for rr2 = 1:size(roi,2)
-                   % find response electrode within specific region
-                   chanSig = find(ismember(str2double(n1Latencies(kk).run(ll).channel_DestrieuxNr),str2double(roi{rr2}))>0);
-                   
-                   % collect all signals with stimulation pair and response
-                   % electrode within specific region
-                   
-                   average_ccep_select = NaN(size(chanPair,1),size(chanSig,2),5*2048);
-                   for cp = 1:size(chanPair,1)
-                       for cs = 1:size(chanSig,1)
-                           if ~isnan(n1Latencies(kk).run(ll).n1_peak_sample(chanSig(cs),chanPair(cp)))
-                                average_ccep_select(cp,cs,:) = n1Latencies(kk).run(ll).average_ccep(chanSig(cs),chanPair(cp),:);
-                           end
-                       end
-                   end
-                               
-                   average_ccep_run(rr,rr2,ll,:) = squeeze(mean(mean(average_ccep_select,'omitnan'),'omitnan'))';
-               end
-           end
-       end
-   end
-   
-   average_ccep_pat = squeeze(mean(average_ccep_run,3,'omitnan'));
-   
-   if ~isempty(average_ccep_age{age})
-       n = size(average_ccep_age{age},3);
-       average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
-   else
-       n = 0;
-       average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
-   end
-end
-      
-
-average_ccep_age_mean = cell(size(average_ccep_age))   ; 
-for age = 1: max([n1Latencies.age])
-       average_ccep_age_mean{age} = mean(average_ccep_age{age},3,'omitnan');
-end
-    
-%% make figure with all ccep signals
-% define rois
-rr = 1;
-rr2 = 5;
-
-tt = n1Latencies(74).run(1).tt;
-ttmin = -0.02;
-ttmax = 0.1;
-amp = 500;
-ymin = (min([n1Latencies.age])-1)*amp;
-ymax = (max([n1Latencies.age])+1)*amp;
-
-figure(1),
-hold on
-for age = 1:max([n1Latencies.age])
-    plot(tt(tt>ttmin & tt< ttmax),zeros(size(tt(tt>ttmin & tt<ttmax)))+amp*age,'Color',[.8 .8 .8])
-    if ~isempty(average_ccep_age_mean{age})
-        plot(tt(tt>ttmin & tt<ttmax),squeeze(average_ccep_age_mean{age}(rr,rr2,:,tt>ttmin & tt<ttmax))+amp*age)
-    end
-end
-hold off
-
-xlabel('Time (s)')
-ylabel('Age (years)')
-ylim([ymin,ymax])
-ax = gca;
-ax.YTick = (1:max([n1Latencies.age]))*amp;
-ax.YTickLabel = num2cell(1:max([n1Latencies.age]));
-title(sprintf('N1 from %s to %s in increasing age',roi_name{rr},roi_name{rr2}))
-
+% optional save the n1Latencies structure, add more fields later as neccesary
+save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')

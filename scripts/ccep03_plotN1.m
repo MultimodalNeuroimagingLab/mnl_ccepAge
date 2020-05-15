@@ -1,5 +1,7 @@
-%% add: load the n1Latencies from the derivatives
+%% load the n1Latencies from the derivatives
 
+% if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
 
 %% connections from one region to another
 
@@ -83,9 +85,9 @@ end
 
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1');
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
 
 %% overview of number of connections from one region to another
