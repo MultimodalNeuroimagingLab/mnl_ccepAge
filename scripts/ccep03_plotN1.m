@@ -83,7 +83,7 @@ if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
     mkdir(fullfile(myDataPath.output,'derivatives','age'));    
 end
 
-figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1');
+% figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1');
 
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
