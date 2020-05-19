@@ -38,10 +38,11 @@ tt = n1Latencies(74).run(1).tt;
 
 average_ccep_age = cell(max([n1Latencies.age]),1);
 average_n1_age = cell(max([n1Latencies.age]),1);
-for kk = 1%:size(n1Latencies,2) % number of subjects
+for kk = 1:size(n1Latencies,2) % number of subjects
     
     age = n1Latencies(kk).age;
     average_ccep_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2),5*2048); % [roi_start, roi_end,run,tt]
+    average_N1_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2)); % [roi_start, roi_end,run,tt]
     
     % get the session directory name
     sesDir = dir(fullfile(myDataPath.output,'derivatives','av_ccep',['sub-' n1Latencies(kk).id],'ses-*'));
@@ -62,15 +63,21 @@ for kk = 1%:size(n1Latencies,2) % number of subjects
                 
                 % collect all signals with stimulation pair and response
                 % electrode within specific region
-                average_ccep_select = NaN(size(chanPair,1),size(chanSig,2),size(thisData.average_ccep,3));
+                average_ccep_select = NaN(size(chanPair,1),size(chanSig,1),size(thisData.average_ccep,3));
+                average_N1_select = NaN(size(chanPair,1),size(chanSig,1)); % N1latency
                 for cp = 1:size(chanPair,1)
                     for cs = 1:size(chanSig,1)
                         if ~isnan(n1Latencies(kk).run(ll).n1_peak_sample(chanSig(cs),chanPair(cp)))
-                            average_ccep_select(cp,cs,:) = thisData.average_ccep(chanSig(cs),chanPair(cp),:);
+                            if thisData.tt(n1Latencies(kk).run(ll).n1_peak_sample(chanSig(cs),chanPair(cp)))==0, disp('what???'),end
+                            tempResp = squeeze(thisData.average_ccep(chanSig(cs),chanPair(cp),:));
+                            average_ccep_select(cp,cs,:) = tempResp;
+                            average_N1_select(cp,cs) = thisData.tt(n1Latencies(kk).run(ll).n1_peak_sample(chanSig(cs),chanPair(cp)));
+                            clear tempResp
                         end
                     end
                 end
                 thisResp = squeeze(nanmean(nanmean(average_ccep_select,1),2));
+                thisN1 = squeeze(nanmean(nanmean(average_N1_select,1),2));
                 % upsample if necessary  
                 if length(thisResp)~=5*2048
                     thisResp = resample(thisResp,5*2048,length(thisResp));
@@ -80,33 +87,38 @@ for kk = 1%:size(n1Latencies,2) % number of subjects
                 thisResp = thisResp./sqrt(sum(thisResp(tt>.015 & tt<0.100).^2));
                 
                 average_ccep_run(rr1,rr2,ll,:) = thisResp;
+                average_N1_run(rr1,rr2,ll) = thisN1;
             end
         end
-%         clear thisData thisRun
+        clear thisData thisRun thisN1
     end
     
     % average for this patient across these areas
     average_ccep_pat = squeeze(nanmean(average_ccep_run,3));
-    clear average_ccep_run
+    average_n1_pat = squeeze(nanmean(average_N1_run,3));
+    clear average_ccep_run average_N1_run
     
     if ~isempty(average_ccep_age{age})
         n = size(average_ccep_age{age},3);
         average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
+        average_n1_age{age}(:,:,n+1) = average_n1_pat;
     else
         n = 0;
         average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
+        average_n1_age{age}(:,:,n+1) = average_n1_pat;
     end
-    clear average_ccep_pat
+    clear average_ccep_pat average_n1_pat
 end
 
 
-save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','tt','roi','roi_name');
+save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
 
 
 %%
 %% Average per year
 
 average_ccep_age_mean = cell(size(average_ccep_age));
+average_n1_age_mean = cell(size(average_n1_age));
 for rr1 = 1:4
     for rr2 = 1:4
         for age = 1:max([n1Latencies.age])
@@ -118,6 +130,7 @@ for rr1 = 1:4
                     respMat(kk,:) = thisResp;
                 end
                 average_ccep_age_mean{age}(rr1,rr2,1,:) = mean(respMat,1,'omitnan');
+                average_n1_age_mean{age}(rr1,rr2) = mean(average_n1_age{age}(rr1,rr2,:),3,'omitnan');
                 clear thisResp respMat nr_subs
             end
         end
@@ -133,15 +146,19 @@ for rr1 = 1:4
     for rr2 = 1:4
         sortage(rr1,rr2).average_ccep = [];
         sortage(rr1,rr2).age_ind = [];
+        sortage(rr1,rr2).average_n1 = [];
 
         for age = 1:max([n1Latencies.age])
             if size(average_ccep_age{age},1)>0 % there are some subjects at this age
                 addThis = squeeze(average_ccep_age{age}(rr1,rr2,:,:));
                 addThis(isnan(addThis(:,1)),:) = [];
+                addN1 = squeeze(average_n1_age{age}(rr1,rr2,:));
+                addN1(isnan(addN1)) = [];
                 if ~isempty(addThis) % there are subjects with electrodes on ROI
                     if size(addThis,1)>size(addThis,2), addThis = addThis'; end
                     nr_subs = size(addThis,1);
                     sortage(rr1,rr2).average_ccep = [sortage(rr1,rr2).average_ccep; addThis];
+                    sortage(rr1,rr2).average_n1 = [sortage(rr1,rr2).average_n1; addN1];
                     sortage(rr1,rr2).age_ind = [sortage(rr1,rr2).age_ind; zeros(nr_subs,1)+age];
     %                 clear addThis
                 end
@@ -152,24 +169,44 @@ end
 %%
 
 ttmin = 0.010;
-ttmax = .080;
+ttmax = .100;
 
-figure
+figure('Position',[0 0 600 300])
 for rr1 = 1:4
     for rr2 = 1:4
         subplot(4,4,(rr1-1)*4+rr2),hold on
         imagesc(1000*tt(tt>ttmin & tt< ttmax),1:length(sortage(rr1,rr2).age_ind),-sortage(rr1,rr2).average_ccep(:,tt>ttmin & tt< ttmax),...
-            [-0.01 0.03])
-        colormap(hot)
+            [-0.1 0.1])
+        plot(1000*sortage(rr1,rr2).average_n1,1:length(sortage(rr1,rr2).age_ind),'k.')
+        colormap(parula)
         hold on
 %         plot([20 20],[1 length(sortage(rr1,rr2).age_ind)],'k')
 %         plot([30 30],[1 length(sortage(rr1,rr2).age_ind)],'k')
 %         plot([40 40],[1 length(sortage(rr1,rr2).age_ind)],'k')      
 
-        set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
+%         set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
+        set(gca,'YTick',[])
         axis tight
     end
 end
+
+figureName = fullfile(myDataPath.output,'derivatives','age',...
+            ['AllSortAge_tmax' int2str(ttmax*1000)]);
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
+figure('Position',[0 0 150 40])
+imagesc(1:100)
+colormap(parula)
+axis off
+figureName = fullfile(myDataPath.output,'derivatives','age',...
+            ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
 
 %%
 %% make figure with all ccep signals underneath each other
@@ -227,7 +264,7 @@ end
 % ttmax = .5;
 ttmin = 0.015;
 ttmax = 0.080;
-amp = 0.001;
+amp = 0.00001;
 
 age_groups = {[1:10],[11:20],[21:30],[31:40],[41:51]};
 % age_groups = {[1:5],[6:10],[11:15],[16:20],[21:25],[26:30],[31:35],[36:40],[41:45],[46:51]};
@@ -265,7 +302,7 @@ for rr1 = 1:4
                 'Color',cm(age,:),'LineWidth',4)
         end
         
-        xlim([ttmin ttmax]*1000),ylim([-0.2 .05])
+        xlim([ttmin ttmax]*1000)%,ylim([-0.2 .05])
         set(gca,'YTick',[])
         ax = gca;
     end
@@ -276,6 +313,6 @@ end
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['CCEPvsAgeGroups_tmax' int2str(ttmax*1000)]);
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
