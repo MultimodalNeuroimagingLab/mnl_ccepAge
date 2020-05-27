@@ -140,6 +140,7 @@ xlabel('Responding Destrieux region')
 ylabel('Stimulated Destrieux region')
 
 %% 
+%% Test fitting a first and second order polynomial with leave 1 out cross validation
 %%
 
 nsubs = length(out{outInd}.sub);
@@ -160,7 +161,7 @@ for outInd = 1:size(conn_matrix,1)
     % Test fitting a first order polynomial (leave 1 out cross validation)
     % y  =  w1*age + w2
     cross_val_linear = NaN(length(find(~isnan(my_output(:,2)))),4);
-    % size p1xp2xprediction of left out
+    % size latency (ms) X prediction (ms) X p1 (slope) X p2 (intercept) of left out
     sub_counter = 0;
     for kk = 1:nsubs
         if ~isnan(my_output(kk,2))
@@ -169,15 +170,15 @@ for outInd = 1:size(conn_matrix,1)
             theseSubsTrain = ~isnan(my_output(:,2)) & ~ismember(1:nsubs,kk)';
             P = polyfit(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),1);
             cross_val_linear(sub_counter,3:4) = P;
-            cross_val_linear(sub_counter,1) = 1000*my_output(kk,2);
-            cross_val_linear(sub_counter,2) = P(1)*my_output(kk,1)+P(2);
+            cross_val_linear(sub_counter,1) = 1000*my_output(kk,2); % kk (left out) actual
+            cross_val_linear(sub_counter,2) = P(1)*my_output(kk,1)+P(2); % kk (left out) prediction
         end
     end
     cod_out(outInd,1) = calccod(cross_val_linear(:,2),cross_val_linear(:,1),1);
     
     % Like Yeatman et al., for DTI fit a second order polynomial:
     cross_val_second = NaN(length(find(~isnan(my_output(:,2)))),5);
-    % size p1xp2xprediction of left out
+    % size latency (ms) X prediction (ms) X p1 (age^2) X p2 (age) X p3 (intercept) of left out
     sub_counter = 0;
     for kk = 1:nsubs
         if ~isnan(my_output(kk,2))
@@ -194,29 +195,29 @@ for outInd = 1:size(conn_matrix,1)
     
     subplot(4,4,outInd),hold on
 
-    
     % figure,hold on
     for kk = 1:nsubs
         % plot histogram per subject in the background
         if ~isnan(my_output(kk,2))
             distributionPlot(1000*out{outInd}.sub(kk).latencies','xValues',out{outInd}.sub(kk).age,...
-                'color',[.8 .8 .8],'showMM',0,'histOpt',2)
+                'color',[.6 .6 .6],'showMM',0,'histOpt',2)
         end
-        % plot mean+sterr per subject
+%         % plot mean+sterr per subject
 %         plot([my_output(kk,1) my_output(kk,1)],[1000*(my_output(kk,2)-my_output(kk,3)) 1000*(my_output(kk,2)+my_output(kk,3))],...
 %             'k','LineWidth',1)
     end
     % plot mean per subject in a dot
     plot(my_output(:,1),1000*my_output(:,2),'ko','MarkerSize',6)
 
-    
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
 %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     
-    % plot confidence intervals for linear fit:
+    % plot confidence intervals for linear fit
     x_age = [1:1:51];
     % get my crossval y distribution
     y_n1LatCross = cross_val_linear(:,3)*x_age + cross_val_linear(:,4);
+    % y_n1LatCross = cross_val_second(:,3)*x_age.^2 + cross_val_second(:,4)*x_age + cross_val_second(:,5);
+    
     % get 95% confidence intervals
     low_ci = quantile(y_n1LatCross,.025,1);
     up_ci = quantile(y_n1LatCross,.975,1);

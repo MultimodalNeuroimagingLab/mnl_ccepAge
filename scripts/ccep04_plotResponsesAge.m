@@ -113,32 +113,11 @@ end
 
 save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
 
+% load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
 
 %%
-%% Average per year
-
-average_ccep_age_mean = cell(size(average_ccep_age));
-average_n1_age_mean = cell(size(average_n1_age));
-for rr1 = 1:4
-    for rr2 = 1:4
-        for age = 1:max([n1Latencies.age])
-            if size(average_ccep_age{age},1)>0 % there are some subjects at this age
-                nr_subs = size(average_ccep_age{age},3);
-                respMat = NaN(nr_subs,length(tt));
-                for kk = 1:nr_subs
-                    thisResp = squeeze(average_ccep_age{age}(rr1,rr2,kk,:));
-                    respMat(kk,:) = thisResp;
-                end
-                average_ccep_age_mean{age}(rr1,rr2,1,:) = mean(respMat,1,'omitnan');
-                average_n1_age_mean{age}(rr1,rr2) = mean(average_n1_age{age}(rr1,rr2,:),3,'omitnan');
-                clear thisResp respMat nr_subs
-            end
-        end
-    end
-end
-
-
-%% sort according to age
+%% one approach is to sort according to age
+%%
 
 clear sortage
 
@@ -166,7 +145,10 @@ for rr1 = 1:4
         end
     end
 end
-%%
+
+
+
+%% figure of CCEPs + N1 sorted by age
 
 ttmin = 0.010;
 ttmax = .100;
@@ -193,9 +175,9 @@ end
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000)]);
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
 figure('Position',[0 0 150 40])
 imagesc(1:100)
@@ -203,20 +185,44 @@ colormap(parula)
 axis off
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
+
+%%
+%% approach to average per year
+%%
+
+average_ccep_age_mean = cell(size(average_ccep_age));
+average_n1_age_mean = cell(size(average_n1_age));
+for rr1 = 1:4
+    for rr2 = 1:4
+        for age = 1:max([n1Latencies.age])
+            if size(average_ccep_age{age},1)>0 % there are some subjects at this age
+                nr_subs = size(average_ccep_age{age},3);
+                respMat = NaN(nr_subs,length(tt));
+                for kk = 1:nr_subs
+                    thisResp = squeeze(average_ccep_age{age}(rr1,rr2,kk,:));
+                    respMat(kk,:) = thisResp;
+                end
+                average_ccep_age_mean{age}(rr1,rr2,1,:) = mean(respMat,1,'omitnan');
+                average_n1_age_mean{age}(rr1,rr2) = mean(average_n1_age{age}(rr1,rr2,:),3,'omitnan');
+                clear thisResp respMat nr_subs
+            end
+        end
+    end
+end
 
 
 %%
-%% make figure with all ccep signals underneath each other
+%% make figure with all ccep signals underneath each other averaged per age
 % define rois
 for rr1 = 1%1:4
     for rr2 = 3%1:4
 
         ttmin = 0.010;
         ttmax = .1;
-        amp = .006;
+        amp = .01;
         ymin = (min([n1Latencies.age])-12)*amp;
         ymax = (max([n1Latencies.age])+5)*amp;
 
@@ -257,16 +263,21 @@ for rr1 = 1%1:4
     end
 end
 
+%%
+%% We can use this for an intro figure, using non-normalized CCEPs or so
+% todo: copy code from above with this part
+%%
 %% average over age groups
 %% make figure with all ccep signals
 
 % ttmin = -0.02;
 % ttmax = .5;
 ttmin = 0.015;
-ttmax = 0.080;
+ttmax = 0.200;
 amp = 0.00001;
 
-age_groups = {[1:10],[11:20],[21:30],[31:40],[41:51]};
+age_groups = {[1:20],[21:51]};
+% age_groups = {[1:10],[11:20],[21:30],[31:40],[41:51]};
 % age_groups = {[1:5],[6:10],[11:15],[16:20],[21:25],[26:30],[31:35],[36:40],[41:45],[46:51]};
 % cm = hot(20);
 % cm = [cm(1:4:16,:); cm(9:-4:1,:)];
@@ -299,7 +310,7 @@ for rr1 = 1:4
         for age = length(age_groups):-1:1
             plot(tt(tt>ttmin & tt<ttmax)*1000,zeros(size(tt(tt>ttmin & tt<ttmax))),'Color',[.8 .8 .8])
             plot(tt(tt>ttmin & tt<ttmax)*1000,nanmean(plotting_matrix(age_groups{age},tt>ttmin & tt<ttmax),1),...
-                'Color',cm(age,:),'LineWidth',4)
+                'Color',cm(age,:),'LineWidth',2)
         end
         
         xlim([ttmin ttmax]*1000)%,ylim([-0.2 .05])
