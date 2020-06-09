@@ -10,11 +10,10 @@ clc
 clear
 myDataPath = setLocalDataPath(1);
 
-%% get a list of datasets
+%% Get standardized electrodes from surface based registration (through sphere)
 
+% get a list of datasets
 theseSubs = ccep_getSubFilenameInfo(myDataPath);
-
-%% get standardized electrodes from surface based registration (through sphere)
 
 % Freesurfer subjects directory
 FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
@@ -68,17 +67,22 @@ end
 save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'elec_coords')
 
 
-%%
+%% Start here to make figures
 
-% get the mni sphere index in the mni pial
-% mni305 pial
-[mnipial_vert,mnipial_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','lh.pial'));
+load(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'elec_coords')
+
+% Freesurfer subjects directory
+FSsubjectsdir = fullfile(myDataPath.output,'derivatives','freesurfer');
+
+% load mni305 pial
+[Lmnipial_vert,Lmnipial_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','lh.pial'));
+[Rmnipial_vert,Rmnipial_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','rh.pial'));
 
 % figure to check electrodes in mni space
 figure
-g.faces = mnipial_face+1;
-g.vertices = mnipial_vert;
-g = gifti(g);
-tH = ieeg_RenderGifti(g);
+gl.faces = Lmnipial_face+1;
+gl.vertices = Lmnipial_vert;
+gl = gifti(gl);
+tH = ieeg_RenderGifti(gl);
 ieeg_label(mni_coords)
 set(tH,'FaceAlpha',.5) % make transparent
