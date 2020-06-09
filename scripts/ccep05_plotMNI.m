@@ -78,11 +78,81 @@ FSsubjectsdir = fullfile(myDataPath.output,'derivatives','freesurfer');
 [Lmnipial_vert,Lmnipial_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','lh.pial'));
 [Rmnipial_vert,Rmnipial_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','rh.pial'));
 
-% figure to check electrodes in mni space
+%% add all electrodes labels and left or right hemisphere
+allmni_coords = [];
+allmni_labels = [];
+all_hemi = [];
+for kk = 1:length(elec_coords)
+    Destrieux_label = elec_coords(kk).elecs_tsv.Destrieux_label;
+    if iscell(Destrieux_label)
+        for ll = 1:size(Destrieux_label,1)
+            if ischar(Destrieux_label{ll})
+                if isequal(Destrieux_label,'n/a') 
+                    Destrieux_label{ll} = NaN;
+                else
+                    Destrieux_label{ll} = str2double(Destrieux_label{ll});
+                end
+            end
+        end
+        Destrieux_label = cell2mat(Destrieux_label);
+    end
+    
+    allmni_coords = [allmni_coords; elec_coords(kk).mni_coords];
+    allmni_labels = [allmni_labels; Destrieux_label];
+    all_hemi = [all_hemi; elec_coords(kk).hemi];
+end
+
+%% labels for electrode areas we want to color
+
+% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
+% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
+roi_temporal = [37 38 34 23 21];
+% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
+roi_frontal = [14 15 12]; 
+% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
+roi_parietal = [25 26 27];
+% G_postcentral G_precentral S_central
+roi_central = [28 29 46];
+
+%% Left hemisphere with electrodes in mni space
+
+v_d = [270 0];
+
 figure
 gl.faces = Lmnipial_face+1;
 gl.vertices = Lmnipial_vert;
 gl = gifti(gl);
 tH = ieeg_RenderGifti(gl);
-ieeg_label(mni_coords)
-set(tH,'FaceAlpha',.5) % make transparent
+
+% make sure electrodes pop out
+a_offset = .5*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
+els = allmni_coords+repmat(a_offset,size(allmni_coords,1),1);      
+
+ieeg_elAdd(els(ismember(all_hemi,'L'),:),'k',10)
+% set(tH,'FaceAlpha',.5) % make transparent
+ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_temporal),:),[0 0 .8],15)
+ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_frontal),:),[1 .8 0],15)
+ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[0 .5 .5],15)
+ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
+ieeg_viewLight(v_d)
+
+%%
+v_d = [96 6];
+
+figure
+gr.faces = Rmnipial_face+1;
+gr.vertices = Rmnipial_vert;
+gr = gifti(gr);
+tH = ieeg_RenderGifti(gr);
+
+% make sure electrodes pop out
+a_offset = .5*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
+els = allmni_coords+repmat(a_offset,size(allmni_coords,1),1);      
+
+ieeg_elAdd(els(ismember(all_hemi,'R'),:),'k',10)
+% set(tH,'FaceAlpha',.5) % make transparent
+ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_temporal),:),[0 0 .8],15)
+ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_frontal),:),[1 .8 0],15)
+ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_central),:),[0 .5 .5],15)
+ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
+ieeg_viewLight(v_d(1),v_d(2))
