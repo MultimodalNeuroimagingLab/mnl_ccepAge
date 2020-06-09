@@ -11,7 +11,7 @@ function mni_coords = ccep_mni305ThroughFsSphere(elecmatrix,hemi,FSdir,FSsubject
 %   FSsubjectsdir: freesurfer subjects directory with fsaverage
 %
 % Example:
-%   mni_coords = ieeg_mni305ThroughFsSphere(elecmatrix,hemi,FSdir,FSsubjectsdir);
+%   mni_coords = ccep_mni305ThroughFsSphere(elecmatrix,hemi,FSdir,FSsubjectsdir);
 % 
 %
 % Figure to check: get the mni sphere index in the mni pial
@@ -85,42 +85,43 @@ s_pial_ind = zeros(nElec,1);
 % subject sphere coords at these indices
 sphere_coords = zeros(nElec,3);
 
-mni_coords = zeros(nElec,3);
+mni_coords = NaN(nElec,3);
 
 for kk = 1:nElec
     xyz = elCoords(kk,:);
-    if isequal(upper(hemi{kk}),'L')
-        
-        % index for closest point to subject's pial
-        [~,min_ind] = min(sqrt(sum((Lsubpial_vert-xyz).^2,2)));
-        s_pial_ind(kk) = min_ind;
-        
-        % get the same index on subjects sphere
-        sphere_coords(kk,:) = Lsubsphere_vert(min_ind,:);
-        
-        % closest point subjects sphere to mni sphere
-        xyz_sphere = sphere_coords(kk,:);
-        [~,min_ind_sphere] = min(sqrt(sum((Lmnisphere_vert-xyz_sphere).^2,2)));
-        
-        % get the  mni pial at the mni sphere index
-        mni_coords(kk,:) = Lmnipial_vert(min_ind_sphere,:);
+    if ~isnan(xyz(1))
+        if isequal(upper(hemi{kk}),'L')
 
-        
-    elseif isequal(upper(hemi{kk}),'R')
-        % index for closest point to subject's pial
-        [~,min_ind] = min(sqrt(sum((Rsubpial_vert-xyz).^2,2)));
-        s_pial_ind(kk) = min_ind;
-        
-        % get the same index on subjects sphere
-        sphere_coords(kk,:) = Rsubsphere_vert(min_ind,:);
-        
-        % closest point subjects sphere to mni sphere
-        xyz_sphere = sphere_coords(kk,:);
-        [~,min_ind_sphere] = min(sqrt(sum((Rmnisphere_vert-xyz_sphere).^2,2)));
-        
-        % get the  mni pial at the mni sphere index
-        mni_coords(kk,:) = Rmnipial_vert(min_ind_sphere,:);    
+            % index for closest point to subject's pial
+            [~,min_ind] = min(sqrt(sum((Lsubpial_vert-xyz).^2,2)));
+            s_pial_ind(kk) = min_ind;
+
+            % get the same index on subjects sphere
+            sphere_coords(kk,:) = Lsubsphere_vert(min_ind,:);
+
+            % closest point subjects sphere to mni sphere
+            xyz_sphere = sphere_coords(kk,:);
+            [~,min_ind_sphere] = min(sqrt(sum((Lmnisphere_vert-xyz_sphere).^2,2)));
+
+            % get the  mni pial at the mni sphere index
+            mni_coords(kk,:) = Lmnipial_vert(min_ind_sphere,:);
+
+
+        elseif isequal(upper(hemi{kk}),'R')
+            % index for closest point to subject's pial
+            [~,min_ind] = min(sqrt(sum((Rsubpial_vert-xyz).^2,2)));
+            s_pial_ind(kk) = min_ind;
+
+            % get the same index on subjects sphere
+            sphere_coords(kk,:) = Rsubsphere_vert(min_ind,:);
+
+            % closest point subjects sphere to mni sphere
+            xyz_sphere = sphere_coords(kk,:);
+            [~,min_ind_sphere] = min(sqrt(sum((Rmnisphere_vert-xyz_sphere).^2,2)));
+
+            % get the  mni pial at the mni sphere index
+            mni_coords(kk,:) = Rmnipial_vert(min_ind_sphere,:);    
+        end
     end
-    
 end
 
