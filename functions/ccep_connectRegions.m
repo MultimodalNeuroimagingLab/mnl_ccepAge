@@ -2,15 +2,13 @@ function [out] = ccep_connectRegions(n1Latencies,region_start,region_end)
 
 if strcmp(region_start,'temporal')
     % temporal areas:
-%     % G_temporal_inf, G_temporal_middle
-%     roi_start = {'37','38'};
     % G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
     % G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
     roi_start = {'37','38','34','23','21'};
 elseif strcmp(region_start,'frontal')
     % frontal areas:
     % G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-    roi_start = {'14';'15';'12'}; % maybe add 16: G_front_sup
+    roi_start = {'14','15','12'}; 
 elseif strcmp(region_start,'parietal')
     % parietal areas:
     % G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
@@ -26,11 +24,9 @@ elseif strcmp(region_start,'central')
 end
 
 if strcmp(region_end,'temporal')
-%     roi_end = {'37','38'};
     roi_end = {'37','38','34','23','21'};
-
 elseif strcmp(region_end,'frontal')
-    roi_end =  {'14';'15';'12'}; % maybe add 16: G_front_sup
+    roi_end =  {'14','15','12'}; 
     
 elseif strcmp(region_end,'parietal')
     roi_end = {'25','26','27'};
