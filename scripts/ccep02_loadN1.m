@@ -16,35 +16,39 @@ theseSubs = ccep_getSubFilenameInfo(myDataPath);
 
 %% initialize N1latencies and get subject label and age
 
-n1Latencies = [];
-
-% load participants.tsv
-sub_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
-
-for kk = 1:length(theseSubs) 
-    disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
+if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'file')
+    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+else
     
-    % add subject age
-    thisSubName = extractAfter(theseSubs(kk).name,'sub-');
-    [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
-    n1Latencies(kk).id = thisSubName;
-    n1Latencies(kk).ses = theseSubs(kk).ses;
-    n1Latencies(kk).age = sub_info.age(thisSubInd);
+    n1Latencies = [];
     
-    % get number of runs and electrodes info
-    n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
-    n1Latencies(kk).elecs_tsv = read_tsv(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
-        [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']));
+    % load participants.tsv
+    sub_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
+    
+    for kk = 1:length(theseSubs)
+        disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
+        
+        % add subject age
+        thisSubName = extractAfter(theseSubs(kk).name,'sub-');
+        [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
+        n1Latencies(kk).id = thisSubName;
+        n1Latencies(kk).ses = theseSubs(kk).ses;
+        n1Latencies(kk).age = sub_info.age(thisSubInd);
+        
+        % get number of runs and electrodes info
+        n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
+        n1Latencies(kk).elecs_tsv = read_tsv(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
+            [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']));
+        
+    end
+    
+    % optional save the n1Latencies structure, add more fields later as neccesary
+    s = input('Do you want to save the n1Latencies structure? [y/n]: ','s');
+    if strcmp(s,'y')
+        save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+    end
     
 end
-
-% optional save the n1Latencies structure, add more fields later as neccesary
-% save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
-
-%% or skip the previous box and load
-
-load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
-
 
 %% load all N1 data
 for kk = 1:length(theseSubs)
@@ -66,7 +70,6 @@ for kk = 1:length(theseSubs)
         % n1Latencies(kk).run(ll).average_ccep = thisData.average_ccep;
         n1Latencies(kk).run(ll).tt = thisData.tt;
     end
-    
 end
 
 %% get Freesurfer labels for stimulation and recording pair
@@ -191,4 +194,9 @@ title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 %%
 
 % optional save the n1Latencies structure, add more fields later as neccesary
-save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+s = input('Do you want to save the n1Latencies structure? [y/n]: ','s');
+if strcmp(s,'y')
+    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+end
+
+

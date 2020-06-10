@@ -1,9 +1,13 @@
 %% load the n1Latencies from the derivatives
 
 myDataPath = setLocalDataPath(1);
-
-% if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+    
+    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+else
+    disp('Run first ccep02_loadN1.mat')
+end
 
 %% connections from one region to another
 

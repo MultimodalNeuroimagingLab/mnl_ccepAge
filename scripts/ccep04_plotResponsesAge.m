@@ -1,9 +1,12 @@
 %% load the n1Latencies from the derivatives
 
 myDataPath = setLocalDataPath(1);
-
-% if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+else
+    disp('Run first ccep02_loadN1.mat')
+end
 
 % these do not have the average CCEPs for areas or age groups yet, but that
 % would get heavy on the memory
@@ -76,25 +79,32 @@ for kk = 1:size(n1Latencies,2) % number of subjects
                         end
                     end
                 end
-                thisResp = squeeze(nanmean(nanmean(average_ccep_select,1),2));
-                thisN1 = squeeze(nanmean(nanmean(average_N1_select,1),2));
-                % upsample if necessary  
-                if length(thisResp)~=5*2048
-                    thisResp = resample(thisResp,5*2048,length(thisResp));
+                
+                % if responses are added to average_ccep_select
+                if any(~isnan(average_ccep_select(:)))
+                    thisResp = squeeze(nanmean(nanmean(average_ccep_select,1),2));
+                    thisN1 = squeeze(nanmean(nanmean(average_N1_select,1),2));
+                    % upsample if necessary
+                    if length(thisResp)~=5*2048
+                        thisResp = resample(thisResp,5*2048,length(thisResp));
+                    end
+                    
+                    % 'normalize' 0.15-0.100 by unit length
+                    thisResp = thisResp./sqrt(sum(thisResp(tt>.015 & tt<0.100).^2));
+                    
+                    average_ccep_run(rr1,rr2,ll,:) = thisResp; %[roi1,roi2,run,samples]
+                    average_N1_run(rr1,rr2,ll) = thisN1;
+                else
+                    average_ccep_run(rr1,rr2,ll,:) = NaN(5*2048,1);
+                    average_N1_run(rr1,rr2,ll) = NaN;
                 end
-                
-                % 'normalize' 0.15-0.100 by unit length
-                thisResp = thisResp./sqrt(sum(thisResp(tt>.015 & tt<0.100).^2));
-                
-                average_ccep_run(rr1,rr2,ll,:) = thisResp;
-                average_N1_run(rr1,rr2,ll) = thisN1;
             end
         end
         clear thisData thisRun thisN1
     end
     
     % average for this patient across these areas
-    average_ccep_pat = squeeze(nanmean(average_ccep_run,3));
+    average_ccep_pat = squeeze(nanmean(average_ccep_run,3));%[roi1, roi2,samples]
     average_n1_pat = squeeze(nanmean(average_N1_run,3));
     clear average_ccep_run average_N1_run
     
@@ -111,7 +121,7 @@ for kk = 1:size(n1Latencies,2) % number of subjects
 end
 
 
-save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
+% save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
 
 % load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
 
@@ -145,8 +155,6 @@ for rr1 = 1:4
         end
     end
 end
-
-
 
 %% figure of CCEPs + N1 sorted by age
 
@@ -222,7 +230,7 @@ for rr1 = 1%1:4
 
         ttmin = 0.010;
         ttmax = .1;
-        amp = .01;
+        amp = 0.04;
         ymin = (min([n1Latencies.age])-12)*amp;
         ymax = (max([n1Latencies.age])+5)*amp;
 
@@ -240,6 +248,14 @@ for rr1 = 1%1:4
                 plot(tt(tt>0 & tt< ttmax)*1000,zeros(size(tt(tt>0 & tt<ttmax)))+amp*age,'Color',[.8 .8 .8])
                 plot(tt(tt>ttmin & tt<ttmax)*1000,squeeze(average_ccep_age_mean{age}(rr1,rr2,:,tt>ttmin & tt<ttmax))+amp*age,...
                     'Color',cm(age,:),'LineWidth',2)
+            end
+            if ~isempty(average_n1_age_mean{age})
+                if ~isnan(average_n1_age_mean{age}(rr1,rr2))
+                    ttN1 = find(tt>average_n1_age_mean{age}(rr1,rr2),1,'first');
+                    plot(average_n1_age_mean{age}(rr1,rr2)*1000, ...
+                        squeeze(average_ccep_age_mean{age}(rr1,rr2,1,ttN1))+amp*age,...
+                        'o','MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',4)
+                end
             end
         end
         hold off
@@ -276,7 +292,7 @@ ttmin = 0.015;
 ttmax = 0.200;
 amp = 0.00001;
 
-age_groups = {[1:20],[21:51]};
+age_groups = {[1:10],[11:20],[21:51]};
 % age_groups = {[1:10],[11:20],[21:30],[31:40],[41:51]};
 % age_groups = {[1:5],[6:10],[11:15],[16:20],[21:25],[26:30],[31:35],[36:40],[41:45],[46:51]};
 % cm = hot(20);
@@ -287,7 +303,7 @@ cm = cm.^1.5;
 cm(1,:) = cm(1,:)*.9;
 cm(1,1) = 1;
 plotting_matrix = NaN(length(average_ccep_age_mean),length(tt));
-
+amp = 0.1;
 figure('Position',[0 0 600 600]),
 
 % define rois
@@ -308,12 +324,12 @@ for rr1 = 1:4
         
         
         for age = length(age_groups):-1:1
-            plot(tt(tt>ttmin & tt<ttmax)*1000,zeros(size(tt(tt>ttmin & tt<ttmax))),'Color',[.8 .8 .8])
-            plot(tt(tt>ttmin & tt<ttmax)*1000,nanmean(plotting_matrix(age_groups{age},tt>ttmin & tt<ttmax),1),...
+%             plot(tt(tt>ttmin & tt<ttmax)*1000,zeros(size(tt(tt>ttmin & tt<ttmax))),'Color',[.8 .8 .8])
+            plot(tt(tt>ttmin & tt<ttmax)*1000,nanmean(plotting_matrix(age_groups{age},tt>ttmin & tt<ttmax),1)+age*amp,...
                 'Color',cm(age,:),'LineWidth',2)
         end
         
-        xlim([ttmin ttmax]*1000)%,ylim([-0.2 .05])
+        xlim([ttmin ttmax]*1000),ylim([-0.1 0.4])
         set(gca,'YTick',[])
         ax = gca;
     end
