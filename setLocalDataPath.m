@@ -11,9 +11,10 @@ function localDataPath = setLocalDataPath(varargin)
 % function localDataPath = personalDataPath()
 %     'localDataPath = [/my/path/to/data];
 %             
-% this function is ignored in .gitignore
+% personalDataPath is ignored in .gitignore
 %
 % dhermes, 2020, Multimodal Neuroimaging Lab
+
 
 if isempty(varargin)
     rootPath = which('setLocalDataPath');
@@ -28,6 +29,14 @@ elseif ~isempty(varargin)
     % add path to data
     if varargin{1}==1 && exist('personalDataPath','file')
         localDataPath = personalDataPath();
+        
+        if ~isempty(which('ft_read_header')) % is fieldtrip in your path
+            % remove fieldtrip stats path such that we use the canonical Matlab functions
+            fieldtripStatsFile = which('nanmean');
+            fieldtripStatsPath = fileparts(fieldtripStatsFile);
+            rmpath(fieldtripStatsPath);
+        end
+        
     elseif varargin{1}==1 && ~exist('personalDataPath','file')
         sprintf(['add personalDataPath function to add your localDataPath:\n'...
             '\n'...

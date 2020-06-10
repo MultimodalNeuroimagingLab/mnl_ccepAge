@@ -225,7 +225,7 @@ end
 %%
 %% make figure with all ccep signals underneath each other averaged per age
 % define rois
-for rr1 = 1%1:4
+for rr1 = 2%1:4
     for rr2 = 3%1:4
 
         ttmin = 0.010;
@@ -289,7 +289,7 @@ end
 % ttmin = -0.02;
 % ttmax = .5;
 ttmin = 0.015;
-ttmax = 0.200;
+ttmax = 0.100;
 amp = 0.00001;
 
 age_groups = {[1:10],[11:20],[21:51]};
@@ -327,9 +327,11 @@ for rr1 = 1:4
 %             plot(tt(tt>ttmin & tt<ttmax)*1000,zeros(size(tt(tt>ttmin & tt<ttmax))),'Color',[.8 .8 .8])
             plot(tt(tt>ttmin & tt<ttmax)*1000,nanmean(plotting_matrix(age_groups{age},tt>ttmin & tt<ttmax),1)+age*amp,...
                 'Color',cm(age,:),'LineWidth',2)
+%             plot(tt(tt>ttmin & tt<ttmax)*1000,nanmean(plotting_matrix(age_groups{age},tt>ttmin & tt<ttmax),1),...
+%                 'Color',cm(age,:),'LineWidth',2)
         end
         
-        xlim([ttmin ttmax]*1000),ylim([-0.1 0.4])
+        %xlim([ttmin ttmax]*1000),ylim([-0.1 0.4])
         set(gca,'YTick',[])
         ax = gca;
     end
