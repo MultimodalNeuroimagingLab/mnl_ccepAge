@@ -72,7 +72,7 @@ save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'ele
 load(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'elec_coords')
 
 % Freesurfer subjects directory
-FSsubjectsdir = fullfile(myDataPath.output,'derivatives','freesurfer');
+FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
 
 % load mni305 pial
 [Lmnipial_vert,Lmnipial_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','lh.pial'));
@@ -134,7 +134,7 @@ ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_temporal),:),
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_frontal),:),[1 .8 0],15)
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[0 .5 .5],15)
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
-ieeg_viewLight(v_d)
+ieeg_viewLight(v_d(1),v_d(2))
 
 %%
 v_d = [96 6];
