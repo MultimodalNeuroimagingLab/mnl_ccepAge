@@ -175,13 +175,19 @@ a_offset = .1*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_
 els = allmni_coords+repmat(a_offset,size(allmni_coords,1),1);      
 % els = allmni_coords;
 
-ieeg_elAdd(els(ismember(all_hemi,'L'),:),'k',10)
+ieeg_elAdd(els(ismember(all_hemi,'L') & ~ismember(allmni_labels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
 % set(tH,'FaceAlpha',.5) % make transparent
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_temporal),:),[0 0 .8],15)
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_frontal),:),[1 .8 0],15)
-ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[0 .5 .5],15)
+ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[.8 .3 0],15)
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
+
+figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIpial');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+
 
 %% Right with electrodes
 v_d = [96 6];
@@ -196,13 +202,18 @@ tH = ieeg_RenderGifti(gr);
 a_offset = .5*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
 els = allmni_coords+repmat(a_offset,size(allmni_coords,1),1);      
 
-ieeg_elAdd(els(ismember(all_hemi,'R'),:),'k',10)
+ieeg_elAdd(els(ismember(all_hemi,'R') & ~ismember(allmni_labels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
 % set(tH,'FaceAlpha',.5) % make transparent
 ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_temporal),:),[0 0 .8],15)
 ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_frontal),:),[1 .8 0],15)
-ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_central),:),[0 .5 .5],15)
+ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_central),:),[.8 .3 0],15)
 ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
+
+figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIpial');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
 
 
 %% Left inflated with electrodes in mni space
