@@ -163,6 +163,13 @@ p = ranksum([n1Latencies.respnSOZlatencies],[n1Latencies.respSOZlatencies]);
 fprintf('-- When comparing latency in response SOZ and response nSOZ: p = %1.3f with median resp_SOZ = %1.3f sec and median resp_nSOZ = %1.3f sec\n',...
     p,median([n1Latencies.respSOZlatencies]),median([n1Latencies.respnSOZlatencies]))
 
+figure, 
+histogram([n1Latencies.respSOZlatencies])
+hold on,
+histogram([n1Latencies.respnSOZlatencies]), hold off
+legend('Reponse SOZ','Response nSOZ')
+
+
 % when SOZ is stimulated
 for kk=1:size(n1Latencies,2)
     if ~isnan(n1Latencies(kk).SOZ)
@@ -203,6 +210,94 @@ p = ranksum([n1Latencies.stimnSOZlatencies],[n1Latencies.stimSOZlatencies]);
 fprintf('-- When comparing latency in stimulated SOZ and stimulated nSOZ: p = %1.3f with median stim_SOZ = %1.3f sec and median stim_nSOZ = %1.3f sec\n',...
     p, median([n1Latencies.stimSOZlatencies]),median([n1Latencies.stimnSOZlatencies]))
 
+figure, 
+histogram([n1Latencies.stimSOZlatencies])
+hold on,
+histogram([n1Latencies.stimnSOZlatencies]), hold off
+legend('Stimulated SOZ','Stimulated nSOZ')
 
+%% distinguish latencies RA and nRA
+clc
 
+% when RA is response electrode
+for kk=1:size(n1Latencies,2)
+    if ~isnan(n1Latencies(kk).RA)
+        clear respnRAlat respRAlat
+        
+        if ~isempty(n1Latencies(kk).run)
+            
+            for ll = 1:size(n1Latencies(kk).run,2)
+                clear respRAlatencies respnRAlatencies
+                
+                respRAlatencies = n1Latencies(kk).run(ll).n1_peak_sample(n1Latencies(kk).RA,:);
+                respRAlatencies = n1Latencies(kk).run(ll).tt(respRAlatencies(~isnan(respRAlatencies)));
+                
+                nRA = setdiff(n1Latencies(kk).run(ll).good_channels,n1Latencies(kk).RA);
+                respnRAlatencies = n1Latencies(kk).run(ll).n1_peak_sample(nRA,:);
+                respnRAlatencies = n1Latencies(kk).run(ll).tt(respnRAlatencies(~isnan(respnRAlatencies)));
+                
+                respnRAlat{ll} = respnRAlatencies;
+                respRAlat{ll} = respRAlatencies;
+            end
+            
+            n1Latencies(kk).respRAlatencies = horzcat(respRAlat{:});
+            n1Latencies(kk).respnRAlatencies = horzcat(respnRAlat{:});
+        end
+    end
+end
 
+p = ranksum([n1Latencies.respnRAlatencies],[n1Latencies.respRAlatencies]);
+fprintf('-- When comparing latency in response RA and response nRA: p = %1.3f with median resp_RA = %1.3f sec and median resp_nRA = %1.3f sec\n',...
+    p,median([n1Latencies.respRAlatencies]),median([n1Latencies.respnRAlatencies]))
+
+figure, 
+histogram([n1Latencies.respRAlatencies])
+hold on,
+histogram([n1Latencies.respnRAlatencies]), hold off
+legend('Reponse RA','Response nRA')
+
+% when RA is stimulated
+for kk=1:size(n1Latencies,2)
+    if ~isnan(n1Latencies(kk).RA)
+        clear stimnRAlat stimRAlat
+        
+        if ~isempty(n1Latencies(kk).run)
+            
+            for ll = 1:size(n1Latencies(kk).run,2)
+                clear stimRAlatencies stimnRAlatencies
+                
+                stimpair = zeros(size(n1Latencies(kk).run(ll).stimChPair,1),size(n1Latencies(kk).RA,2));
+                for ch = 1:size(n1Latencies(kk).RA,2)
+                    stimpair(:,ch) = sum(n1Latencies(kk).run(ll).stimChPair == n1Latencies(kk).RA(ch),2);
+                end
+                
+                RA = sum(stimpair,2);
+                RA(RA>=1)=1;
+                RA = boolean(RA);
+                
+                stimRAlatencies = n1Latencies(kk).run(ll).n1_peak_sample(n1Latencies(kk).run(ll).good_channels,RA');
+                stimRAlatencies = n1Latencies(kk).run(ll).tt(stimRAlatencies(~isnan(stimRAlatencies)));
+                
+                nRA = ~RA;
+                stimnRAlatencies = n1Latencies(kk).run(ll).n1_peak_sample(n1Latencies(kk).run(ll).good_channels,nRA');
+                stimnRAlatencies = n1Latencies(kk).run(ll).tt(stimnRAlatencies(~isnan(stimnRAlatencies)));
+                
+                stimnRAlat{ll} = stimnRAlatencies;
+                stimRAlat{ll} = stimRAlatencies;
+            end
+            
+            n1Latencies(kk).stimRAlatencies = horzcat(stimRAlat{:});
+            n1Latencies(kk).stimnRAlatencies = horzcat(stimnRAlat{:});
+        end
+    end
+end
+
+p = ranksum([n1Latencies.stimnRAlatencies],[n1Latencies.stimRAlatencies]);
+fprintf('-- When comparing latency in stimulated RA and stimulated nRA: p = %1.3f with median stim_RA = %1.3f sec and median stim_nRA = %1.3f sec\n',...
+    p, median([n1Latencies.stimRAlatencies]),median([n1Latencies.stimnRAlatencies]))
+
+figure, 
+histogram([n1Latencies.stimRAlatencies])
+hold on,
+histogram([n1Latencies.stimnRAlatencies]), hold off
+legend('Stimulated RA','Stimulated nRA')
