@@ -62,11 +62,11 @@ for kk = 1:length(theseSubs)
     % convert to MNI using surface
     elec_coords(kk).mni_coords = ccep_mni305ThroughFsSphere(elecmatrix,hemi,FSdir,FSsubjectsdir);
     % convert to MNI using linear transformations
-    elec_coords(kk).mni_coords = ccep_mni305linear(elecmatrix,FSdir);
+    % elec_coords(kk).mni_coords = ccep_mni305linear(elecmatrix,FSdir);
     
 end
 
-% save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'elec_coords')
+save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'elec_coords')
 % save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305lin.mat'),'elec_coords')
 
 

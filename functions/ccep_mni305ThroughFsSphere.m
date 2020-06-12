@@ -61,15 +61,15 @@ elCoords = elCoords(1:3,:)';
 [Rsubpial_vert,Rsubpial_face] = read_surf(fullfile(FSdir,'surf','rh.pial'));
 
 % figure to check electrodes in freesurfer space
-figure
-g.faces = Lsubpial_face+1; % correct for zero index
-g.vertices = Lsubpial_vert;
-tH = ieeg_RenderGifti(g);
+% figure
+% g.faces = Lsubpial_face+1; % correct for zero index
+% g.vertices = Lsubpial_vert;
+% tH = ieeg_RenderGifti(g);
 % ieeg_label(elCoords)
 % set(tH,'FaceAlpha',.5) % make transparent
 
 % subject sphere
-[Lsubsphere_vert,Lsubsphere_face] = read_surf(fullfile(FSdir,'surf','lh.sphere'));
+[Lsubsphere_vert,Lsubsphere_face] = read_surf(fullfile(FSdir,'surf','lh.sphere.reg'));
 [Rsubsphere_vert] = read_surf(fullfile(FSdir,'surf','rh.sphere'));
 
 % mni305 sphere
