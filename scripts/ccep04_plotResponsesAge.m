@@ -40,11 +40,13 @@ roi_name{4} = 'frontal';
 tt = n1Latencies(74).run(1).tt;
 
 average_ccep_age = cell(max([n1Latencies.age]),1);
+average_ccep_age_nonnorm = cell(max([n1Latencies.age]),1);
 average_n1_age = cell(max([n1Latencies.age]),1);
 for kk = 1:size(n1Latencies,2) % number of subjects
     
     age = n1Latencies(kk).age;
     average_ccep_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2),5*2048); % [roi_start, roi_end,run,tt]
+    average_ccep_run_nonnorm = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2),5*2048); % [roi_start, roi_end,run,tt]
     average_N1_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2)); % [roi_start, roi_end,run,tt]
     
     % get the session directory name
@@ -89,12 +91,16 @@ for kk = 1:size(n1Latencies,2) % number of subjects
                         thisResp = resample(thisResp,5*2048,length(thisResp));
                     end
                     
+                    thisResp2 = thisResp; % non-normalized
+                    
                     % 'normalize' 0.15-0.100 by unit length
                     thisResp = thisResp./sqrt(sum(thisResp(tt>.015 & tt<0.100).^2));
                     
+                    average_ccep_run_nonnorm(rr1,rr2,ll,:) = thisResp2; %[roi1,roi2,run,samples]
                     average_ccep_run(rr1,rr2,ll,:) = thisResp; %[roi1,roi2,run,samples]
                     average_N1_run(rr1,rr2,ll) = thisN1;
                 else
+                    average_ccep_run_nonnorm(rr1,rr2,ll,:) = NaN(5*2048,1);
                     average_ccep_run(rr1,rr2,ll,:) = NaN(5*2048,1);
                     average_N1_run(rr1,rr2,ll) = NaN;
                 end
@@ -104,20 +110,23 @@ for kk = 1:size(n1Latencies,2) % number of subjects
     end
     
     % average for this patient across these areas
+    average_ccep_pat_nonnorm = squeeze(nanmean(average_ccep_run_nonnorm,3));%[roi1, roi2,samples]
     average_ccep_pat = squeeze(nanmean(average_ccep_run,3));%[roi1, roi2,samples]
     average_n1_pat = squeeze(nanmean(average_N1_run,3));
     clear average_ccep_run average_N1_run
     
     if ~isempty(average_ccep_age{age})
         n = size(average_ccep_age{age},3);
+        average_ccep_age_nonnorm{age}(:,:,n+1,:) = average_ccep_pat_nonnorm;
         average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
         average_n1_age{age}(:,:,n+1) = average_n1_pat;
     else
         n = 0;
+        average_ccep_age_nonnorm{age}(:,:,n+1,:) = average_ccep_pat_nonnorm;
         average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
         average_n1_age{age}(:,:,n+1) = average_n1_pat;
     end
-    clear average_ccep_pat average_n1_pat
+    clear average_ccep_pat average_ccep_pat_nonnorm average_n1_pat
 end
 
 
@@ -134,6 +143,7 @@ clear sortage
 for rr1 = 1:4
     for rr2 = 1:4
         sortage(rr1,rr2).average_ccep = [];
+        sortage(rr1,rr2).average_ccep_nonnorm = [];
         sortage(rr1,rr2).age_ind = [];
         sortage(rr1,rr2).average_n1 = [];
 
@@ -141,12 +151,15 @@ for rr1 = 1:4
             if size(average_ccep_age{age},1)>0 % there are some subjects at this age
                 addThis = squeeze(average_ccep_age{age}(rr1,rr2,:,:));
                 addThis(isnan(addThis(:,1)),:) = [];
+                addThisNonnorm = squeeze(average_ccep_age_nonnorm{age}(rr1,rr2,:,:));
+                addThisNonnorm(isnan(addThisNonnorm(:,1)),:) = [];
                 addN1 = squeeze(average_n1_age{age}(rr1,rr2,:));
                 addN1(isnan(addN1)) = [];
                 if ~isempty(addThis) % there are subjects with electrodes on ROI
-                    if size(addThis,1)>size(addThis,2), addThis = addThis'; end
+                    if size(addThis,1)>size(addThis,2), addThis = addThis'; addThisNonnorm = addThisNonnorm'; end
                     nr_subs = size(addThis,1);
                     sortage(rr1,rr2).average_ccep = [sortage(rr1,rr2).average_ccep; addThis];
+                    sortage(rr1,rr2).average_ccep_nonnorm = [sortage(rr1,rr2).average_ccep_nonnorm; addThisNonnorm];
                     sortage(rr1,rr2).average_n1 = [sortage(rr1,rr2).average_n1; addN1];
                     sortage(rr1,rr2).age_ind = [sortage(rr1,rr2).age_ind; zeros(nr_subs,1)+age];
     %                 clear addThis
@@ -155,6 +168,7 @@ for rr1 = 1:4
         end
     end
 end
+
 
 %% figure of CCEPs + N1 sorted by age
 

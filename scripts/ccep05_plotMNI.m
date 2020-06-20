@@ -74,7 +74,7 @@ save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'ele
 
 % linear is not so nice...
 % load(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305lin.mat'),'elec_coords')
-% surface based is decent:
+% surface based is nice:
 load(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'elec_coords')
 
 % Freesurfer subjects directory
@@ -183,10 +183,10 @@ ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
 
-figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIpial');
+% figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIpial');
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
 
 
 %% Right with electrodes
