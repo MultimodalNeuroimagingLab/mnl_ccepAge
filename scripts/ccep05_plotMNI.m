@@ -310,7 +310,7 @@ FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
 
 elec_coords = [];
 
-kk = 4; % 4 and 69 and 73
+kk = 69; % 4 and 69 and 73
 
 disp(['subj ' int2str(kk)])
 
@@ -394,19 +394,24 @@ if iscell(Destrieux_label)
     Destrieux_label = cell2mat(Destrieux_label);
 end
 
+a_offset = .1*max(abs(elCoords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
+els = elCoords+repmat(a_offset,size(elCoords,1),1);      
+
 figure
 tH = ieeg_RenderGifti(g);
-ieeg_label(elCoords)
-% ieeg_elAdd(elCoords(~ismember(Destrieux_label,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
-% % set(tH,'FaceAlpha',.5) % make transparent
-% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_temporal),:),[0 0 .8],15)
-% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_frontal),:),[1 .8 0],15)
-% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_central),:),[.8 .3 0],15)
-% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_parietal),:),[0 .5 0],15)
+% ieeg_label(elCoords)
+ieeg_elAdd(els(~ismember(Destrieux_label,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',20)
+% set(tH,'FaceAlpha',.5) % make transparent
+ieeg_elAdd(els(ismember(Destrieux_label,roi_temporal),:),[0 0 .8],20)
+ieeg_elAdd(els(ismember(Destrieux_label,roi_frontal),:),[1 .8 0],20)
+ieeg_elAdd(els(ismember(Destrieux_label,roi_central),:),[.8 .3 0],20)
+ieeg_elAdd(els(ismember(Destrieux_label,roi_parietal),:),[0 .5 0],20)
 
 ieeg_viewLight(v_d(1),v_d(2))
 
-figureName = fullfile(myDataPath.output,'derivatives','render',[theseSubs(kk).name  '_labels']);
+pause(3)
+
+figureName = fullfile(myDataPath.output,'derivatives','render',[theseSubs(kk).name  '_elsColors']);
 
 set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
