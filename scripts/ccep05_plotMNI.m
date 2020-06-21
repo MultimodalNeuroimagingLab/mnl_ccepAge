@@ -10,10 +10,11 @@ clc
 clear
 myDataPath = setLocalDataPath(1);
 
-%% Get standardized electrodes through surface based registration or linear
-
 % get a list of datasets
 theseSubs = ccep_getSubFilenameInfo(myDataPath);
+
+%% Get standardized electrodes through surface based registration or linear
+
 
 % Freesurfer subjects directory
 FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
@@ -290,3 +291,122 @@ figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIinflated
 set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 
+%%
+%% plot individual subjects rendering           
+%%
+% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
+% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
+roi_temporal = [37 38 34 23 21];
+% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
+roi_frontal = [14 15 12]; 
+% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
+roi_parietal = [25 26 27];
+% G_postcentral G_precentral S_central
+roi_central = [28 29 46];
+
+
+% Freesurfer subjects directory
+FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
+
+elec_coords = [];
+
+kk = 4; % 4 and 69 and 73
+
+disp(['subj ' int2str(kk)])
+
+% subject freesurfer dir
+FSdir = fullfile(myDataPath.input,'derivatives','freesurfer',theseSubs(kk).name,theseSubs(kk).ses);
+
+% get electrodes info
+elec_coords(kk).elecs_tsv = readtable(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
+    [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']),'FileType','text','Delimiter','\t');
+if iscell(elec_coords(kk).elecs_tsv.x)
+    elecmatrix = NaN(size(elec_coords(kk).elecs_tsv,1),3);
+    for ll = 1:size(elec_coords(kk).elecs_tsv,1)
+        if ~isequal(elec_coords(kk).elecs_tsv.x{ll},'n/a')
+            elecmatrix(ll,:) = [str2double(elec_coords(kk).elecs_tsv.x{ll}) str2double(elec_coords(kk).elecs_tsv.y{ll}) str2double(elec_coords(kk).elecs_tsv.z{ll})];
+        end
+    end
+else
+    elecmatrix = [elec_coords(kk).elecs_tsv.x elec_coords(kk).elecs_tsv.y elec_coords(kk).elecs_tsv.z];
+end
+nElec = size(elecmatrix,1);
+
+% get hemisphere for each electrode
+these_json = dir(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',[theseSubs(kk).name,'_',theseSubs(kk).ses,'_task-SPESclin*_ieeg.json']));
+ieeg_json = jsonread(fullfile(these_json(1).folder,these_json(1).name));
+if isequal(ieeg_json.iEEGPlacementScheme,'left')
+    hemi = num2cell(repmat('L',nElec,1));
+elseif isequal(ieeg_json.iEEGPlacementScheme,'right')
+    hemi = num2cell(repmat('R',nElec,1));
+elseif isequal(ieeg_json.iEEGPlacementScheme,'left,right')
+    hemi = num2cell(repmat('n/a',nElec,1));
+    for ll = 1:nElec
+        if elecmatrix(kk,1)<0
+            hemi{ll} = 'L';
+        else
+            hemi{ll} = 'R';
+        end
+    end
+end
+
+% number of electrodes
+nElec = size(elecmatrix,1);
+
+% load mri orig header
+origName = fullfile(FSdir,'mri','orig.mgz');
+orig = MRIread(origName,'true');
+Norig = orig.vox2ras; 
+Torig = orig.tkrvox2ras;
+
+% electrodes to freesurfer space
+freeSurfer2T1 = inv(Norig*inv(Torig));
+elCoords = freeSurfer2T1*([elecmatrix'; ones(1, nElec)]);
+elCoords = elCoords(1:3,:)';
+
+% subject pial
+[Lsubpial_vert,Lsubpial_face] = read_surf(fullfile(FSdir,'surf','lh.pial'));
+[Rsubpial_vert,Rsubpial_face] = read_surf(fullfile(FSdir,'surf','rh.pial'));
+
+% figure with electrodes in freesurfer space
+figure
+if isequal(hemi{1},'L')
+    g.faces = Lsubpial_face+1; % correct for zero index
+    g.vertices = Lsubpial_vert;
+    v_d = ([270 0]);
+elseif isequal(hemi{1},'R')
+    g.faces = Rsubpial_face+1; % correct for zero index
+    g.vertices = Rsubpial_vert;
+    v_d = ([90 0]);
+end
+
+Destrieux_label = elec_coords(kk).elecs_tsv.Destrieux_label;
+if iscell(Destrieux_label)
+    for ll = 1:size(Destrieux_label,1)
+        if ischar(Destrieux_label{ll})
+            if isequal(Destrieux_label,'n/a') 
+                Destrieux_label{ll} = NaN;
+            else
+                Destrieux_label{ll} = str2double(Destrieux_label{ll});
+            end
+        end
+    end
+    Destrieux_label = cell2mat(Destrieux_label);
+end
+
+figure
+tH = ieeg_RenderGifti(g);
+ieeg_label(elCoords)
+% ieeg_elAdd(elCoords(~ismember(Destrieux_label,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
+% % set(tH,'FaceAlpha',.5) % make transparent
+% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_temporal),:),[0 0 .8],15)
+% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_frontal),:),[1 .8 0],15)
+% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_central),:),[.8 .3 0],15)
+% ieeg_elAdd(elCoords(ismember(Destrieux_label,roi_parietal),:),[0 .5 0],15)
+
+ieeg_viewLight(v_d(1),v_d(2))
+
+figureName = fullfile(myDataPath.output,'derivatives','render',[theseSubs(kk).name  '_labels']);
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
