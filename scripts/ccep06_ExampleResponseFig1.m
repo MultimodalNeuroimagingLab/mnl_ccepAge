@@ -130,24 +130,27 @@ end
 
 %% plot an example for parietal --> frontal
 
-ttmin = 0.010;
-ttmax = .500;
+ttmin = 0.015;
+ttmax = .250;
 % ttmin = -2;
 % ttmax = 3;
 
-cm = winter(size(average_ccep_age_nonnorm,1));
+cm = parula(size(average_ccep_age_nonnorm,1)+1);
 
 figure('Position',[0 0 600 300]),hold on        
 plot(1000*tt(tt>ttmin & tt<ttmax),zeros(size(tt(tt>ttmin & tt<ttmax))),'k')
 for kk = 1:size(average_ccep_age_nonnorm,1)
+    tt_plot = 1000*tt(tt>ttmin & tt< ttmax);
+    lower_err = average_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax)-sterr_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax);
+    upper_err = average_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax)+sterr_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax);
+    fill([tt_plot tt_plot(end:-1:1)],[upper_err lower_err(end:-1:1)],cm(kk,:),'EdgeColor',cm(kk,:))
     plot(1000*tt(tt>ttmin & tt<ttmax),average_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax),'Color',cm(kk,:))
 end
 
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AgeExamples_tmax' int2str(ttmax*1000)]);
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
-%% plot rendering 

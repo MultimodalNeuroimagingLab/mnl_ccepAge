@@ -61,7 +61,8 @@ for outInd = 1:size(conn_matrix,1)
         my_output(kk,2) = nanmean(out{outInd}.sub(kk).latencies);
         my_output(kk,3) = nanvar(out{outInd}.sub(kk).latencies);
     end
-    
+
+    % age vs mean CCEP
     subplot(4,4,outInd),hold on
     plot(my_output(:,1),1000*my_output(:,2),'k.','MarkerSize',10)
     xlabel('age (years)'),ylabel('mean dT (ms)')
@@ -90,6 +91,59 @@ if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
 end
 
 % figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1');
+
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
+
+
+%% Predict age from mean/var
+%%
+
+figure('position',[0 0 700 700])
+for outInd = 1:size(conn_matrix,1)
+
+    % initialize output: age, mean and variance in latency per subject
+    my_output = NaN(length(out{outInd}.sub),3);
+
+    % get variable per subject
+    for kk = 1:length(out{outInd}.sub)
+        my_output(kk,1) = out{outInd}.sub(kk).age;
+        my_output(kk,2) = nanmean(out{outInd}.sub(kk).latencies);
+        my_output(kk,3) = nanstd(out{outInd}.sub(kk).latencies);
+    end
+
+    % age vs mean CCEP
+    subplot(4,4,outInd),hold on
+    plot(1000*my_output(:,2),my_output(:,1),'k.','MarkerSize',10)
+    ylabel('age (years)'),xlabel('mean dT (ms)')
+%     [r,p] = corr(my_output(~isnan(my_output(:,2)),2),my_output(~isnan(my_output(:,2)),1),'Type','Pearson');
+    stats2 = regstats(my_output(~isnan(my_output(:,2)),1),[my_output(~isnan(my_output(:,2)),2) my_output(~isnan(my_output(:,2)),3)]);
+    stats1 = regstats(my_output(~isnan(my_output(:,2)),1),[my_output(~isnan(my_output(:,2)),2)]);
+%     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
+    title(['R_2=' num2str(stats2.adjrsquare,3) 'R_1=' num2str(stats1.rsquare,3)])
+    xlim([0 60])%, ylim([0 100])
+    
+    % Yeatman et al., fit a second order polynomial:
+    % y  = w1* age^2 * w2*age + w3
+    [P,S] = polyfit(1000*my_output(~isnan(my_output(:,2)),2),my_output(~isnan(my_output(:,2)),1),2);
+    x_latency = [20:1:50];
+    y_fit = P(1)*x_latency.^2 + P(2)*x_latency + P(3);
+    plot(x_latency,y_fit,'r')
+
+    % Let's fit a first order polynomial:
+    % y  =  w1*age + w2
+    [P,S] = polyfit(1000*my_output(~isnan(my_output(:,2)),2),my_output(~isnan(my_output(:,2)),1),1);
+    x_latency = [2:1:60];
+    y_fit = P(1)*x_latency + P(2);
+    plot(x_latency,y_fit,'r')
+end
+
+if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
+    mkdir(fullfile(myDataPath.output,'derivatives','age'));    
+end
+
+% figureName = fullfile(myDataPath.output,'derivatives','age','LatencyVSage_N1');
 
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
@@ -196,6 +250,40 @@ for outInd = 1:size(conn_matrix,1)
         end
     end
     cod_out(outInd,2) = calccod(cross_val_second(:,2),cross_val_second(:,1),1);
+    
+    % Fit with a piecewise linear model:
+    cross_val_piecewiselin = NaN(length(find(~isnan(my_output(:,2)))),5);
+    % size latency (ms) X prediction (ms) X p1 (age^2) X p2 (age) X p3 (intercept) of left out
+    sub_counter = 0;
+    my_options = optimoptions(@lsqnonlin,'Display','off','Algorithm','trust-region-reflective');
+    for kk = 1:nsubs
+        if ~isnan(my_output(kk,2))
+            sub_counter = sub_counter+1;
+            % leave out kk
+            theseSubsTrain = ~isnan(my_output(:,2)) & ~ismember(1:nsubs,kk)';
+            
+            % use the slmengine tool from here:
+            % John D'Errico (2020). SLM - Shape Language Modeling (https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling), MATLAB Central File Exchange. Retrieved July 14, 2020.
+            slm = slmengine(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),'degree',1,'plot','off','knots',3,'interiorknots','free');
+            % predicted value at left out x
+            yhat = slmeval(my_output(kk,1),slm,0);
+            cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
+            cross_val_piecewiselin(sub_counter,2) = yhat;
+            
+            % use our own function:
+            x = my_output(theseSubsTrain,1);
+            y = 1000*my_output(theseSubsTrain,2);
+            [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
+                [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
+
+            x_fit = my_output(kk,1);
+            y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(3),x_fit));
+            
+            cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
+            cross_val_piecewiselin(sub_counter,2) = y_fit;
+        end
+    end
+    cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);
     
     subplot(4,4,outInd),hold on
 
