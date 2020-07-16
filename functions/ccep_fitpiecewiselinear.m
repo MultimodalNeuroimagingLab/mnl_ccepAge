@@ -16,7 +16,7 @@ function F = ccep_fitpiecewiselinear(pp,Y,x)
 %     You should have received a copy of the GNU General Public License
 %     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-F = Y - (pp(1) + pp(2)*min(pp(4),x) + pp(3)*max(pp(3),x));
+F = Y - (pp(1) + pp(2)*min(pp(4),x) + pp(3)*max(pp(4),x));
 
 
 %% fit with:
@@ -34,7 +34,7 @@ F = Y - (pp(1) + pp(2)*min(pp(4),x) + pp(3)*max(pp(3),x));
 % 
 % x_fit = [1:50];
 % 
-% y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(3),x_fit));
+% y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
 % 
 % hold on
 % plot(x_fit,y_fit)

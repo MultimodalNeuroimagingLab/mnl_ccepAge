@@ -1,4 +1,11 @@
 
+
+
+%%
+%% ********* This script is work in progress *********
+%%
+
+
 %% load the n1Latencies from the derivatives
 
 myDataPath = setLocalDataPath(1);
@@ -27,7 +34,6 @@ end
 
 
 %% try average per age first
-
 
 
 cod_out = zeros(size(conn_matrix,1),2);
@@ -113,7 +119,7 @@ for outInd = 1:size(conn_matrix,1)
                 [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
 
             x_fit = x_vals(kk);
-            y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(3),x_fit));
+            y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
             
             cross_val_piecewiselin(sub_counter,1) = y_vals(kk);
             cross_val_piecewiselin(sub_counter,2) = y_fit;
