@@ -137,6 +137,8 @@ for outInd = 1:size(conn_matrix,1)
     % plot mean per subject in a dot
     plot(my_output(:,1),1000*my_output(:,2),'ko','MarkerSize',6)
 
+    plot(x_vals,y_vals,'r.','MarkerSize',6)
+    
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
 %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     
