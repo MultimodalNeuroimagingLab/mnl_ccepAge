@@ -1,4 +1,4 @@
-function [t_new] = ieeg_labelElectrodesDestrieux(FSdir,electrodes_tsv_name,saveNew)
+function [t_new] = ieeg_labelElectrodesDestrieux(FSdir,electrodes_tsv_name,saveNew,circleradius)
 %
 % this script labels electrodes based on the Destrieux Atlas from
 % Freesurfer
@@ -44,7 +44,10 @@ Destrieux_label_text = cell(size(elecmatrix,1),1);
 
 %%% LOOP THROUGH ELECTRODES AND ASSIGN LABELS
 % for every electrode, look up the most common label within 2 mm radius
-circleradius = 3; % millimeters
+if isempty(circleradius)
+    % use default
+    circleradius = 3; % millimeters
+end
 voxelsize = niDestrieux.pixdim;
 
 % electrodes xyz to indices
@@ -171,12 +174,12 @@ for elec = 1:size(elecmatrix,1) % loop across electrodes
                 temp_labels(temp_labels==41) = [];
                 thisLabel = mode(temp_labels);
             end
-        elseif thisLabel == 0
+        elseif thisLabel == 0 % if CSF, use other label if 10% of voxels have another label
             other_fraction = length(find(niDestrieux.data(temp.electrode==1)==0))./...
                 length(niDestrieux.data(temp.electrode==1));
-            if other_fraction<.7 % close to WM, but use other label
+            if other_fraction<.90 % 
                 temp_labels = niDestrieux.data(temp.electrode==1);
-                temp_labels(temp_labels==0) = [];
+                temp_labels(temp_labels==0) = []; % remove zero labels
                 thisLabel = mode(temp_labels);
             end
         end
@@ -197,8 +200,14 @@ for elec = 1:size(elecmatrix,1) % loop across electrodes
 end
 
 % append Destrieux columns to loc_info
-tDes = table(Destrieux_label,Destrieux_label_text);
-t_new = [loc_info tDes(:,{'Destrieux_label','Destrieux_label_text'})];
+if ~ismember('Destrieux_label',loc_info.Properties.VariableNames)
+    tDes = table(Destrieux_label,Destrieux_label_text);
+    t_new = [loc_info tDes(:,{'Destrieux_label','Destrieux_label_text'})];
+else
+    t_new = loc_info;
+    t_new.Destrieux_label = Destrieux_label;
+    t_new.Destrieux_label_text = Destrieux_label_text;
+end
 
 if saveNew==1
     writetable(t_new,electrodes_tsv_name,'FileType','text','Delimiter','\t'); 
