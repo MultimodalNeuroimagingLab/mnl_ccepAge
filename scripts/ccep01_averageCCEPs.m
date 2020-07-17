@@ -13,7 +13,7 @@ myDataPath = setLocalDataPath(1);
 %% Metadata: fill in yourself
 
 % add subject(s) information
-bids_sub = ['sub-RESP' input('Patient number: sub- (RESPXXXX): ','s')];
+bids_sub = ['sub-RESP' input('Patient number: sub-RESP(XXXX): ','s')];
 bids_ses = ['ses-' input('Session number: ses- (X): ','s')];
 bids_task = 'task-SPESclin';
 
@@ -36,7 +36,7 @@ files = dir(fullfile(myDataPath.input));
 for n = 1:size(files,1)
     if contains(files(n).name,'sub-RESP')
         
-        if ~exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', files(n).name),'dir')
+        if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', files(n).name),'dir')
             filessub = dir(fullfile(myDataPath.input, files(n).name));
             bids_sub = files(n).name;
             
@@ -52,25 +52,22 @@ for n = 1:size(files,1)
                             
                             if any(contains(electrodes_tsv.group,'strip')) || any(contains(electrodes_tsv.group,'grid'))
                                 
-                                if any(~isnan(str2double(electrodes_tsv.x)))
+                                if any(~isnan(str2double(electrodes_tsv.x))) || any(~isnan(electrodes_tsv.x))
                                     
                                     bids_task = 'task-SPESclin';
                                     
                                     filesrun = dir(fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
                                         [bids_sub '_' bids_ses '_' bids_task '_*'  '_events.tsv']));
-                                    names = {filesrun.name};
-                                    bids_runs_all = cellfun(@(x) x(strfind(names{1},'run-'):strfind(names{1},'run-')+9), names, 'UniformOutput', false);
                                     
-                                    for i = 1:size(bids_runs_all,2)
+                                    for i = 1:size(filesrun,1)
                                         
-                                        bids_runs = bids_runs_all{i};
-                                        fprintf('Run file %s_%s_%s_%s!\n',bids_sub,bids_ses,bids_task,bids_runs)
+                                        bids_runs = filesrun(i).name(strfind(filesrun(i).name,'run-'):strfind(filesrun(i).name,'run-')+9);
+                                        fprintf('Run file %s!\n',replace(filesrun(i).name,'_events.tsv',''))
                                         
                                         %% load events
                                         
                                         % load the events.tsv
-                                        events_name = fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
-                                            [bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_events.tsv']);
+                                        events_name = fullfile(filesrun(i).folder,filesrun(i).name);
                                         ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
                                         
                                         % generate vector for averaging across trials
@@ -85,14 +82,11 @@ for n = 1:size(files,1)
                                         %% load data and channels
                                         
                                         % load the data, as BrainVision BIDS format
-                                        ieeg_name = fullfile(myDataPath.input, bids_sub, bids_ses,'ieeg',...
-                                            [ bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_ieeg.eeg']);
+                                        ieeg_name = replace(fullfile(filesrun(i).folder,filesrun(i).name),'events.tsv', 'ieeg.eeg');
                                         data = ft_read_data(ieeg_name,'dataformat','brainvision_eeg');
                                         data_hdr = ft_read_header(ieeg_name,'dataformat','brainvision_eeg');
                                         
-                                        channels_tsv_name = fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
-                                            [ bids_sub '_' bids_ses ...
-                                            '_' bids_task '_' bids_runs '_channels.tsv']);
+                                        channels_tsv_name = replace(fullfile(filesrun(i).folder,filesrun(i).name),'events.tsv', 'channels.tsv');
                                         channels_table = readtable(channels_tsv_name,'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
                                         
                                         %% get necessary parameters from data
@@ -112,10 +106,7 @@ for n = 1:size(files,1)
                                         params.epoch_prestim_length = 2;%: prestimulus epoch length in sec, default = 2
                                         params.baseline_subtract = 1; % subtract median baseline from each trial
                                         
-                                        % TODO: remove bad channels
                                         [average_ccep,average_ccep_names,ccep,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
-                                        
-                                        
                                         
                                         % % plotting without N1 peaks:
                                         % params.save_fig = 0;
@@ -128,11 +119,12 @@ for n = 1:size(files,1)
                                         params.n1_peak_range = 100;
                                         params.srate = srate;
                                         
-                                        [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,params);
+                                        % including no detection possible in bad channels
+                                        [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,good_channels,params);
                                         
                                         % save files
                                         saveName = fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses,...
-                                            [ bids_sub '_' bids_ses '_' bids_task '_' bids_runs '_averageCCEPs.mat']);
+                                            replace(filesrun(i).name,'events.tsv','averageCCEPs.mat'));
                                         
                                         if ~exist(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses),'dir')
                                             mkdir(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses))
@@ -145,7 +137,7 @@ for n = 1:size(files,1)
                                         
                                         %% check detected N1 in each averaged signal
                                         
-                                        %                                 [n1_peak_amplitude_check, n1_peak_sample_check ] = ccep_visualcheck_n1peak_ECoG(average_ccep, ccep,average_ccep_names,channel_names,tt,n1_peak_amplitude,n1_peak_sample);
+                                        % [n1_peak_amplitude_check, n1_peak_sample_check ] = ccep_visualcheck_n1peak_ECoG(average_ccep, ccep,average_ccep_names,channel_names,tt,n1_peak_amplitude,n1_peak_sample);
                                         
                                         %% plot and save averages per channel
                                         params.save_fig = 1;%str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
@@ -155,7 +147,7 @@ for n = 1:size(files,1)
                                             channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
                                         
                                         
-                                        fprintf('File %s_%s_%s_%s has run!\n',bids_sub,bids_ses,bids_task,bids_runs)
+                                        fprintf('File %s has run!\n',replace(filesrun(i).name,'_events.tsv',''))
                                     end
                                 end
                             end
