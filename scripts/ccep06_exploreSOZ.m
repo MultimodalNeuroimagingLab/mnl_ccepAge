@@ -131,7 +131,10 @@ end
 
 %% distinguish latencies SOZ and nSOZ
 clc
+close all
 
+figure,
+n=1;
 % when SOZ is response electrode
 for kk=1:size(n1Latencies,2)
     if ~isnan(n1Latencies(kk).SOZ)
@@ -155,13 +158,26 @@ for kk=1:size(n1Latencies,2)
             
             n1Latencies(kk).respSOZlatencies = horzcat(respSOZlat{:});
             n1Latencies(kk).respnSOZlatencies = horzcat(respnSOZlat{:});
+            if (any(~isnan(n1Latencies(kk).respSOZlatencies )) && any(~isnan(n1Latencies(kk).respnSOZlatencies ))) || (~isempty(n1Latencies(kk).respSOZlatencies) && ~isempty(n1Latencies(kk).respnSOZlatencies))
+                n1Latencies(kk).respSOZ_p = ranksum(n1Latencies(kk).respnSOZlatencies,n1Latencies(kk).respSOZlatencies);
+                
+                fprintf('-- %s: When comparing latency in response SOZ and response nSOZ: p = %1.3f with median stim_SOZ = %1.3f sec and median stim_nSOZ = %1.3f sec\n',...
+                    n1Latencies(kk).id, n1Latencies(kk).respSOZ_p, median([n1Latencies(kk).respSOZlatencies]),median([n1Latencies(kk).respnSOZlatencies]))
+            end
+            
+            subplot(3,5,n),
+            histogram(n1Latencies(kk).respSOZlatencies)
+            hold on,
+            histogram(n1Latencies(kk).respnSOZlatencies)
+            hold off,
+            title(sprintf('%s, p=%1.3f',n1Latencies(kk).id,n1Latencies(kk).respSOZ_p))
+            
+            n=n+1;
+            
         end
     end
 end
 
-p = ranksum([n1Latencies.respnSOZlatencies],[n1Latencies.respSOZlatencies]);
-fprintf('-- When comparing latency in response SOZ and response nSOZ: p = %1.3f with median resp_SOZ = %1.3f sec and median resp_nSOZ = %1.3f sec\n',...
-    p,median([n1Latencies.respSOZlatencies]),median([n1Latencies.respnSOZlatencies]))
 
 figure, 
 histogram([n1Latencies.respSOZlatencies])
@@ -169,8 +185,58 @@ hold on,
 histogram([n1Latencies.respnSOZlatencies]), hold off
 legend('Reponse SOZ','Response nSOZ')
 
+for kk=1:size(n1Latencies,2)
+    respSOZ{kk} = n1Latencies(kk).respSOZlatencies;
+    respnSOZ{kk} = n1Latencies(kk).respnSOZlatencies;
+    
+    groupSOZ{kk} = 0.9*ones(size(n1Latencies(kk).respSOZlatencies))+(kk-1);
+    groupnSOZ{kk} = 1.1*ones(size(n1Latencies(kk).respnSOZlatencies))+(kk-1);
+end
+figure,
+boxplot([horzcat(respSOZ{:}),horzcat(respnSOZ{:})],...
+    [horzcat(groupSOZ{:}),horzcat(groupnSOZ{:})])
+ax = gca;
+% ax.XTick = [0:size(n1Latencies,2)+1];
+% ax.XTickLabel = [' ',num2cell(1:size(n1Latencies,2)), ' ']
 
-% when SOZ is stimulated
+%% violin plot!
+
+count=1;
+for kk=1:size(n1Latencies,2)
+    
+    if ~isempty(n1Latencies(kk).respSOZlatencies)
+        respall{count} = n1Latencies(kk).respSOZlatencies*1000;
+    else
+        respall{count} = -100;
+    end
+    
+    count = count+1;
+    if ~isempty(n1Latencies(kk).respnSOZlatencies)
+            respall{count} = n1Latencies(kk).respnSOZlatencies*1000;
+    else
+        respall{count} = -100;
+    end
+count = count+1;    
+end
+
+x = sort(2*[0.8:size(n1Latencies,2), 1.2:size(n1Latencies,2)+1]);
+fcol = repmat([0.9 0.9 0.9; 0.2 0.2 0.2],size(n1Latencies,2),1);
+
+figure('Position',[1 2 1920 993]),
+violin(respall,'x',x,'bw',1,'facecolor',fcol)
+
+xtext = find(~cellfun('isempty',{n1Latencies(:).respSOZ_p}));
+
+text((xtext*2)-0.5,110*ones(1,size(xtext,2)),cellstr(num2str([n1Latencies(:).respSOZ_p]','%1.3f')))
+ax = gca;
+ax.XTick = 0:2:(size(n1Latencies,2)+1)*2;
+ax.XTickLabel =[{' '}, num2cell(1:size(n1Latencies,2)), {' '}];
+ylim([0 130])
+xlabel('Patient #')
+ylabel('Latency (ms)')
+title('Latency in SOZ vs nonSOZ CCEPs')
+
+%% when SOZ is stimulated
 for kk=1:size(n1Latencies,2)
     if ~isnan(n1Latencies(kk).SOZ)
         clear stimnSOZlat stimSOZlat
@@ -202,19 +268,60 @@ for kk=1:size(n1Latencies,2)
             
             n1Latencies(kk).stimSOZlatencies = horzcat(stimSOZlat{:});
             n1Latencies(kk).stimnSOZlatencies = horzcat(stimnSOZlat{:});
+            if (any(~isnan(n1Latencies(kk).stimSOZlatencies )) && any(~isnan(n1Latencies(kk).stimnSOZlatencies ))) || (~isempty(n1Latencies(kk).stimSOZlatencies) && ~isempty(n1Latencies(kk).stimnSOZlatencies))
+                n1Latencies(kk).stimSOZ_p = ranksum(n1Latencies(kk).stimnSOZlatencies,n1Latencies(kk).stimSOZlatencies);
+                
+                fprintf('-- %s: When comparing latency in stimulated SOZ and stimulated nSOZ: p = %1.3f with median stim_SOZ = %1.3f sec and median stim_nSOZ = %1.3f sec\n',...
+                    n1Latencies(kk).id, n1Latencies(kk).stimSOZ_p, median([n1Latencies(kk).stimSOZlatencies]),median([n1Latencies(kk).stimnSOZlatencies]))
+            end
+            
         end
     end
 end
-
-p = ranksum([n1Latencies.stimnSOZlatencies],[n1Latencies.stimSOZlatencies]);
-fprintf('-- When comparing latency in stimulated SOZ and stimulated nSOZ: p = %1.3f with median stim_SOZ = %1.3f sec and median stim_nSOZ = %1.3f sec\n',...
-    p, median([n1Latencies.stimSOZlatencies]),median([n1Latencies.stimnSOZlatencies]))
 
 figure, 
 histogram([n1Latencies.stimSOZlatencies])
 hold on,
 histogram([n1Latencies.stimnSOZlatencies]), hold off
 legend('Stimulated SOZ','Stimulated nSOZ')
+
+
+%% violin plot!
+
+count=1;
+for kk=1:size(n1Latencies,2)
+    
+    if ~isempty(n1Latencies(kk).stimSOZlatencies)
+        stimall{count} = n1Latencies(kk).stimSOZlatencies*1000;
+    else
+        stimall{count} = -100;
+    end
+    
+    count = count+1;
+    if ~isempty(n1Latencies(kk).stimnSOZlatencies)
+            stimall{count} = n1Latencies(kk).stimnSOZlatencies*1000;
+    else
+        stimall{count} = -100;
+    end
+count = count+1;    
+end
+
+x = sort(2*[0.8:size(n1Latencies,2), 1.2:size(n1Latencies,2)+1]);
+fcol = repmat([0.9 0.9 0.9; 0.2 0.2 0.2],size(n1Latencies,2),1);
+
+figure('Position',[1 2 1920 993]),
+violin(stimall,'x',x,'bw',1,'facecolor',fcol)
+
+xtext = find(~cellfun('isempty',{n1Latencies(:).stimSOZ_p}));
+
+text((xtext*2)-0.5,110*ones(1,size(xtext,2)),cellstr(num2str([n1Latencies(:).stimSOZ_p]','%1.3f')))
+ax = gca;
+ax.XTick = 0:2:(size(n1Latencies,2)+1)*2;
+ax.XTickLabel =[{' '}, num2cell(1:size(n1Latencies,2)), {' '}];
+ylim([0 130])
+xlabel('Patient #')
+ylabel('Latency (ms)')
+title('Latency in SOZ vs nonSOZ stimuli')
 
 %% distinguish latencies RA and nRA
 clc
