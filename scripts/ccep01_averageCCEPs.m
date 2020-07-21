@@ -52,7 +52,11 @@ for n = 1:size(files,1)
                             
                             if any(contains(electrodes_tsv.group,'strip')) || any(contains(electrodes_tsv.group,'grid'))
                                 
-                                if any(~isnan(str2double(electrodes_tsv.x))) || any(~isnan(electrodes_tsv.x))
+                                if any(~isnan(str2double(electrodes_tsv.x)))
+                                    electrodes_tsv.x = str2double(electrodes_tsv.x);
+                                end
+                                
+                                if  any(~isnan(electrodes_tsv.x))
                                     
                                     bids_task = 'task-SPESclin';
                                     
