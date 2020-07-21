@@ -56,7 +56,7 @@ for n = 1:size(files,1)
                                     electrodes_tsv.x = str2double(electrodes_tsv.x);
                                 end
                                 
-                                if  any(~isnan(electrodes_tsv.x))
+                                if  any(electrodes_tsv.x~=0) % only run the rest if electrode positions are available
                                     
                                     bids_task = 'task-SPESclin';
                                     
