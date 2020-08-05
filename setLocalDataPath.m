@@ -32,9 +32,9 @@ elseif ~isempty(varargin)
         
         if ~isempty(which('ft_read_header')) % is fieldtrip in your path
             % remove fieldtrip stats path such that we use the canonical Matlab functions
-            fieldtripStatsFile = which('nanmean');
-            fieldtripStatsPath = fileparts(fieldtripStatsFile);
-            rmpath(fieldtripStatsPath);
+            fieldtripFolder = which('ft_defaults');
+            fieldtripPath = fileparts(fieldtripFolder);
+            rmpath(fullfile(fieldtripPath,'external','stats'));
         end
         
     elseif varargin{1}==1 && ~exist('personalDataPath','file')
