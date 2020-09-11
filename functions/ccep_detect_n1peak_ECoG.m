@@ -1,4 +1,4 @@
-function [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,params)
+function [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,good_channels,params)
 
 % Function for detecting the the N1 peaks of CCEPs
 
@@ -87,107 +87,109 @@ for jj = 1:size(average_ccep,2)
     % for every channel
     for ii = 1:size(average_ccep,1)
         
-        % create time struct
-        tt = (1:epoch_length*srate) / ...
-            srate - epoch_prestim_length;
-        
-        % baseline subtraction: take median of part of the averaged signal for
-        % this stimulation pair before stimulation, which is the half of the
-        % epoch
-        baseline_tt = tt>-2 & tt<-.1;
-        signal_median = median(average_ccep(ii,jj,baseline_tt),3);
-        
-        if isnan(signal_median)
+        % if channel is a bad or not-recording electrode
+        if ~ismember(ii,good_channels)
             n1_peak_sample = NaN;
             n1_peak_amplitude = NaN;
             
             % in other electrode
         else
+            % create time struct
+            tt = (1:epoch_length*srate) / ...
+                srate - epoch_prestim_length;
             
-        % subtract median baseline from signal
-%         new_signal = squeeze(average_ccep(ii,jj,:)) - signal_median;
-        new_signal = squeeze(average_ccep(ii,jj,:));
-        % testplot new signal: plot(tt,squeeze(new_signal))
-        
-        % take area before the stimulation of the new signal and calculate its SD
-        pre_stim_sd = std(new_signal(baseline_tt));
-        
-        % if the pre_stim_sd is smaller that the minimally needed SD,
-        % which is validated as 50 uV, use this the minSD as pre_stim_sd
-        if pre_stim_sd < 50
-            pre_stim_sd = 50;
+            % baseline subtraction: take median of part of the averaged signal for
+            % this stimulation pair before stimulation, which is the half of the
+            % epoch
+            baseline_tt = tt>-2 & tt<-.1;
+            signal_median = median(average_ccep(ii,jj,baseline_tt),3);
+            
+            if isnan(signal_median) % for example when stimulated
+                n1_peak_sample = NaN;
+                n1_peak_amplitude = NaN;
+                
+                % in other electrode
+            else
+                
+                new_signal = squeeze(average_ccep(ii,jj,:));
+                % testplot new signal: plot(tt,squeeze(new_signal))
+                
+                % take area before the stimulation of the new signal and calculate its SD
+                pre_stim_sd = std(new_signal(baseline_tt));
+                
+                % if the pre_stim_sd is smaller that the minimally needed SD,
+                % which is validated as 50 uV, use this the minSD as pre_stim_sd
+                if pre_stim_sd < 50
+                    pre_stim_sd = 50;
+                end
+                
+                % use peakfinder to find all positive and negative peaks and their
+                % amplitude.
+                % tt are the samples of the epoch based on the Fs and -2.5 to 2.5
+                % seconds sample of the total epoch
+                % As tt use first sample after timepoint 0
+                % till first sample after 0,5 seconds (rougly 1000 samples)
+                % sel = 20 , which is how many samples around a peak not considered as another peak
+                [all_sampneg, all_amplneg] = ccep_peakfinder(new_signal(find(tt>0,1):find(tt>0.5,1)),20,[],-1);
+                
+                % If the first selected sample is a peak, this is not a real peak,
+                % so delete
+                all_amplneg(all_sampneg==1) = [];
+                all_sampneg(all_sampneg==1) = [];
+                
+                % convert back timepoints based on tt, substract 1 because before
+                % the first sample after stimulation is taken
+                all_sampneg = all_sampneg + find(tt>0,1) - 1;
+                
+                % set the starting range in which the algorithm looks
+                % for a peak. At least 18 samples are necessary because
+                % of the micromed amplifier does not record the
+                % stimulated electrode before this. Peak detection
+                % start 9 ms after stimulation, which is 19 samples
+                % after stimulation
+                n1_samples_start = find(tt>0.009,1);
+                
+                % find first sample that corresponds with the given n1
+                % peak range
+                n1_samples_end = find(tt>(n1_peak_range/1000),1);
+                
+                
+                % for N1, first select the range in which the N1 could appear, and
+                % select the peaks found in this range
+                temp_n1_peaks_samp = all_sampneg((n1_samples_start <= all_sampneg) & (all_sampneg <= n1_samples_end));
+                temp_n1_peaks_ampl = all_amplneg((n1_samples_start <= all_sampneg) & (all_sampneg <= n1_samples_end));
+                
+                % if peak(s) found, select biggest peak
+                if ~isempty(temp_n1_peaks_samp)
+                    max_n1_ampl = find(abs(temp_n1_peaks_ampl) == max(abs(temp_n1_peaks_ampl)));
+                    n1_peak_sample = temp_n1_peaks_samp(max_n1_ampl(1));
+                    n1_peak_amplitude = temp_n1_peaks_ampl(max_n1_ampl(1));
+                    % otherwise give the amplitude the value NaN
+                elseif isempty(temp_n1_peaks_samp)
+                    n1_peak_amplitude = NaN;
+                    n1_peak_sample = NaN;
+                end
+                
+                % if N1 exceeds positive threshold, it is deleted
+                if temp_n1_peaks_ampl > 0
+                    n1_peak_sample = NaN;
+                    n1_peak_amplitude = NaN;
+                end
+                
+                % when peak amplitude is saturated, it is deleted
+                if abs(n1_peak_amplitude) > 3000
+                    n1_peak_sample = NaN;
+                    n1_peak_amplitude = NaN;
+                end
+                
+                % if the peak is not big enough to consider as a peak, assign NaN
+                if abs(n1_peak_amplitude) < amplitude_thresh* abs(pre_stim_sd)
+                    n1_peak_sample = NaN;
+                    n1_peak_amplitude = NaN;
+                end
+            end
+            
         end
-        
-        % when the electrode is stimulated
-        
-            
-            % use peakfinder to find all positive and negative peaks and their
-            % amplitude.
-            % tt are the samples of the epoch based on the Fs and -2.5 to 2.5
-            % seconds sample of the total epoch
-            % As tt use first sample after timepoint 0
-            % till first sample after 0,5 seconds (rougly 1000 samples)
-            % sel = 20 , which is how many samples around a peak not considered as another peak
-            [all_sampneg, all_amplneg] = ccep_peakfinder(new_signal(find(tt>0,1):find(tt>0.5,1)),20,[],-1);
-            
-            % If the first selected sample is a peak, this is not a real peak,
-            % so delete
-            all_amplneg(all_sampneg==1) = [];
-            all_sampneg(all_sampneg==1) = [];
-            
-            % convert back timepoints based on tt, substract 1 because before
-            % the first sample after stimulation is taken
-            all_sampneg = all_sampneg + find(tt>0,1) - 1;
-            
-            % set the starting range in which the algorithm looks
-            % for a peak. At least 18 samples are necessary because
-            % of the micromed amplifier does not record the
-            % stimulated electrode before this. Peak detection
-            % start 9 ms after stimulation, which is 19 samples
-            % after stimulation
-            n1_samples_start = find(tt>0.009,1);
-            
-            % find first sample that corresponds with the given n1
-            % peak range
-            n1_samples_end = find(tt>(n1_peak_range/1000),1);
-            
-            
-            % for N1, first select the range in which the N1 could appear, and
-            % select the peaks found in this range
-            temp_n1_peaks_samp = all_sampneg((n1_samples_start <= all_sampneg) & (all_sampneg <= n1_samples_end));
-            temp_n1_peaks_ampl = all_amplneg((n1_samples_start <= all_sampneg) & (all_sampneg <= n1_samples_end));
-            
-            % if peak(s) found, select biggest peak
-            if ~isempty(temp_n1_peaks_samp)
-                max_n1_ampl = find(abs(temp_n1_peaks_ampl) == max(abs(temp_n1_peaks_ampl)));
-                n1_peak_sample = temp_n1_peaks_samp(max_n1_ampl(1));
-                n1_peak_amplitude = temp_n1_peaks_ampl(max_n1_ampl(1));
-                % otherwise give the amplitude the value NaN
-            elseif isempty(temp_n1_peaks_samp)
-                n1_peak_amplitude = NaN;
-                n1_peak_sample = NaN;                
-            end
-            
-            % if N1 exceeds positive threshold, it is deleted
-            if temp_n1_peaks_ampl > 0
-                n1_peak_sample = NaN;
-                n1_peak_amplitude = NaN;
-            end
-            
-            % when peak amplitude is saturated, it is deleted
-            if abs(n1_peak_amplitude) > 3000
-                n1_peak_sample = NaN;
-                n1_peak_amplitude = NaN;
-            end
-            
-            % if the peak is not big enough to consider as a peak, assign NaN
-            if abs(n1_peak_amplitude) < amplitude_thresh* abs(pre_stim_sd)
-                n1_peak_sample = NaN;
-                n1_peak_amplitude = NaN;
-            end
-        end
-        
-        
         % add properties to output frame
         n1_peak(ii,jj,1) = n1_peak_sample;
         n1_peak(ii,jj,2) = n1_peak_amplitude;

@@ -86,7 +86,7 @@ for kk = 1:max(stim_pair_nr) % condition number
         ccep(:,kk,1:size(these_epochs_data,2),:) = these_epochs_data;
     end
     % save average
-    average_ccep(:,kk,:) = squeeze(nanmean(these_epochs_data,2));
+    average_ccep(:,kk,:) = squeeze(mean(these_epochs_data,2,'omitnan'));
     
     clear these_epochs_data ll_start ll_end
 end
