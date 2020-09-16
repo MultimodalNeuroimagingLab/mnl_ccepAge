@@ -51,7 +51,7 @@ end
 voxelsize = niDestrieux.pixdim;
 
 % electrodes xyz to indices
-els_ind = niDestrieux.qto_ijk * [elecmatrix ones(size(elecmatrix,1),1)]';
+els_ind = niDestrieux.sto_ijk * [elecmatrix ones(size(elecmatrix,1),1)]';
 els_ind = round(els_ind(1:3,:)');
 
 for elec = 1:size(elecmatrix,1) % loop across electrodes
@@ -182,13 +182,25 @@ for elec = 1:size(elecmatrix,1) % loop across electrodes
                 temp_labels(temp_labels==0) = []; % remove zero labels
                 thisLabel = mode(temp_labels);
             end
+        elseif thisLabel == 8 || thisLabel == 47  % Cerebellum
+            other_fraction = length(find(ismember(niDestrieux.data(temp.electrode==1),[8 47])))./...
+                length(niDestrieux.data(temp.electrode==1));
+            if other_fraction<.90 
+                temp_labels = niDestrieux.data(temp.electrode==1);
+                temp_labels(ismember(temp_labels,[8 47])) = []; % remove 8 and 47 cerebellar labels
+                thisLabel = mode(temp_labels);
+            end
         end
 
         Destrieux_label(elec) = double(thisLabel);
 
         % get the text
         if Destrieux_label(elec)>0 && Destrieux_label(elec)<200
-            Destrieux_label_text{elec} = subcortical_labels.Var2{subcortical_labels.Var1==thisLabel};
+            if ~isempty(find(subcortical_labels.Var1==thisLabel,1))
+                Destrieux_label_text{elec} = subcortical_labels.Var2{subcortical_labels.Var1==thisLabel};
+            else
+                Destrieux_label_text{elec} = 'n/a';
+            end
         elseif Destrieux_label(elec)>11099 && Destrieux_label(elec)<12100
             Destrieux_label_text{elec} = ['lh_' colortable_Destrieux.struct_names{Destrieux_label(elec)-11099}];
         elseif Destrieux_label(elec)>12099 
