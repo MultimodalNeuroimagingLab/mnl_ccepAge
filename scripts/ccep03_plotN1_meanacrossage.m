@@ -122,11 +122,11 @@ for outInd = 1:size(conn_matrix,1)
         x = x_vals(theseSubsTrain);
         y = y_vals(theseSubsTrain);
         [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
-            [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
+            [60 -.5 1 20],[20 -Inf -Inf 10],[40 0 Inf 30],my_options);
 
         x_fit = x_vals(kk);
-        y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
-        % --> intercept = pp(1)+(pp(3)*pp(4))
+        y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(x_fit-pp(4),0));
+        % --> intercept = pp(1)
         % --> tipping point = pp(4)
         % --> slope before tipping point = pp(2)
         % --> slope after tipping point = pp(3)
@@ -153,8 +153,6 @@ for outInd = 1:size(conn_matrix,1)
 %     end
 %     % plot mean per subject in a dot
 %     plot(my_output(:,1),1000*my_output(:,2),'ko','MarkerSize',6)
-
-    plot(x_vals,y_vals,'r.','MarkerSize',6)
     
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
 %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
@@ -170,23 +168,29 @@ for outInd = 1:size(conn_matrix,1)
         low_ci = quantile(y_n1LatCross,.025,1);
         up_ci = quantile(y_n1LatCross,.975,1);
         fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .7 1],'EdgeColor',[0 .7 1])
+        % put COD in title
+        title(['COD=' int2str(cod_out(outInd,1))])
+
     else    
         % PLOT PIECEWISE LINEAR FIT (from our own function)
         x_age = [1:1:51];
         y_n1LatCross = NaN(size(cross_val_piecewiselin,1),size(x_age,2));
         for rr = 1:size(cross_val_piecewiselin,1)% run across all crossvalidations to get confidence intervals
-            y_n1LatCross(rr,:) = (cross_val_piecewiselin(rr,3) + cross_val_piecewiselin(rr,4).*min(cross_val_piecewiselin(rr,6),x_age) + ...
-                cross_val_piecewiselin(rr,5)*max(cross_val_piecewiselin(rr,6),x_age));
+            y_n1LatCross(rr,:) = (cross_val_piecewiselin(rr,3) + cross_val_piecewiselin(rr,4)*min(cross_val_piecewiselin(rr,6),x_age) + ...
+                cross_val_piecewiselin(rr,5)*max(x_age-cross_val_piecewiselin(rr,6),0));
         end
         % get 95% confidence intervals
         low_ci = quantile(y_n1LatCross,.025,1);
         up_ci = quantile(y_n1LatCross,.975,1);
         fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .7 0],'EdgeColor',[1 .7 0])
+        
+        % put COD in title
+        title(['COD=' int2str(cod_out(outInd,3))])
+
     end    
     
-    % put COD in title
-    title(['COD=' int2str(cod_out(outInd,1)) ' p=' num2str(p,2)])
-    
+    plot(x_vals,y_vals,'k.','MarkerSize',6)
+        
     xlim([0 60]), ylim([0 80])
 
 %     xlabel('age (years)'),ylabel('mean dT (ms)')
