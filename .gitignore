@@ -20,3 +20,6 @@ desktop.ini
 
 # No personalDataPath
 personalDataPath.m
+
+# No pictures
+*.png
