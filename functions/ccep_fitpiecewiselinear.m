@@ -18,6 +18,10 @@ function F = ccep_fitpiecewiselinear(pp,Y,x)
 
 F = Y - (pp(1) + pp(2)*min(pp(4),x) + pp(3)*max(pp(4),x));
 
+% --> intercept = pp(1)+(pp(3)*pp(4))
+% --> tipping point = pp(4)
+% --> slope before tipping point = pp(2)
+% --> slope after tipping point = pp(3)
 
 %% fit with:
 % figure
