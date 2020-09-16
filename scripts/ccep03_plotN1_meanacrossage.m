@@ -52,9 +52,9 @@ for outInd = 1:size(conn_matrix,1)
     end
     
     % average per age 
-    x_vals = unique(sort(my_output(~isnan(my_output(:,2)),1)));
-    y_vals = zeros(size(x_vals));
-    for kk = 1:length(x_vals)
+    x_vals = unique(sort(my_output(~isnan(my_output(:,2)),1))); % age for ~isnan
+    y_vals = zeros(size(x_vals)); % this is where we will put the average for each age
+    for kk = 1:length(x_vals) % each age
         y_vals(kk) = 1000*mean(my_output(ismember(my_output(:,1),x_vals(kk)),2),'omitnan');
     end
     
@@ -64,15 +64,13 @@ for outInd = 1:size(conn_matrix,1)
     % size latency (ms) X prediction (ms) X p1 (slope) X p2 (intercept) of left out
     sub_counter = 0;
     for kk = 1:length(y_vals)
-        if ~isnan(my_output(kk,2))
-            sub_counter = sub_counter+1;
-            % leave out kk
-            theseSubsTrain = ~ismember(1:length(y_vals),kk)';
-            P = polyfit(x_vals(theseSubsTrain),y_vals(theseSubsTrain),1);
-            cross_val_linear(sub_counter,3:4) = P;
-            cross_val_linear(sub_counter,1) = y_vals(kk); % kk (left out) actual
-            cross_val_linear(sub_counter,2) = P(1)*x_vals(kk)+P(2); % kk (left out) prediction
-        end
+        sub_counter = sub_counter+1;
+        % leave out kk
+        theseSubsTrain = ~ismember(1:length(y_vals),kk)';
+        P = polyfit(x_vals(theseSubsTrain),y_vals(theseSubsTrain),1);
+        cross_val_linear(sub_counter,3:4) = P;
+        cross_val_linear(sub_counter,1) = y_vals(kk); % kk (left out) actual
+        cross_val_linear(sub_counter,2) = P(1)*x_vals(kk)+P(2); % kk (left out) prediction
     end
     cod_out(outInd,1) = calccod(cross_val_linear(:,2),cross_val_linear(:,1),1);
     
@@ -81,15 +79,13 @@ for outInd = 1:size(conn_matrix,1)
     % size latency (ms) X prediction (ms) X p1 (age^2) X p2 (age) X p3 (intercept) of left out
     sub_counter = 0;
     for kk = 1:length(y_vals)
-        if ~isnan(my_output(kk,2))
-            sub_counter = sub_counter+1;
-            % leave out kk
-            theseSubsTrain = ~ismember(1:length(y_vals),kk)';
-            P = polyfit(x_vals(theseSubsTrain),y_vals(theseSubsTrain),2);
-            cross_val_second(sub_counter,3:5) = P;
-            cross_val_second(sub_counter,1) = y_vals(kk);
-            cross_val_second(sub_counter,2) = P(1)*x_vals(kk).^2+P(2)*x_vals(kk)+P(3);
-        end
+        sub_counter = sub_counter+1;
+        % leave out kk
+        theseSubsTrain = ~ismember(1:length(y_vals),kk)';
+        P = polyfit(x_vals(theseSubsTrain),y_vals(theseSubsTrain),2);
+        cross_val_second(sub_counter,3:5) = P;
+        cross_val_second(sub_counter,1) = y_vals(kk);
+        cross_val_second(sub_counter,2) = P(1)*x_vals(kk).^2+P(2)*x_vals(kk)+P(3);
     end
     cod_out(outInd,2) = calccod(cross_val_second(:,2),cross_val_second(:,1),1);
     
@@ -99,11 +95,10 @@ for outInd = 1:size(conn_matrix,1)
     sub_counter = 0;
     my_options = optimoptions(@lsqnonlin,'Display','off','Algorithm','trust-region-reflective');
     for kk = 1:length(y_vals)
-        if ~isnan(my_output(kk,2))
-            sub_counter = sub_counter+1;
-            % leave out kk
-            theseSubsTrain = ~ismember(1:length(y_vals),kk)';
-            
+        sub_counter = sub_counter+1;
+        % leave out kk
+        theseSubsTrain = ~ismember(1:length(y_vals),kk)';
+
 %             % use the slmengine tool from here:
 %             % John D'Errico (2020). SLM - Shape Language Modeling (https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling), MATLAB Central File Exchange. Retrieved July 14, 2020.
 %             slm = slmengine(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),'degree',1,'plot','off','knots',3,'interiorknots','free');
@@ -111,19 +106,18 @@ for outInd = 1:size(conn_matrix,1)
 %             yhat = slmeval(my_output(kk,1),slm,0);
 %             cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
 %             cross_val_piecewiselin(sub_counter,2) = yhat;
-             
-            % use our own function:
-            x = x_vals(theseSubsTrain);
-            y = y_vals(theseSubsTrain);
-            [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
-                [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
 
-            x_fit = x_vals(kk);
-            y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
-            
-            cross_val_piecewiselin(sub_counter,1) = y_vals(kk);
-            cross_val_piecewiselin(sub_counter,2) = y_fit;
-        end
+        % use our own function:
+        x = x_vals(theseSubsTrain);
+        y = y_vals(theseSubsTrain);
+        [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
+            [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
+
+        x_fit = x_vals(kk);
+        y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
+
+        cross_val_piecewiselin(sub_counter,1) = y_vals(kk);
+        cross_val_piecewiselin(sub_counter,2) = y_fit;
     end
     cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);
     
