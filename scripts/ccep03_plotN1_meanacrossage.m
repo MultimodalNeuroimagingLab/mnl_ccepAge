@@ -122,7 +122,7 @@ for outInd = 1:size(conn_matrix,1)
         x = x_vals(theseSubsTrain);
         y = y_vals(theseSubsTrain);
         [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
-            [60 -.5 1 20],[20 -Inf -Inf 10],[40 0 Inf 30],my_options);
+            [60 -1 1 20],[20 -Inf -Inf 10],[40 0 Inf 30],my_options);
 
         x_fit = x_vals(kk);
         y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(x_fit-pp(4),0));
@@ -136,6 +136,7 @@ for outInd = 1:size(conn_matrix,1)
         cross_val_piecewiselin(sub_counter,3:6) = pp; 
     end
     cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);
+    cod_out(outInd,4) = length(y_vals); % number of subjects
     
     subplot(4,4,outInd),hold on
 
