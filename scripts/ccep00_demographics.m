@@ -24,7 +24,7 @@ for kk = 1:length(tempSubs)
         theseSubs(sub_counter).name = tempSubs(kk).name;
     end
 end
-clear tempSubs sub_counter
+clear tempSubs sub_counterjj
 
 % load the participants.tsv
 participants_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t');
@@ -39,7 +39,7 @@ RESP_nr = repmat({''},length(theseSubs),1);
 for kk = 1:length(theseSubs)
     RESP_nr{kk,1} = extractAfter(theseSubs(kk).name,'-');
     
-    [~,thisInd] = ismember(RESP_nr{kk,1},participants_info.name);
+    [~,thisInd] = ismember(RESP_nr{kk,1},participants_info.participant_id);
     Age(kk,1) = participants_info.age(thisInd);
 end
 
