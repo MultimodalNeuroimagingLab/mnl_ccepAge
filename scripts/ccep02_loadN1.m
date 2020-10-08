@@ -29,8 +29,8 @@ else
         disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
         
         % add subject age
-        thisSubName = extractAfter(theseSubs(kk).name,'sub-');
-        [thisSubInd] = find(ismember(sub_info.name,thisSubName),1); % first session age
+        thisSubName = theseSubs(kk).name;
+        [thisSubInd] = find(ismember(sub_info.participant_id,thisSubName),1); % first session age
         n1Latencies(kk).id = thisSubName;
         n1Latencies(kk).ses = theseSubs(kk).ses;
         n1Latencies(kk).age = sub_info.age(thisSubInd);

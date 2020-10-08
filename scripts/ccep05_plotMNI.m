@@ -214,7 +214,7 @@ ieeg_viewLight(v_d(1),v_d(2))
 figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIpial');
 
 set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
+% print('-dpng','-r300',figureName)
 
 
 %% Left inflated with electrodes in mni space
@@ -255,7 +255,7 @@ ieeg_viewLight(v_d(1),v_d(2))
 figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIinflated');
 
 set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
+% print('-dpng','-r300',figureName)
 
 
 %%
@@ -289,7 +289,7 @@ ieeg_viewLight(v_d(1),v_d(2))
 figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIinflated');
 
 set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
+% print('-dpng','-r300',figureName)
 
 %%
 %% plot individual subjects rendering           
@@ -414,4 +414,4 @@ pause(3)
 figureName = fullfile(myDataPath.output,'derivatives','render',[theseSubs(kk).name  '_elsColors']);
 
 set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
+% print('-dpng','-r300',figureName)

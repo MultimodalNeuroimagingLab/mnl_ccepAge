@@ -37,7 +37,8 @@ Age = NaN(length(theseSubs),1);
 RESP_nr = repmat({''},length(theseSubs),1);
 
 for kk = 1:length(theseSubs)
-    RESP_nr{kk,1} = extractAfter(theseSubs(kk).name,'-');
+%     RESP_nr{kk,1} = extractAfter(theseSubs(kk).name,'-');
+    RESP_nr{kk,1} = theseSubs(kk).name;
     
     [~,thisInd] = ismember(RESP_nr{kk,1},participants_info.participant_id);
     Age(kk,1) = participants_info.age(thisInd);
