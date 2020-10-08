@@ -25,7 +25,8 @@ for kk = 1:length(theseSubs)
     disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
     
     % subject freesurfer dir
-    FSdir = fullfile(myDataPath.input,'derivatives','freesurfer',theseSubs(kk).name,theseSubs(kk).ses);
+    FSdir = fullfile(myDataPath.input,'derivatives','freesurfer',theseSubs(kk).name,theseSubs(kk).ses,...
+        [theseSubs(kk).name,'_',theseSubs(kk).ses,'_T1w']);
     
     % get electrodes info
     elec_coords(kk).elecs_tsv = readtable(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
@@ -45,18 +46,43 @@ for kk = 1:length(theseSubs)
     % get hemisphere for each electrode
     these_json = dir(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',[theseSubs(kk).name,'_',theseSubs(kk).ses,'_task-SPESclin*_ieeg.json']));
     ieeg_json = jsonread(fullfile(these_json(1).folder,these_json(1).name));
-    if isequal(ieeg_json.iEEGPlacementScheme,'left')
+    if isequal(ieeg_json.iEEGPlacementScheme,'left') || isequal(ieeg_json.iEEGPlacementScheme,'left;')
         hemi = num2cell(repmat('L',nElec,1));
-    elseif isequal(ieeg_json.iEEGPlacementScheme,'right')
+    elseif isequal(ieeg_json.iEEGPlacementScheme,'right')|| isequal(ieeg_json.iEEGPlacementScheme,'right;')
         hemi = num2cell(repmat('R',nElec,1));
-    elseif isequal(ieeg_json.iEEGPlacementScheme,'left,right')
-        hemi = num2cell(repmat('n/a',nElec,1));
-        for ll = 1:nElec
-            if elecmatrix(kk,1)<0
-                hemi{ll} = 'L';
-            else
-                hemi{ll} = 'R';
-            end
+    elseif contains(ieeg_json.iEEGPlacementScheme,{'left','right'}) % check with kk=17
+        hemi = cell(nElec,1);
+        [hemi{:}] = deal('n/a');
+        
+        schemesplit = strsplit(ieeg_json.iEEGPlacementScheme,';');
+        rightcell = find(contains(schemesplit,'right'));
+        leftcell = find(contains(schemesplit,'left'));
+        
+        if rightcell < leftcell
+            leftcells = extractAfter(ieeg_json.iEEGPlacementScheme,'left');
+            rightcells = extractBetween(ieeg_json.iEEGPlacementScheme,'right','left');
+            rightcells = rightcells{:};
+        else
+            rightcells = extractAfter(ieeg_json.iEEGPlacementScheme,'right');
+            leftcells = extractBetween(ieeg_json.iEEGPlacementScheme,'left','right');
+            leftcells = leftcells{:};
+        end
+        
+        leftelec = strsplit(leftcells,';');
+        leftelec =  leftelec(~cellfun('isempty',leftelec));
+        rightelec = strsplit(rightcells,';');
+        rightelec = rightelec(~cellfun('isempty',rightelec));
+        
+        for elec=1:size(leftelec,2)
+           C = strsplit(leftelec{elec},{'[',']'});
+           elecInd = find(contains(elec_coords(kk).elecs_tsv.name,C{1}));
+           [hemi{elecInd}] = deal('L');
+        end
+        
+        for elec=1:size(rightelec,2)
+           C = strsplit(rightelec{elec},{'[',']'});
+           elecInd = find(contains(elec_coords(kk).elecs_tsv.name,C{1}));
+           [hemi{elecInd}] = deal('R');
         end
     end
     elec_coords(kk).hemi = hemi;
@@ -310,12 +336,13 @@ FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
 
 elec_coords = [];
 
-kk = 69; % 4 and 69 and 73
+kk = 17;%69; % 4 and 69 and 73
 
 disp(['subj ' int2str(kk)])
 
 % subject freesurfer dir
-FSdir = fullfile(myDataPath.input,'derivatives','freesurfer',theseSubs(kk).name,theseSubs(kk).ses);
+FSdir = fullfile(myDataPath.input,'derivatives','freesurfer',theseSubs(kk).name,theseSubs(kk).ses,...
+    [theseSubs(kk).name,'_',theseSubs(kk).ses,'_T1w']);
 
 % get electrodes info
 elec_coords(kk).elecs_tsv = readtable(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
@@ -335,21 +362,45 @@ nElec = size(elecmatrix,1);
 % get hemisphere for each electrode
 these_json = dir(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',[theseSubs(kk).name,'_',theseSubs(kk).ses,'_task-SPESclin*_ieeg.json']));
 ieeg_json = jsonread(fullfile(these_json(1).folder,these_json(1).name));
-if isequal(ieeg_json.iEEGPlacementScheme,'left')
+if isequal(ieeg_json.iEEGPlacementScheme,'left') || isequal(ieeg_json.iEEGPlacementScheme,'left;')
     hemi = num2cell(repmat('L',nElec,1));
-elseif isequal(ieeg_json.iEEGPlacementScheme,'right')
+elseif isequal(ieeg_json.iEEGPlacementScheme,'right') || isequal(ieeg_json.iEEGPlacementScheme,'right;')
     hemi = num2cell(repmat('R',nElec,1));
-elseif isequal(ieeg_json.iEEGPlacementScheme,'left,right')
-    hemi = num2cell(repmat('n/a',nElec,1));
-    for ll = 1:nElec
-        if elecmatrix(kk,1)<0
-            hemi{ll} = 'L';
-        else
-            hemi{ll} = 'R';
-        end
+elseif contains(ieeg_json.iEEGPlacementScheme,{'left','right'}) % check with kk=17
+    hemi = cell(nElec,1);
+    [hemi{:}] = deal('n/a');
+    
+    schemesplit = strsplit(ieeg_json.iEEGPlacementScheme,';');
+    rightcell = find(contains(schemesplit,'right'));
+    leftcell = find(contains(schemesplit,'left'));
+    
+    if rightcell < leftcell
+        leftcells = extractAfter(ieeg_json.iEEGPlacementScheme,'left');
+        rightcells = extractBetween(ieeg_json.iEEGPlacementScheme,'right','left');
+        rightcells = rightcells{:};
+    else
+        rightcells = extractAfter(ieeg_json.iEEGPlacementScheme,'right');
+        leftcells = extractBetween(ieeg_json.iEEGPlacementScheme,'left','right');
+        leftcells = leftcells{:};
+    end
+    
+    leftelec = strsplit(leftcells,';');
+    leftelec =  leftelec(~cellfun('isempty',leftelec));
+    rightelec = strsplit(rightcells,';');
+    rightelec = rightelec(~cellfun('isempty',rightelec));
+    
+    for elec=1:size(leftelec,2)
+        C = strsplit(leftelec{elec},{'[',']'});
+        elecInd = find(contains(elec_coords(kk).elecs_tsv.name,C{1}));
+        [hemi{elecInd}] = deal('L');
+    end
+    
+    for elec=1:size(rightelec,2)
+        C = strsplit(rightelec{elec},{'[',']'});
+        elecInd = find(contains(elec_coords(kk).elecs_tsv.name,C{1}));
+        [hemi{elecInd}] = deal('R');
     end
 end
-
 % number of electrodes
 nElec = size(elecmatrix,1);
 
