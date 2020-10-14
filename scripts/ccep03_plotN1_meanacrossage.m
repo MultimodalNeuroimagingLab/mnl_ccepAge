@@ -120,7 +120,7 @@ for outInd = 1:size(conn_matrix,1)
         y = y_vals(theseSubsTrain);
         [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
             [60 -1 1 20],[20 -Inf -Inf 10],[40 0 Inf 30],my_options);
-        
+
         x_fit = x_vals(kk);
         y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(x_fit-pp(4),0));
         % --> intercept = pp(1)
