@@ -25,8 +25,8 @@ my_output = NaN(length(out.sub),3);
 % get variable per subject
 for kk = 1:length(out.sub)
     my_output(kk,1) = out.sub(kk).age;
-    my_output(kk,2) = nanmean(out.sub(kk).latencies);
-    my_output(kk,3) = nanvar(out.sub(kk).latencies);
+    my_output(kk,2) = mean(out.sub(kk).latencies,'omitnan');
+    my_output(kk,3) = var(out.sub(kk).latencies,'omitnan');
 end
 
 figure
@@ -58,7 +58,7 @@ for outInd = 1:size(conn_matrix,1)
     % get variable per subject
     for kk = 1:length(out{outInd}.sub)
         my_output(kk,1) = out{outInd}.sub(kk).age;
-        my_output(kk,2) = nanmean(out{outInd}.sub(kk).latencies);
+        my_output(kk,2) = mean(out{outInd}.sub(kk).latencies,'omitnan');
         my_output(kk,3) = nanvar(out{outInd}.sub(kk).latencies);
     end
 

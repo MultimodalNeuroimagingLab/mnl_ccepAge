@@ -30,13 +30,6 @@ elseif ~isempty(varargin)
     if varargin{1}==1 && exist('personalDataPath','file')
         localDataPath = personalDataPath();
         
-        if ~isempty(which('ft_read_header')) % is fieldtrip in your path
-            % remove fieldtrip stats path such that we use the canonical Matlab functions
-            fieldtripFolder = which('ft_defaults');
-            fieldtripPath = fileparts(fieldtripFolder);
-            rmpath(fullfile(fieldtripPath,'external','stats'));
-        end
-        
     elseif varargin{1}==1 && ~exist('personalDataPath','file')
         sprintf(['add personalDataPath function to add your localDataPath:\n'...
             '\n'...

@@ -50,12 +50,12 @@ for kk = 1:size(n1Latencies,2) % number of subjects
     average_N1_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2)); % [roi_start, roi_end,run,tt]
     
     % get the session directory name
-    sesDir = dir(fullfile(myDataPath.output,'derivatives','av_ccep',['sub-' n1Latencies(kk).id],'ses-*'));
+    sesDir = dir(fullfile(myDataPath.output,'derivatives','av_ccep',n1Latencies(kk).id,'ses-*'));
     sesDir = sesDir.name;
     
     for ll = 1:size(n1Latencies(kk).run,2) % number of runs
         % get this run file name
-        thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',['sub-' n1Latencies(kk).id],sesDir,...
+        thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',n1Latencies(kk).id,sesDir,...
             theseSubs(kk).run{ll});
         thisData = load(thisRun);
         % we will resample all cceps to 2048Hz, no need to preselect
