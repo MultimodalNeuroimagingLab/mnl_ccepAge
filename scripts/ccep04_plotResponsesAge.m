@@ -4,6 +4,9 @@ myDataPath = setLocalDataPath(1);
 if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
     % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
     load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    for kk = 1:length(n1Latencies)
+        n1Latencies(kk).id = ['sub-' n1Latencies(kk).id];
+    end
 else
     disp('Run first ccep02_loadN1.mat')
 end
@@ -197,9 +200,9 @@ end
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000)]);
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 figure('Position',[0 0 150 40])
 imagesc(1:100)
@@ -207,9 +210,9 @@ colormap(parula)
 axis off
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 %%
 %% approach to average per year

@@ -165,7 +165,11 @@ for outInd = 1:size(conn_matrix,1)
         % get 95% confidence intervals
         low_ci = quantile(y_n1LatCross,.025,1);
         up_ci = quantile(y_n1LatCross,.975,1);
-        fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .7 1],'EdgeColor',[0 .7 1])
+        if cod_out(outInd,4)<20 % less than 20 subjects
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[.5 .7 1],'EdgeColor',[.5 .7 1])
+        else
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .2 1],'EdgeColor',[0 .2 1])
+        end
         % put COD in title
         title(['COD=' int2str(cod_out(outInd,1))])
         
@@ -180,8 +184,17 @@ for outInd = 1:size(conn_matrix,1)
         % get 95% confidence intervals
         low_ci = quantile(y_n1LatCross,.025,1);
         up_ci = quantile(y_n1LatCross,.975,1);
-        fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .7 0],'EdgeColor',[1 .7 0])
-        
+        if cod_out(outInd,4)<20 % less than 20 subjects
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .7 .5],'EdgeColor',[1 .7 .5])
+        else
+            % also plot the CI of the knee in the background
+            low_knee_ci = quantile(cross_val_piecewiselin(:,6),.025);
+            up_knee_ci = quantile(cross_val_piecewiselin(:,6),.975);
+            fill([low_knee_ci up_knee_ci up_knee_ci low_knee_ci],[80 80 0 0],[.8 .8 .8],'EdgeColor',[.8 .8 .8])
+            
+            % plot the fit
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .2 0],'EdgeColor',[1 .2 0])
+        end
         % put COD in title
         title(['COD=' int2str(cod_out(outInd,3))])
         
