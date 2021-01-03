@@ -40,7 +40,7 @@ roi_name{3} = 'parietal';
 roi{4} = {'14','15','12'}; % maybe add 16: G_front_sup
 roi_name{4} = 'frontal';
 
-tt = n1Latencies(74).run(1).tt;
+tt = n1Latencies(75).run(1).tt;
 
 average_ccep_age = cell(max([n1Latencies.age]),1);
 average_ccep_age_nonnorm = cell(max([n1Latencies.age]),1);
@@ -192,8 +192,42 @@ for rr1 = 1:4
 %         plot([40 40],[1 length(sortage(rr1,rr2).age_ind)],'k')      
 
 %         set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
-        set(gca,'YTick',[])
+        set(gca,'XTick',[20:20:80],'YTick',[])
         axis tight
+    end
+end
+
+% calculate correlation and p
+p_all = zeros(4,4);
+r_all = zeros(4,4);
+for rr1 = 1:4
+    for rr2 = 1:4
+        n1_latency = 1000*sortage(rr1,rr2).average_n1;
+        age = sortage(rr1,rr2).age_ind;
+        [r,p] = corr(n1_latency,age);
+        p_all(rr1,rr2) = p;
+        r_all(rr1,rr2) = r;
+    end
+end
+
+% FDR correction
+p_vals = p_all(:);
+
+m = length(p_vals);
+[p_sort,p_ind] = sort(p_vals(:));
+clear thisVal
+for kk = 1:length(p_sort)
+    thisVal(kk) = (kk/m)*0.05;
+end
+% figure,hold on,plot(thisVal),plot(p_sort,'r.')
+p_sig = p_all;
+p_sig(p_ind) = p_sort<thisVal';
+for rr1 = 1:4
+    for rr2 = 1:4
+        subplot(4,4,(rr1-1)*4+rr2),hold on
+        if p_sig(rr1,rr2)==1 % significant!
+            plot(100,0,'r*')
+        end
     end
 end
 
@@ -204,15 +238,18 @@ set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 print('-depsc','-r300',figureName)
 
+%%
+
 figure('Position',[0 0 150 40])
 imagesc(1:100)
 colormap(parula)
 axis off
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
+
 
 %%
 %% approach to average per year
