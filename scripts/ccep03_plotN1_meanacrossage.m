@@ -34,6 +34,9 @@ end
 %% try average per age first
 
 cod_out = zeros(size(conn_matrix,1),2);
+linear_avparams = zeros(size(conn_matrix,1),2);
+piecewise_avparams = zeros(size(conn_matrix,1),4);
+
 figure('position',[0 0 700 600])
 for outInd = 1:size(conn_matrix,1)
     
@@ -57,14 +60,6 @@ for outInd = 1:size(conn_matrix,1)
     for kk = 1:length(x_vals) % each age
         y_vals(kk) = 1000*mean(my_output(ismember(my_output(:,1),x_vals(kk)),2),'omitnan');
     end
-    %     % average per 2 years of age
-    %     x_vals_temp = 2*floor(.5*x_vals);
-    %     x_vals_new = unique(x_vals_temp);
-    %     y_vals_new = zeros(size(x_vals_new));
-    %     for kk = 1:length(x_vals_new)
-    %         y_vals_new(kk) = mean(y_vals(ismember(x_vals_temp,x_vals_new(kk))));
-    %     end
-    %     x_vals = x_vals_new; y_vals = y_vals_new;
     
     % Test fitting a first order polynomial (leave 1 out cross validation)
     % y  =  w1*age + w2
@@ -81,6 +76,7 @@ for outInd = 1:size(conn_matrix,1)
         cross_val_linear(sub_counter,2) = P(1)*x_vals(kk)+P(2); % kk (left out) prediction
     end
     cod_out(outInd,1) = calccod(cross_val_linear(:,2),cross_val_linear(:,1),1);
+    linear_avparams(outInd,:) = mean(cross_val_linear(:,3:4));
     
     % Like Yeatman et al., for DTI fit a second order polynomial:
     cross_val_second = NaN(length(y_vals),5);
@@ -134,23 +130,24 @@ for outInd = 1:size(conn_matrix,1)
     end
     cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);
     cod_out(outInd,4) = length(y_vals); % number of subjects
+    piecewise_avparams(outInd,:) = mean(cross_val_piecewiselin(:,3:6));
     
     subplot(4,4,outInd),hold on
     
-    %     % add this if you want to see every single subject and the effect of
-    %     % averaging within an age group
-    %     for kk = 1:nsubs
-    %         % plot histogram per subject in the background
-    %         if ~isnan(my_output(kk,2))
-    %             distributionPlot(1000*out{outInd}.sub(kk).latencies','xValues',out{outInd}.sub(kk).age,...
-    %                 'color',[.6 .6 .6],'showMM',0,'histOpt',2)
-    %         end
-    % %         % plot mean+sterr per subject
-    % %         plot([my_output(kk,1) my_output(kk,1)],[1000*(my_output(kk,2)-my_output(kk,3)) 1000*(my_output(kk,2)+my_output(kk,3))],...
-    % %             'k','LineWidth',1)
-    %     end
-    %     % plot mean per subject in a dot
-    %     plot(my_output(:,1),1000*my_output(:,2),'ko','MarkerSize',6)
+        % add this if you want to see every single subject and the effect of
+        % averaging within an age group
+        for kk = 1:nsubs
+            % plot histogram per subject in the background
+            if ~isnan(my_output(kk,2))
+                distributionPlot(1000*out{outInd}.sub(kk).latencies','xValues',out{outInd}.sub(kk).age,...
+                    'color',[.8 .8 .8],'showMM',0,'histOpt',2)
+            end
+    %         % plot mean+sterr per subject
+    %         plot([my_output(kk,1) my_output(kk,1)],[1000*(my_output(kk,2)-my_output(kk,3)) 1000*(my_output(kk,2)+my_output(kk,3))],...
+    %             'k','LineWidth',1)
+        end
+%         % plot mean per subject in a dot
+%         plot(my_output(:,1),1000*my_output(:,2),'ko','MarkerSize',6)
     
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
     %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
@@ -165,7 +162,11 @@ for outInd = 1:size(conn_matrix,1)
         % get 95% confidence intervals
         low_ci = quantile(y_n1LatCross,.025,1);
         up_ci = quantile(y_n1LatCross,.975,1);
-        fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .7 1],'EdgeColor',[0 .7 1])
+        if cod_out(outInd,4)<20 % less than 20 subjects
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[.5 .7 1],'EdgeColor',[.5 .7 1])
+        else
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .2 1],'EdgeColor',[0 .2 1])
+        end
         % put COD in title
         title(['COD=' int2str(cod_out(outInd,1))])
         
@@ -180,8 +181,18 @@ for outInd = 1:size(conn_matrix,1)
         % get 95% confidence intervals
         low_ci = quantile(y_n1LatCross,.025,1);
         up_ci = quantile(y_n1LatCross,.975,1);
-        fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .7 0],'EdgeColor',[1 .7 0])
-        
+        if cod_out(outInd,4)<20 % less than 20 subjects
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .7 .5],'EdgeColor',[1 .7 .5])
+        else
+            % also plot the CI of the knee in the background
+            low_knee_ci = quantile(cross_val_piecewiselin(:,6),.025);
+            up_knee_ci = quantile(cross_val_piecewiselin(:,6),.975);
+%             fill([low_knee_ci up_knee_ci up_knee_ci low_knee_ci],[80 80 0 0],[.8 .8 .8],'EdgeColor',[.8 .8 .8])
+            fill([low_knee_ci up_knee_ci up_knee_ci low_knee_ci],[5 5 0 0],[1 0 0],'EdgeColor',[1 0 0])
+            
+            % plot the fit
+            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .2 0],'EdgeColor',[1 .2 0])
+        end
         % put COD in title
         title(['COD=' int2str(cod_out(outInd,3))])
         
@@ -200,6 +211,11 @@ if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
     mkdir(fullfile(myDataPath.output,'derivatives','age'));
 end
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1_meanacrossage');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
 
 %% mean per age instead of first mean latency per subject
 

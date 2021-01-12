@@ -68,7 +68,7 @@ end
 % [(1:length(all_age))' all_age all_age_pairN1]
 
 %%
-subjects_plot = [4 69]; % subjects 4 69, age 4 38
+subjects_plot = [4 70]; % subjects 4 70, age 4 38
 
 ccep_age = zeros(length(subjects_plot),1);
 average_ccep_age = NaN(length(subjects_plot),5*2048);
@@ -141,20 +141,21 @@ ttmax = .250;
 
 cm = parula(size(average_ccep_age_nonnorm,1)+1);
 
-figure('Position',[0 0 600 300]),hold on        
+figure('Position',[0 0 250 150]),hold on        
 plot(1000*tt(tt>ttmin & tt<ttmax),zeros(size(tt(tt>ttmin & tt<ttmax))),'k')
 for kk = 1:size(average_ccep_age_nonnorm,1)
     tt_plot = 1000*tt(tt>ttmin & tt< ttmax);
     lower_err = average_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax)-sterr_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax);
     upper_err = average_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax)+sterr_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax);
-%     fill([tt_plot tt_plot(end:-1:1)],[upper_err lower_err(end:-1:1)],cm(kk,:),'EdgeColor',cm(kk,:))
+    fill([tt_plot tt_plot(end:-1:1)],[upper_err lower_err(end:-1:1)],cm(kk,:),'EdgeColor',cm(kk,:))
     plot(1000*tt(tt>ttmin & tt<ttmax),average_ccep_age_nonnorm(kk,tt>ttmin & tt< ttmax),'Color',cm(kk,:))
 end
 
+xlim([0 ttmax*1000])
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AgeExamples_tmax' int2str(ttmax*1000)]);
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 

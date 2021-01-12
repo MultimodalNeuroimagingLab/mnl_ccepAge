@@ -4,6 +4,9 @@ myDataPath = setLocalDataPath(1);
 if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
     % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
     load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    for kk = 1:length(n1Latencies)
+        n1Latencies(kk).id = ['sub-' n1Latencies(kk).id];
+    end
 else
     disp('Run first ccep02_loadN1.mat')
 end
@@ -37,7 +40,7 @@ roi_name{3} = 'parietal';
 roi{4} = {'14','15','12'}; % maybe add 16: G_front_sup
 roi_name{4} = 'frontal';
 
-tt = n1Latencies(74).run(1).tt;
+tt = n1Latencies(75).run(1).tt;
 
 average_ccep_age = cell(max([n1Latencies.age]),1);
 average_ccep_age_nonnorm = cell(max([n1Latencies.age]),1);
@@ -189,17 +192,53 @@ for rr1 = 1:4
 %         plot([40 40],[1 length(sortage(rr1,rr2).age_ind)],'k')      
 
 %         set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
-        set(gca,'YTick',[])
+        set(gca,'XTick',[20:20:80],'YTick',[])
         axis tight
+    end
+end
+
+% calculate correlation and p
+p_all = zeros(4,4);
+r_all = zeros(4,4);
+for rr1 = 1:4
+    for rr2 = 1:4
+        n1_latency = 1000*sortage(rr1,rr2).average_n1;
+        age = sortage(rr1,rr2).age_ind;
+        [r,p] = corr(n1_latency,age);
+        p_all(rr1,rr2) = p;
+        r_all(rr1,rr2) = r;
+    end
+end
+
+% FDR correction
+p_vals = p_all(:);
+
+m = length(p_vals);
+[p_sort,p_ind] = sort(p_vals(:));
+clear thisVal
+for kk = 1:length(p_sort)
+    thisVal(kk) = (kk/m)*0.05;
+end
+% figure,hold on,plot(thisVal),plot(p_sort,'r.')
+p_sig = p_all;
+p_sig(p_ind) = p_sort<thisVal';
+for rr1 = 1:4
+    for rr2 = 1:4
+        subplot(4,4,(rr1-1)*4+rr2),hold on
+        if p_sig(rr1,rr2)==1 % significant!
+            plot(100,0,'r*')
+        end
     end
 end
 
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000)]);
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
+%%
 
 figure('Position',[0 0 150 40])
 imagesc(1:100)
@@ -210,6 +249,7 @@ figureName = fullfile(myDataPath.output,'derivatives','age',...
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 % print('-depsc','-r300',figureName)
+
 
 %%
 %% approach to average per year
