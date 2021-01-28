@@ -60,6 +60,7 @@ for kk = 1:length(theseSubs)
         thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',theseSubs(kk).name,theseSubs(kk).ses,...
             theseSubs(kk).run{ll});
         thisData = load(thisRun);
+        n1Latencies(kk).run(ll).runName = theseSubs(kk).run{ll};
         n1Latencies(kk).run(ll).allLatencies = thisData.tt(thisData.n1_peak_sample(~isnan(thisData.n1_peak_sample)));
         n1Latencies(kk).run(ll).n1_peak_sample = thisData.n1_peak_sample;
         n1Latencies(kk).run(ll).channel_names = thisData.channel_names;

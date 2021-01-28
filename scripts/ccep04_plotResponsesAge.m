@@ -14,9 +14,6 @@ end
 % these do not have the average CCEPs for areas or age groups yet, but that
 % would get heavy on the memory
 
-% get the filename of all derivative datasets:
-theseSubs = ccep_getSubFilenameInfo(myDataPath);
-
 %% load ccep responses for each roi
 
 % temporal areas:
@@ -40,7 +37,7 @@ roi_name{3} = 'parietal';
 roi{4} = {'14','15','12'}; % maybe add 16: G_front_sup
 roi_name{4} = 'frontal';
 
-tt = n1Latencies(75).run(1).tt;
+tt = n1Latencies(2).run(1).tt;
 
 average_ccep_age = cell(max([n1Latencies.age]),1);
 average_ccep_age_nonnorm = cell(max([n1Latencies.age]),1);
@@ -59,7 +56,7 @@ for kk = 1:size(n1Latencies,2) % number of subjects
     for ll = 1:size(n1Latencies(kk).run,2) % number of runs
         % get this run file name
         thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',n1Latencies(kk).id,sesDir,...
-            theseSubs(kk).run{ll});
+            n1Latencies(kk).run(ll).runName);
         thisData = load(thisRun);
         % we will resample all cceps to 2048Hz, no need to preselect
         for rr1 = 1:size(roi,2) % stimulation ROI
