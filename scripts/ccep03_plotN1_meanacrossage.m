@@ -35,7 +35,7 @@ end
 
 cod_out = zeros(size(conn_matrix,1),2);
 linear_avparams = zeros(size(conn_matrix,1),2);
-piecewise_avparams = zeros(size(conn_matrix,1),4);
+piecewise_avparams = zeros(size(conn_matrix,1),6); % 4 for params, and 2 for signrank across decrease
 
 figure('position',[0 0 700 600])
 for outInd = 1:size(conn_matrix,1)
@@ -130,7 +130,19 @@ for outInd = 1:size(conn_matrix,1)
     end
     cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);
     cod_out(outInd,4) = length(y_vals); % number of subjects
-    piecewise_avparams(outInd,:) = mean(cross_val_piecewiselin(:,3:6));
+    piecewise_avparams(outInd,1:4) = mean(cross_val_piecewiselin(:,3:6));
+    if quantile(cross_val_piecewiselin(:,4),.925)<0 % 85% confidence interval entirely <0
+        piecewise_avparams(outInd,5) = 1;
+    else
+        piecewise_avparams(outInd,5) = 0;
+    end
+    % 
+    if quantile(cross_val_piecewiselin(:,5),.925)<0 % 85% confidence interval entirely <0
+        piecewise_avparams(outInd,6) = 1;
+    else
+        piecewise_avparams(outInd,6) = 0;
+    end
+        
     
     subplot(4,4,outInd),hold on
     
@@ -212,10 +224,28 @@ if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
 end
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1_meanacrossage');
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
+%%
+% linear better:
+cod_out(cod_out<0) = 0;
+lin_better = (cod_out(:,1)-cod_out(:,3))>0;
+% difference in R2 for linear better
+cod_out(lin_better,1) - cod_out(lin_better,3)
+
+% mean params for linear better
+mean(linear_avparams(lin_better,:))
+
+% mean params for piecewise linear better
+mean(piecewise_avparams(~lin_better & cod_out(:,4)>20,1:4))
+
+% does the first piecewise linear decrease differ from zero?
+piecewise_avparams(~lin_better & cod_out(:,4)>20,5)
+
+% does the second piecewise linear decrease differ from zero?
+piecewise_avparams(~lin_better & cod_out(:,4)>20,6)
 
 %% mean per age instead of first mean latency per subject
 
