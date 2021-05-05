@@ -9,6 +9,13 @@ else
     disp('Run first ccep02_loadN1.mat')
 end
 
+%% age distribution
+
+all_ages = zeros(length(n1Latencies),1);
+for kk = 1:length(n1Latencies)
+    all_ages(kk) = n1Latencies(kk).age;
+end
+
 %% connections from one region to another
 
 region_start = input('Choose roi where connections start [temporal, frontal, parietal, occipital]: ','s');
