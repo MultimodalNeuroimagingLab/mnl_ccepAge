@@ -52,16 +52,12 @@ for kk = 1:max(stim_pair_nr) % condition number
     % save name of the current epoch
     average_ccep_names{kk} = stim_pair_name{these_epochs(1)};
     
-    % initialize matrix with this epoch type (channels X conditions X time)
+    % initialize matrix with this epoch type (channels X individual trials X time)
     these_epochs_data = NaN(nr_channels,length(these_epochs),round(epoch_length*srate));
     
-    % for this condition number (kk), load each epoch (ll)
-    
+    % for this stimulation pair number (kk), load each epoch (ll)
     for ll = 1:length(these_epochs)
         
-        % the onset has errors
-%         ll_start = round((events_table.onset(these_epochs(ll))-epoch_prestim_length)*srate);
-%         ll_end = round((events_table.onset(these_epochs(ll))+epoch_length-epoch_prestim_length)*srate);
         % the sample_start is correct
         ll_start = round(events_table.sample_start(these_epochs(ll)) - epoch_prestim_length*srate);
         ll_end = round(events_table.sample_start(these_epochs(ll)) + (epoch_length-epoch_prestim_length)*srate);
@@ -73,7 +69,7 @@ for kk = 1:max(stim_pair_nr) % condition number
         
     end    
         
-    % baseline subtract
+    % baseline subtract for each individual epoch (ll)
     if baseline_subtract==1
         samples_base = find(tt>-1 & tt<-0.1);
         these_epochs_data = ccep_baselinesubtract(these_epochs_data,samples_base,'median');

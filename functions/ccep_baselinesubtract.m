@@ -14,6 +14,8 @@ function data_epoch = ccep_baselinesubtract(data_epoch,samples_base,varargin)
 % 
 %
 % dhermes, multimodal neurimaging lab, 2020
+% dvanblooijs, umcutrecht, 2021 - removed for-loop over channels to make it
+% more time-efficient
 
 if isempty(varargin)
     baseline_function = 'mean';
@@ -22,15 +24,14 @@ elseif ~isempty(varargin)
 end
 
 % baseline correct
-for kk = 1:size(data_epoch,1)%channels
-    for mm = 1:size(data_epoch,2)%epochs
-        x = squeeze(data_epoch(kk,mm,:));
-        
-        if strcmp(baseline_function,'mean')
-            x = x-mean(x(samples_base));
-        elseif strcmp(baseline_function,'median')
-            x = x-median(x(samples_base));
-        end
-        data_epoch(kk,mm,:) = x;
+for mm = 1:size(data_epoch,2)%epochs
+    x = squeeze(data_epoch(:,mm,:));
+    
+    if strcmp(baseline_function,'mean')
+        x = x-mean(x(:,samples_base),2);
+    elseif strcmp(baseline_function,'median')
+        x = x-median(x(:,samples_base),2);
     end
+    data_epoch(:,mm,:) = x;
 end
+

@@ -31,7 +31,7 @@ else
         % add subject age
         thisSubName = theseSubs(kk).name;
         [thisSubInd] = find(ismember(sub_info.participant_id,thisSubName),1); % first session age
-        n1Latencies(kk).id = thisSubName;
+        n1Latencies(kk).id = thisSubName; %#ok<*SAGROW>
         n1Latencies(kk).ses = theseSubs(kk).ses;
         n1Latencies(kk).age = sub_info.age(thisSubInd);
         
@@ -165,32 +165,80 @@ for kk = 1:length(n1Latencies)
 end
 
 figure
-subplot(2,1,1),hold on
+subplot(2,1,1),
 plot(my_output(:,1),1000*my_output(:,2),'.')
 xlabel('age (years)'),ylabel('mean latency (ms)')
 [r,p] = corr(my_output(:,1),my_output(:,2),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-subplot(2,1,2),hold on
+[P,S] = polyfit(my_output(:,1),1000*my_output(:,2),1);
+[y_fit, ~] = polyval(P,my_output(:,1),S);
+            
+hold on
+% Plot polyfit throught data points
+plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+hold off
+
+subplot(2,1,2),
 plot(my_output(:,1),my_output(:,3),'.')
 xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(:,1),my_output(:,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
+[P,S] = polyfit(my_output(:,1),my_output(:,3),1);
+[y_fit, ~] = polyval(P,my_output(:,1),S);
+            
+hold on
+% Plot polyfit throught data points
+plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+hold off
+sgtitle('Pearson correlation between age and N1-latency')
+
+figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsN1latency');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
+
 %% plot all under 40
 
 figure
-subplot(2,1,1),hold on
+subplot(2,1,1),
 plot(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),'.')
 xlabel('age (years)'),ylabel('mean latency (ms)')
 [r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,2),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-subplot(2,1,2),hold on
+[P,S] = polyfit(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),1);
+[y_fit, ~] = polyval(P,my_output(my_output(:,1)<40,1),S);
+            
+hold on
+% Plot polyfit throught data points
+plot(my_output(my_output(:,1)<40,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+hold off
+
+subplot(2,1,2),
 plot(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'.')
 xlabel('age (years)'),ylabel('variance in latency')
 [r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+
+[P,S] = polyfit(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),1);
+[y_fit, ~] = polyval(P,my_output(my_output(:,1)<40,1),S);
+            
+hold on
+% Plot polyfit throught data points
+plot(my_output(my_output(:,1)<40,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+hold on
+
+sgtitle('Pearson correlation between age(<40 years) and N1-latency')
+
+figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsN1latency_40yrs');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 %%
 
