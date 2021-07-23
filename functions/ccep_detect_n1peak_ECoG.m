@@ -111,7 +111,7 @@ for jj = 1:size(average_ccep,2)
                 % in other electrode
             else
                 
-                new_signal = squeeze(average_ccep(ii,jj,:));
+                new_signal = squeeze(average_ccep(ii,jj,:)) - signal_median;
                 % testplot new signal: plot(tt,squeeze(new_signal))
                 
                 % take area before the stimulation of the new signal and calculate its SD
@@ -130,7 +130,13 @@ for jj = 1:size(average_ccep,2)
                 % As tt use first sample after timepoint 0
                 % till first sample after 0,5 seconds (rougly 1000 samples)
                 % sel = 20 , which is how many samples around a peak not considered as another peak
-                [all_sampneg, all_amplneg] = ccep_peakfinder(new_signal(find(tt>0,1):find(tt>0.5,1)),20,[],-1);
+                
+                % UPDATED: the range is already set to 9ms:500ms
+                % post-stimulation. In RESP0892, there is a clear switch
+                % observed after stimulation. This switch is at 9.3ms, and
+                % was until now detected as a N1 peak. With changing the
+                % range here, this is not detected as N1 peak anymore.
+                [all_sampneg, all_amplneg] = ccep_peakfinder(new_signal(find(tt>9/1000,1):find(tt>0.5,1)),20,[],-1);
                 
                 % If the first selected sample is a peak, this is not a real peak,
                 % so delete
@@ -139,7 +145,7 @@ for jj = 1:size(average_ccep,2)
                 
                 % convert back timepoints based on tt, substract 1 because before
                 % the first sample after stimulation is taken
-                all_sampneg = all_sampneg + find(tt>0,1) - 1;
+                all_sampneg = all_sampneg + find(tt>9/1000,1) - 1;
                 
                 % set the starting range in which the algorithm looks
                 % for a peak. At least 18 samples are necessary because

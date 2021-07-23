@@ -30,9 +30,9 @@ function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_
 if isempty(n1_peak_sample)
     n1_peak_sample = NaN(size(average_ccep,1),size(average_ccep,2));
 end
-if isempty(n1_peak_amplitude)
-    n1_peak_amplitude = NaN(size(average_ccep,1),size(average_ccep,2));
-end
+% if isempty(n1_peak_amplitude)
+%     n1_peak_amplitude = NaN(size(average_ccep,1),size(average_ccep,2));
+% end
     
 elnrs_plot = good_channels;
 
@@ -46,7 +46,7 @@ for ll = 1:length(elnrs_plot)
         plot(tt,kk*500+zeros(size(tt)),'Color',[.8 .8 .8])
         plot(tt,kk*500+this_ccep_plot)
         if ~isnan(n1_peak_sample(el_plot,kk))
-            plot(tt(n1_peak_sample(el_plot,kk)),n1_peak_amplitude(el_plot,kk)+kk*500,'o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2)
+            plot(tt(n1_peak_sample(el_plot,kk)),this_ccep_plot(n1_peak_sample(el_plot,kk))+kk*500,'o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2)
         end
     end
     xlim([-.2 1])
