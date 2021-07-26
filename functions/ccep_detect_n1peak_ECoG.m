@@ -98,24 +98,20 @@ for jj = 1:size(average_ccep,2)
             tt = (1:epoch_length*srate) / ...
                 srate - epoch_prestim_length;
             
-            % baseline subtraction: take median of part of the averaged signal for
-            % this stimulation pair before stimulation, which is the half of the
-            % epoch
             baseline_tt = tt>-2 & tt<-.1;
-            signal_median = median(average_ccep(ii,jj,baseline_tt),3);
             
-            if isnan(signal_median) % for example when stimulated
+            if all(isnan(average_ccep(ii,jj,:))) % for example when stimulated
                 n1_peak_sample = NaN;
                 n1_peak_amplitude = NaN;
                 
                 % in other electrode
             else
                 
-                new_signal = squeeze(average_ccep(ii,jj,:)) - signal_median;
-                % testplot new signal: plot(tt,squeeze(new_signal))
+                one_signal = squeeze(average_ccep(ii,jj,:));
+                % testplot new signal: plot(tt,squeeze(one_signal))
                 
                 % take area before the stimulation of the new signal and calculate its SD
-                pre_stim_sd = std(new_signal(baseline_tt));
+                pre_stim_sd = std(one_signal(baseline_tt));
                 
                 % if the pre_stim_sd is smaller that the minimally needed SD,
                 % which is validated as 50 uV, use this the minSD as pre_stim_sd
@@ -136,7 +132,7 @@ for jj = 1:size(average_ccep,2)
                 % observed after stimulation. This switch is at 9.3ms, and
                 % was until now detected as a N1 peak. With changing the
                 % range here, this is not detected as N1 peak anymore.
-                [all_sampneg, all_amplneg] = ccep_peakfinder(new_signal(find(tt>9/1000,1):find(tt>0.5,1)),20,[],-1);
+                [all_sampneg, all_amplneg] = ccep_peakfinder(one_signal(find(tt>9/1000,1):find(tt>0.5,1)),20,[],-1);
                 
                 % If the first selected sample is a peak, this is not a real peak,
                 % so delete
