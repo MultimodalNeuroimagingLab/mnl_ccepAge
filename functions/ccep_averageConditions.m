@@ -81,10 +81,21 @@ for kk = 1:max(stim_pair_nr) % condition number
     else
         ccep(:,kk,1:size(these_epochs_data,2),:) = these_epochs_data;
     end
-    % save average
-    average_ccep(:,kk,:) = squeeze(mean(these_epochs_data,2,'omitnan'));
     
-    clear these_epochs_data ll_start ll_end
+    % average ccep
+    this_average_ccep = squeeze(mean(these_epochs_data,2,'omitnan')); %[channels x samples]
+    
+    % since each trial has had baseline subtraction between -1:-0.1, we
+    % average all trials, there coulde be a baseline shift from 0. So here,
+    % again, we apply a baseline correction (this was first part of the
+    % function ccep_detect_n1peak_ECoG.m, but we relocated this here.
+    baseline_tt = tt>-2 & tt<-.1;
+    signal_median = median(this_average_ccep(:,baseline_tt),2);
+    
+    % save average ccep
+    average_ccep(:,kk,:) = this_average_ccep - signal_median;
+
+    clear these_epochs_data ll_start ll_end this_average_ccep
 end
 
 %% set stimulated electrodes to NaN
