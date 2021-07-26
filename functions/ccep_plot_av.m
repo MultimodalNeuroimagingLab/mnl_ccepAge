@@ -30,9 +30,9 @@ function ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_
 if isempty(n1_peak_sample)
     n1_peak_sample = NaN(size(average_ccep,1),size(average_ccep,2));
 end
-% if isempty(n1_peak_amplitude)
-%     n1_peak_amplitude = NaN(size(average_ccep,1),size(average_ccep,2));
-% end
+if isempty(n1_peak_amplitude)
+    n1_peak_amplitude = NaN(size(average_ccep,1),size(average_ccep,2));
+end
     
 elnrs_plot = good_channels;
 
@@ -41,12 +41,13 @@ for ll = 1:length(elnrs_plot)
     figure('Position',[0 0 700 700]),hold on
     for kk = 1:length(average_ccep_names)
         this_ccep_plot = squeeze(average_ccep(el_plot,kk,:));
-        this_ccep_plot(tt>-0.010 & tt<0.010) = NaN;
+        this_ccep_plot(tt>-0.010 & tt<=0.009) = NaN;
         
         plot(tt,kk*500+zeros(size(tt)),'Color',[.8 .8 .8])
         plot(tt,kk*500+this_ccep_plot)
         if ~isnan(n1_peak_sample(el_plot,kk))
-            plot(tt(n1_peak_sample(el_plot,kk)),this_ccep_plot(n1_peak_sample(el_plot,kk))+kk*500,'o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2)
+            plot(tt(n1_peak_sample(el_plot,kk)),this_ccep_plot(n1_peak_sample(el_plot,kk))+kk*500,'o','MarkerEdgeColor','r','MarkerFaceColor','r','MarkerSize',3)
+            plot(tt(n1_peak_sample(el_plot,kk)),n1_peak_amplitude(el_plot,kk)+kk*500,'o','MarkerEdgeColor','k','MarkerFaceColor','k','MarkerSize',2) % double check that both are on the same location
         end
     end
     xlim([-.2 1])
