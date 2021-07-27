@@ -43,7 +43,6 @@ for kk = 1:length(n1Latencies)
     clear allCCEPs
 end
 
-
 figure
 subplot(2,1,1),
 plot(my_output(:,1),my_output(:,2),'.')
@@ -64,8 +63,6 @@ figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1'
 set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 print('-depsc','-r300',figureName)
-
-
 
 %% figure relative number of CCEPs from one region to another
 % (corrected for total number of electrodes on response region) 
@@ -112,6 +109,16 @@ set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 print('-depsc','-r300',figureName)
 
+%% print number of electrodes in each region
+clc
 
+for i = 1:size(regions_connect,2)
+fprintf('%s: total # el = %d, %d (%d-%d) (median (min-max))\n',...
+    regions_connect{i},...
+    sum(vertcat(out{i}.sub.el_roi_end)),...
+    median(vertcat(out{i}.sub.el_roi_end)),...
+    min(vertcat(out{i}.sub.el_roi_end)),...
+    max(vertcat(out{i}.sub.el_roi_end)))
+end
 
 

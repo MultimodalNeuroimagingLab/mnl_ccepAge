@@ -46,12 +46,14 @@ out = [];
 for kk = 1:length(n1Latencies) % loop subjects
     out.sub(kk).age = n1Latencies(kk).age;
     
+    out.sub(kk).el_roi_end = sum(ismember(str2double(n1Latencies(kk).run(1).channel_DestrieuxNr(:)),str2double(roi_end(:))));
+    
     % initialize connections as empty
     out.sub(kk).samples = []; % roi_start --> roi_end
     out.sub(kk).latencies = []; % roi_start --> roi_end
     out.sub(kk).numCCEPs = [];
     out.sub(kk).relCCEPs = [];
-
+    
     for ll = 1:length(n1Latencies(kk).run) % loop runs
         % run through all first stimulated channels (nr 1 in pair)
         for chPair = 1:size(n1Latencies(kk).run(ll).n1_peak_sample,2)
