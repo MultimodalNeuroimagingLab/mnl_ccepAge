@@ -1,4 +1,7 @@
 function [out] = ccep_connectRegions(n1Latencies,region_start,region_end)
+% determine for each region (start) to another region (end), the latency of
+% CCEPs, the number of CCEPs and the relative number of CCEPs (corrected
+% for total number of electrodes on region (end)). 
 
 if strcmp(region_start,'temporal')
     % temporal areas:
@@ -43,10 +46,13 @@ out = [];
 for kk = 1:length(n1Latencies) % loop subjects
     out.sub(kk).age = n1Latencies(kk).age;
     
+    out.sub(kk).el_roi_end = sum(ismember(str2double(n1Latencies(kk).run(1).channel_DestrieuxNr(:)),str2double(roi_end(:))));
+    
     % initialize connections as empty
     out.sub(kk).samples = []; % roi_start --> roi_end
-    
     out.sub(kk).latencies = []; % roi_start --> roi_end
+    out.sub(kk).numCCEPs = [];
+    out.sub(kk).relCCEPs = [];
     
     for ll = 1:length(n1Latencies(kk).run) % loop runs
         % run through all first stimulated channels (nr 1 in pair)
@@ -68,10 +74,22 @@ for kk = 1:length(n1Latencies) % loop subjects
                     
                     out.sub(kk).samples = [out.sub(kk).samples; thisSample];
                     out.sub(kk).latencies = [out.sub(kk).latencies n1Latencies(kk).run(ll).tt(thisSample(~isnan(thisSample)))];
+                    
+                    % number of CCEPs per stimulus                   
+                    out.sub(kk).numCCEPs = [out.sub(kk).numCCEPs, size(thisSample,1)];
+                    
+                    % total number of electrodes on roi_end minus stimulated
+                    % electrodes on roi_end, because in stimulated
+                    % electrodes, no CCEP can be detected.
+                    totCh_roi_end = sum(ismember(str2double(n1Latencies(kk).run(ll).channel_DestrieuxNr),str2double(roi_end(:)))) - ...
+                        sum(ismember(n1Latencies(kk).run(ll).average_ccep_DestrieuxNr(chPair,:),roi_end));
+                    
+                    % relative number of CCEPs per stimulus
+                    out.sub(kk).relCCEPs = [out.sub(kk).relCCEPs, size(thisSample,1)/totCh_roi_end];
                 end
             end
         end
-    end
+    end    
 end
 
 
