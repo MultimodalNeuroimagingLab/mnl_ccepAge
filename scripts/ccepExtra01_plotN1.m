@@ -308,23 +308,23 @@ for outInd = 1:size(conn_matrix,1)
             % leave out kk
             theseSubsTrain = ~isnan(my_output(:,2)) & ~ismember(1:nsubs,kk)';
             
-            % use the slmengine tool from here:
-            % John D'Errico (2020). SLM - Shape Language Modeling (https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling), MATLAB Central File Exchange. Retrieved July 14, 2020.
-            slm = slmengine(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),'degree',1,'plot','off','knots',3,'interiorknots','free');
-            % predicted value at left out x
-            yhat = slmeval(my_output(kk,1),slm,0);
-            cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
-            cross_val_piecewiselin(sub_counter,2) = yhat;
-            
-%             % use our own function:
-%             x = my_output(theseSubsTrain,1);
-%             y = 1000*my_output(theseSubsTrain,2);
-%             [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
-%                 [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
-%             x_fit = my_output(kk,1);
-%             y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
+%             % use the slmengine tool from here:
+%             % John D'Errico (2020). SLM - Shape Language Modeling (https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling), MATLAB Central File Exchange. Retrieved July 14, 2020.
+%             slm = slmengine(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),'degree',1,'plot','off','knots',3,'interiorknots','free');
+%             % predicted value at left out x
+%             yhat = slmeval(my_output(kk,1),slm,0);
 %             cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
-%             cross_val_piecewiselin(sub_counter,2) = y_fit;
+%             cross_val_piecewiselin(sub_counter,2) = yhat;
+            
+            % use our own function:
+            x = my_output(theseSubsTrain,1);
+            y = 1000*my_output(theseSubsTrain,2);
+            [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp,y,x),...
+                [40 -1 0 20],[0 -Inf -Inf 10],[40 0 Inf 30],my_options);
+            x_fit = my_output(kk,1);
+            y_fit = (pp(1) + pp(2)*min(pp(4),x_fit) + pp(3)*max(pp(4),x_fit));
+            cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
+            cross_val_piecewiselin(sub_counter,2) = y_fit;
         end
     end
     cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);

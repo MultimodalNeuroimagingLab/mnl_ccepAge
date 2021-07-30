@@ -30,11 +30,12 @@ for outInd = 1:size(conn_matrix,1)
     out{outInd}.name = {region_start,region_end};
 end
 
-
 %% try average per age first
 
 cod_out = zeros(size(conn_matrix,1),2);
+sp_out = zeros(size(conn_matrix,1),2);
 linear_avparams = zeros(size(conn_matrix,1),2);
+second_avparams = zeros(size(conn_matrix,1),3);
 piecewise_avparams = zeros(size(conn_matrix,1),6); % 4 for params, and 2 for signrank across decrease
 
 figure('position',[0 0 700 600])
@@ -76,6 +77,8 @@ for outInd = 1:size(conn_matrix,1)
         cross_val_linear(sub_counter,2) = P(1)*x_vals(kk)+P(2); % kk (left out) prediction
     end
     cod_out(outInd,1) = calccod(cross_val_linear(:,2),cross_val_linear(:,1),1);
+    sp_out(outInd,1) = corr(cross_val_linear(:,2),cross_val_linear(:,1),'type','Spearman');
+    
     linear_avparams(outInd,:) = mean(cross_val_linear(:,3:4));
     
     % Like Yeatman et al., for DTI fit a second order polynomial:
@@ -92,6 +95,9 @@ for outInd = 1:size(conn_matrix,1)
         cross_val_second(sub_counter,2) = P(1)*x_vals(kk).^2+P(2)*x_vals(kk)+P(3);
     end
     cod_out(outInd,2) = calccod(cross_val_second(:,2),cross_val_second(:,1),1);
+    sp_out(outInd,2) = corr(cross_val_second(:,2),cross_val_second(:,1),'type','Spearman');
+    
+    second_avparams(outInd,:) = mean(cross_val_second(:,3:5));
     
     % Fit with a piecewise linear model:
     cross_val_piecewiselin = NaN(length(y_vals),6);
@@ -128,7 +134,10 @@ for outInd = 1:size(conn_matrix,1)
         cross_val_piecewiselin(sub_counter,2) = y_fit;
         cross_val_piecewiselin(sub_counter,3:6) = pp;
     end
+    
     cod_out(outInd,3) = calccod(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),1);
+    sp_out(outInd,3) = corr(cross_val_piecewiselin(:,2),cross_val_piecewiselin(:,1),'type','Spearman');
+
     cod_out(outInd,4) = length(y_vals); % number of subjects
     piecewise_avparams(outInd,1:4) = mean(cross_val_piecewiselin(:,3:6));
     if quantile(cross_val_piecewiselin(:,4),.925)<0 % 85% confidence interval entirely <0
@@ -164,57 +173,33 @@ for outInd = 1:size(conn_matrix,1)
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),2),'Type','Pearson');
     %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     
-    if cod_out(outInd,1)>cod_out(outInd,3)
-        % PLOT LINEAR FIT WITH CI
-        x_age = [1:1:51];
-        % get my crossval y distribution
-        y_n1LatCross = cross_val_linear(:,3)*x_age + cross_val_linear(:,4);
-        % PLOT SECOND ORDER POLYNOMIAL FIT WITH CI
-        % y_n1LatCross = cross_val_second(:,3)*x_age.^2 + cross_val_second(:,4)*x_age + cross_val_second(:,5);
-        % get 95% confidence intervals
-        low_ci = quantile(y_n1LatCross,.025,1);
-        up_ci = quantile(y_n1LatCross,.975,1);
-        if cod_out(outInd,4)<20 % less than 20 subjects
-            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[.5 .7 1],'EdgeColor',[.5 .7 1])
-        else
-            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .2 1],'EdgeColor',[0 .2 1])
-        end
-        % put COD in title
-        title(['COD=' int2str(cod_out(outInd,1))])
-        
+    % PLOT 2ND ORDER POLYNOMIAL
+    % this is the best fit, and b/c Yeatman et al., 2014 found similar results
+    x_age = [1:1:51];
+    % get my crossval y distribution
+    y_n1LatCross = cross_val_second(:,3)*x_age.^2 + cross_val_second(:,4)*x_age + cross_val_second(:,5);
+
+    % get 95% confidence intervals
+    low_ci = quantile(y_n1LatCross,.025,1);
+    up_ci = quantile(y_n1LatCross,.975,1);
+    if cod_out(outInd,4)<20 % less than 20 subjects
+        fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[.5 .7 1],'EdgeColor',[.5 .7 1])
     else
-        % PLOT PIECEWISE LINEAR FIT (from our own function)
-        x_age = [1:1:51];
-        y_n1LatCross = NaN(size(cross_val_piecewiselin,1),size(x_age,2));
-        for rr = 1:size(cross_val_piecewiselin,1)% run across all crossvalidations to get confidence intervals
-            y_n1LatCross(rr,:) = (cross_val_piecewiselin(rr,3) + cross_val_piecewiselin(rr,4)*min(cross_val_piecewiselin(rr,6),x_age) + ...
-                cross_val_piecewiselin(rr,5)*max(x_age-cross_val_piecewiselin(rr,6),0));
-        end
-        % get 95% confidence intervals
-        low_ci = quantile(y_n1LatCross,.025,1);
-        up_ci = quantile(y_n1LatCross,.975,1);
-        if cod_out(outInd,4)<20 % less than 20 subjects
-            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .7 .5],'EdgeColor',[1 .7 .5])
-        else
-            % also plot the CI of the knee in the background
-            low_knee_ci = quantile(cross_val_piecewiselin(:,6),.025);
-            up_knee_ci = quantile(cross_val_piecewiselin(:,6),.975);
-%             fill([low_knee_ci up_knee_ci up_knee_ci low_knee_ci],[80 80 0 0],[.8 .8 .8],'EdgeColor',[.8 .8 .8])
-            fill([low_knee_ci up_knee_ci up_knee_ci low_knee_ci],[5 5 0 0],[1 0 0],'EdgeColor',[1 0 0])
-            
-            % plot the fit
-            fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[1 .2 0],'EdgeColor',[1 .2 0])
-        end
-        % put COD in title
-        title(['COD=' int2str(cod_out(outInd,3))])
-        
+        fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],[0 .2 1],'EdgeColor',[0 .2 1])
     end
+    if cod_out(outInd,4)>20 && cod_out(outInd,2)>cod_out(outInd,1)% more than 20 subjects & 2nd order
+        % calculate minimum x
+        min_age = -cross_val_second(:,4)./(2*cross_val_second(:,3));
+        plot([quantile(min_age,0.025,1) quantile(min_age,0.975,1)],[5 5],'Color',[.2 .7 .6],'LineWidth',10)
+    end    
+    % put COD in title
+    title(['COD=' int2str(cod_out(outInd,2))])
     
     plot(x_vals,y_vals,'k.','MarkerSize',6)
     
     xlim([0 60]), ylim([0 80])
     
-    %     xlabel('age (years)'),ylabel('mean dT (ms)')
+    % xlabel('age (years)'),ylabel('mean dT (ms)')
     set(gca,'XTick',10:10:50,'YTick',20:20:100,'FontName','Arial','FontSize',12)
     
 end

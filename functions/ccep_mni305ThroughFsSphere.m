@@ -70,7 +70,7 @@ elCoords = elCoords(1:3,:)';
 
 % subject sphere
 [Lsubsphere_vert,Lsubsphere_face] = read_surf(fullfile(FSdir,'surf','lh.sphere.reg'));
-[Rsubsphere_vert] = read_surf(fullfile(FSdir,'surf','rh.sphere'));
+[Rsubsphere_vert] = read_surf(fullfile(FSdir,'surf','rh.sphere.reg'));
 
 % mni305 sphere
 [Lmnisphere_vert,Lmnisphere_face] = read_surf(fullfile(FSsubjectsdir,'fsaverage','surf','lh.sphere'));
