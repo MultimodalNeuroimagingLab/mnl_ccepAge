@@ -177,15 +177,8 @@ end
 
 %% labels for electrode areas we want to color
 
-% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
-% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
-roi_temporal = [37 38 34 23 21];
-% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi_frontal = [14 15 12]; 
-% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
-roi_parietal = [25 26 27];
-% G_postcentral G_precentral S_central
-roi_central = [28 29 46];
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions
 
 lroi_label = Lvert_label;
 lroi_label(ismember(lroi_label,roi_temporal+1)) = 200;
@@ -326,16 +319,8 @@ set(gcf,'PaperPositionMode','auto')
 
 %% plot individual subjects rendering           
 
-% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
-% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
-roi_temporal = [37 38 34 23 21];
-% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi_frontal = [14 15 12]; 
-% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
-roi_parietal = [25 26 27];
-% G_postcentral G_precentral S_central
-roi_central = [28 29 46];
-
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions
 
 % Freesurfer subjects directory
 FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
