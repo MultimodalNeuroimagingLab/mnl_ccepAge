@@ -1,6 +1,8 @@
-%
-% This script can be used as workflow script to create average CCEPs
-% for the CCEP data in the RESPect database.
+%% makeFig1A_plotMNI
+
+% This script can be used to create an MNI cortex (inflated) with
+% electrodes in different colors for different locations for all patients
+% used in this study. 
 %
 % Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, 2019
 %
@@ -14,12 +16,12 @@ myDataPath = setLocalDataPath(1);
 theseSubs = ccep_getSubFilenameInfo(myDataPath);
 
 %% Get standardized electrodes through surface based registration or linear
-
+% convert electrodes from patient's individual MRI to MNI305 space
 
 % Freesurfer subjects directory
 FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
 
-elec_coords = [];
+elec_coords = struct();
 
 for kk = 1:length(theseSubs) 
     disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
@@ -98,6 +100,8 @@ save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305.mat'),'ele
 
 
 %% Start here to make figures
+% load MNI electrode positions (saved in previous section), MNI sphere, pial,
+% and surface labels
 
 % linear is not so nice...
 % load(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305lin.mat'),'elec_coords')
@@ -129,7 +133,9 @@ for kk = 1:size(Rcolortable.table,1) % 76 are labels
     Rvert_label(Rlabel==Rcolortable.table(kk,5)) = kk;
 end
 
-%% add all electrodes labels and left or right hemisphere
+%% add all electrodes labels and left or right hemisphere into one 
+% variable: allmni_coords and allmni_coords_infl
+
 allmni_coords = [];
 allmni_coords_infl = [];
 
@@ -150,9 +156,9 @@ for kk = 1:length(elec_coords)
         Destrieux_label = cell2mat(Destrieux_label);
     end
     
-    allmni_coords = [allmni_coords; elec_coords(kk).mni_coords];
-    allmni_labels = [allmni_labels; Destrieux_label];
-    all_hemi = [all_hemi; elec_coords(kk).hemi];
+    allmni_coords = [allmni_coords; elec_coords(kk).mni_coords]; %#ok<AGROW>
+    allmni_labels = [allmni_labels; Destrieux_label]; %#ok<AGROW>
+    all_hemi = [all_hemi; elec_coords(kk).hemi]; %#ok<AGROW>
     
     % run through all coordinates and find the inflated points
     temp_inflated = NaN(size(elec_coords(kk).mni_coords));
@@ -166,20 +172,13 @@ for kk = 1:length(elec_coords)
         end
     end
     
-    allmni_coords_infl = [allmni_coords_infl; temp_inflated];
+    allmni_coords_infl = [allmni_coords_infl; temp_inflated]; %#ok<AGROW>
 end
 
 %% labels for electrode areas we want to color
 
-% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
-% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
-roi_temporal = [37 38 34 23 21];
-% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi_frontal = [14 15 12]; 
-% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
-roi_parietal = [25 26 27];
-% G_postcentral G_precentral S_central
-roi_central = [28 29 46];
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions
 
 lroi_label = Lvert_label;
 lroi_label(ismember(lroi_label,roi_temporal+1)) = 200;
@@ -187,7 +186,7 @@ lroi_label(ismember(lroi_label,roi_central+1)) = 300;
 lroi_label(lroi_label<100) = 0;
 lroi_label = lroi_label/100;
 
-%% Left pial with electrodes in mni space
+%% Plot figure with left pial with electrodes in mni space
 
 v_d = [270 0];
 
@@ -195,7 +194,7 @@ figure
 gl.faces = Lmnipial_face+1;
 gl.vertices = Lmnipial_vert;
 gl = gifti(gl);
-tH = ieeg_RenderGifti(gl);
+tH = ieeg_RenderGifti(gl); %#ok<NASGU>
 
 % make sure electrodes pop out
 a_offset = .1*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
@@ -216,14 +215,14 @@ ieeg_viewLight(v_d(1),v_d(2))
 % print('-dpng','-r300',figureName)
 
 
-%% Right with electrodes
+%% Plot figure with right pial with electrodes in mni space
 v_d = [96 6];
 
 figure
 gr.faces = Rmnipial_face+1;
 gr.vertices = Rmnipial_vert;
 gr = gifti(gr);
-tH = ieeg_RenderGifti(gr);
+tH = ieeg_RenderGifti(gr); %#ok<NASGU>
 
 % make sure electrodes pop out
 a_offset = .5*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
@@ -237,18 +236,18 @@ ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_central),:),[
 ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
 
-figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIpial');
+figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIpial'); %#ok<NASGU>
 
 set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 
 
-%% Left inflated with electrodes in mni space
+%% Plot left inflated brain surface with electrodes in mni space
 
 Lsulcal_labels = read_curv(fullfile(FSsubjectsdir,'fsaverage','surf','lh.sulc'));
 
 % make a colormap for the labels
-cmap = Lcolortable.table(:,1:3)./256;
+cmap = Lcolortable.table(:,1:3)./256; %#ok<NASGU>
 
 v_d = [270 0];
 
@@ -259,7 +258,7 @@ gl = gifti(gl);
 % tH = ieeg_RenderGifti(gl);
 % with Destrieux labels:
 % tH = ieeg_RenderGiftiLabels(gl,Lvert_label,cmap,Lcolortable.struct_names);
-tH = ieeg_RenderGiftiLabels(gl,Lsulcal_labels,[.5 .5 .5;.8 .8 .8]);
+tH = ieeg_RenderGiftiLabels(gl,Lsulcal_labels,[.5 .5 .5;.8 .8 .8]); %#ok<NASGU>
 % sulci_rois = Lsulcal_labels;
 % sulci_rois(lroi_label==2) = 3;
 % sulci_rois(lroi_label==3) = 4;
@@ -278,13 +277,14 @@ ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
 
-figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIinflated');
+% figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIinflated');
 
 set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 
 
-%%
+%% Plot right inflated brain surface with electrodes in mni space
+
 v_d = [96 6];
 Rsulcal_labels = read_curv(fullfile(FSsubjectsdir,'fsaverage','surf','rh.sulc'));
 
@@ -294,10 +294,10 @@ cmap = Rcolortable.table(:,1:3)./256;
 figure
 gr.faces = Rmniinfl_face+1;
 gr.vertices = Rmniinfl_vert;
-gr = gifti(gr);
+gr = gifti(gr);d
 % tH = ieeg_RenderGifti(gl);
 % with Destrieux labels:
-tH = ieeg_RenderGiftiLabels(gr,Rsulcal_labels,[.5 .5 .5;.8 .8 .8]);
+tH = ieeg_RenderGiftiLabels(gr,Rsulcal_labels,[.5 .5 .5;.8 .8 .8]); %#ok<NASGU>
 
 % make sure electrodes pop out
 a_offset = .1*max(abs(allmni_coords_infl(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
@@ -312,31 +312,22 @@ ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_central),:),[
 ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
 
-figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIinflated');
+% figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIinflated');
 
 set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 
-%%
 %% plot individual subjects rendering           
-%%
-% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
-% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
-roi_temporal = [37 38 34 23 21];
-% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi_frontal = [14 15 12]; 
-% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
-roi_parietal = [25 26 27];
-% G_postcentral G_precentral S_central
-roi_central = [28 29 46];
 
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions
 
 % Freesurfer subjects directory
 FSsubjectsdir = fullfile(myDataPath.input,'derivatives','freesurfer');
 
 elec_coords = [];
 
-kk = 17;%69; % 4 and 69 and 73
+kk = 70; % in Fig1A of the article number 4 (4 years of age) and 70 (38 years of age) are used
 
 disp(['subj ' int2str(kk)])
 
@@ -389,18 +380,21 @@ elseif contains(ieeg_json.iEEGPlacementScheme,{'left','right'}) % check with kk=
     rightelec = strsplit(rightcells,';');
     rightelec = rightelec(~cellfun('isempty',rightelec));
     
+    % set L in variable hemi for electrodes in the left hemisphere
     for elec=1:size(leftelec,2)
         C = strsplit(leftelec{elec},{'[',']'});
         elecInd = find(contains(elec_coords(kk).elecs_tsv.name,C{1}));
         [hemi{elecInd}] = deal('L');
     end
     
+    % set R in variable hemi for electrodes in the right hemisphere
     for elec=1:size(rightelec,2)
         C = strsplit(rightelec{elec},{'[',']'});
         elecInd = find(contains(elec_coords(kk).elecs_tsv.name,C{1}));
         [hemi{elecInd}] = deal('R');
     end
 end
+
 % number of electrodes
 nElec = size(elecmatrix,1);
 
@@ -411,16 +405,15 @@ Norig = orig.vox2ras;
 Torig = orig.tkrvox2ras;
 
 % electrodes to freesurfer space
-freeSurfer2T1 = inv(Norig*inv(Torig));
-elCoords = freeSurfer2T1*([elecmatrix'; ones(1, nElec)]);
+freeSurfer2T1 = inv(Norig*inv(Torig)); %#ok<MINV>
+elCoords = freeSurfer2T1*([elecmatrix'; ones(1, nElec)]); %#ok<MINV>
 elCoords = elCoords(1:3,:)';
 
 % subject pial
 [Lsubpial_vert,Lsubpial_face] = read_surf(fullfile(FSdir,'surf','lh.pial'));
 [Rsubpial_vert,Rsubpial_face] = read_surf(fullfile(FSdir,'surf','rh.pial'));
 
-% figure with electrodes in freesurfer space
-figure
+% set the view for the correct hemisphere
 if isequal(hemi{1},'L')
     g.faces = Lsubpial_face+1; % correct for zero index
     g.vertices = Lsubpial_vert;
@@ -445,6 +438,7 @@ if iscell(Destrieux_label)
     Destrieux_label = cell2mat(Destrieux_label);
 end
 
+% make the electrodes be out of the brain cortex
 a_offset = .1*max(abs(elCoords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
 els = elCoords+repmat(a_offset,size(elCoords,1),1);      
 

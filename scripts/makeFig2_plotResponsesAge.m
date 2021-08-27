@@ -1,4 +1,12 @@
 %% load the n1Latencies from the derivatives
+% This code is used to plot the normalized ccep of all patients in order of
+% age. This figure is displayed as Figure 2 in the article.
+
+clear
+close
+clc
+
+%% load the n1Latencies from the derivatives
 
 myDataPath = setLocalDataPath(1);
 if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
@@ -9,35 +17,25 @@ else
 end
 
 
-%% load ccep responses for each roi
+%% load ccep responses and categorize into connections from stimulated region to responding regions
+% rois: temporal, central, parietal, frontal
 
-% temporal areas:
-% G_temporal_inf, G_temporal_middle, G_temp_sup-Lateral,
-% G_oc-temp_med-Parahip, G_oc-temp_lat-fusifor
-roi{1} = {'37','38','34','23','21'};
-roi_name{1} = 'temporal';
+% the CCEPs are averaged for each run, and then averaged CCEPs per patient
+% are collected for all subjects. Multiple subjects with the same age are
+% collected for each age (average_ccep_age_nonnorm) and normalized
+% (average_ccep_age)
 
-% central areas
-% G_postcentral G_precentral S_central
-roi{2} = {'28','29','46'};
-roi_name{2} = 'central';
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions
 
-% parietal areas:
-% G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
-roi{3} = {'25','26','27'};
-roi_name{3} = 'parietal';
-
-% frontal areas:
-% G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi{4} = {'14','15','12'}; % maybe add 16: G_front_sup
-roi_name{4} = 'frontal';
-
-tt = n1Latencies(2).run(1).tt;
+tt = n1Latencies(2).run(1).tt; % this patient had fs=2048, so take this tt
 
 average_ccep_age = cell(max([n1Latencies.age]),1);
 average_ccep_age_nonnorm = cell(max([n1Latencies.age]),1);
 average_n1_age = cell(max([n1Latencies.age]),1);
 for kk = 1:size(n1Latencies,2) % number of subjects
+    
+    fprintf('Load subj %d of %d \n',kk,size(n1Latencies,2))
     
     age = n1Latencies(kk).age;
     average_ccep_run = NaN(size(roi,2),size(roi,2),size(n1Latencies(kk).run,2),5*2048); % [roi_start, roi_end,run,tt]
@@ -79,8 +77,8 @@ for kk = 1:size(n1Latencies,2) % number of subjects
                 
                 % if responses are added to average_ccep_select
                 if any(~isnan(average_ccep_select(:)))
-                    thisResp = squeeze(nanmean(nanmean(average_ccep_select,1),2));
-                    thisN1 = squeeze(nanmean(nanmean(average_N1_select,1),2));
+                    thisResp = squeeze(mean(mean(average_ccep_select,1,'omitnan'),2,'omitnan'));
+                    thisN1 = squeeze(mean(mean(average_N1_select,1,'omitnan'),2,'omitnan'));
                     % upsample if necessary
                     if length(thisResp)~=5*2048
                         thisResp = resample(thisResp,5*2048,length(thisResp));
@@ -105,15 +103,15 @@ for kk = 1:size(n1Latencies,2) % number of subjects
     end
     
     % average for this patient across these areas
-    average_ccep_pat_nonnorm = squeeze(nanmean(average_ccep_run_nonnorm,3));%[roi1, roi2,samples]
-    average_ccep_pat = squeeze(nanmean(average_ccep_run,3));%[roi1, roi2,samples]
-    average_n1_pat = squeeze(nanmean(average_N1_run,3));
+    average_ccep_pat_nonnorm = squeeze(mean(average_ccep_run_nonnorm,3,'omitnan'));%[roi1, roi2,samples]
+    average_ccep_pat = squeeze(mean(average_ccep_run,3,'omitnan'));%[roi1, roi2,samples]
+    average_n1_pat = squeeze(mean(average_N1_run,3,'omitnan'));
     clear average_ccep_run average_N1_run
     
     if ~isempty(average_ccep_age{age})
         n = size(average_ccep_age{age},3);
-        average_ccep_age_nonnorm{age}(:,:,n+1,:) = average_ccep_pat_nonnorm;
-        average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat;
+        average_ccep_age_nonnorm{age}(:,:,n+1,:) = average_ccep_pat_nonnorm; % [roi1, roi2, subjects, samples]
+        average_ccep_age{age}(:,:,n+1,:) = average_ccep_pat; % [roi1, roi2, subjects, samples]
         average_n1_age{age}(:,:,n+1) = average_n1_pat;
     else
         n = 0;
@@ -129,19 +127,19 @@ end
 
 % load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
 
-%%
-%% one approach is to sort according to age
-%%
+%% sort all cceps for each region to another region according to age
+% this does not average any cceps when there are multiple subjects at the
+% same age.
 
-clear sortage
+sortage = struct();
 
-for rr1 = 1:4
-    for rr2 = 1:4
+for rr1 = 1:4 % for each stimulation region
+    for rr2 = 1:4 % for each response region
         sortage(rr1,rr2).average_ccep = [];
         sortage(rr1,rr2).average_ccep_nonnorm = [];
         sortage(rr1,rr2).age_ind = [];
         sortage(rr1,rr2).average_n1 = [];
-
+        
         for age = 1:max([n1Latencies.age])
             if size(average_ccep_age{age},1)>0 % there are some subjects at this age
                 addThis = squeeze(average_ccep_age{age}(rr1,rr2,:,:));
@@ -157,7 +155,7 @@ for rr1 = 1:4
                     sortage(rr1,rr2).average_ccep_nonnorm = [sortage(rr1,rr2).average_ccep_nonnorm; addThisNonnorm];
                     sortage(rr1,rr2).average_n1 = [sortage(rr1,rr2).average_n1; addN1];
                     sortage(rr1,rr2).age_ind = [sortage(rr1,rr2).age_ind; zeros(nr_subs,1)+age];
-    %                 clear addThis
+                    clear addThis
                 end
             end
         end
@@ -165,7 +163,9 @@ for rr1 = 1:4
 end
 
 
-%% figure of CCEPs + N1 sorted by age
+%% figure of subplots for each stimulated and responding region:
+% temporal, central, parietal, frontal
+% with normalized CCEPs + N1 sorted by age
 
 ttmin = 0.010;
 ttmax = .100;
@@ -179,12 +179,12 @@ for rr1 = 1:4
         plot(1000*sortage(rr1,rr2).average_n1,1:length(sortage(rr1,rr2).age_ind),'k.')
         colormap(parula)
         hold on
-%         plot([20 20],[1 length(sortage(rr1,rr2).age_ind)],'k')
-%         plot([30 30],[1 length(sortage(rr1,rr2).age_ind)],'k')
-%         plot([40 40],[1 length(sortage(rr1,rr2).age_ind)],'k')      
-
-%         set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
-        set(gca,'XTick',[20:20:80],'YTick',[])
+        %         plot([20 20],[1 length(sortage(rr1,rr2).age_ind)],'k')
+        %         plot([30 30],[1 length(sortage(rr1,rr2).age_ind)],'k')
+        %         plot([40 40],[1 length(sortage(rr1,rr2).age_ind)],'k')
+        
+        %         set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
+        set(gca,'XTick',20:20:80,'YTick',[])
         axis tight
     end
 end
@@ -207,13 +207,16 @@ p_vals = p_all(:);
 
 m = length(p_vals);
 [p_sort,p_ind] = sort(p_vals(:));
-clear thisVal
+thisVal = NaN(size(p_sort));
 for kk = 1:length(p_sort)
     thisVal(kk) = (kk/m)*0.05;
 end
-% figure,hold on,plot(thisVal),plot(p_sort,'r.')
+% figure,hold on,plot(thisVal),plot(p_sort,'r.'),title('Significant p-values after FDR correction')
+
+% add significant stars indicating which subplots showed significant
+% results after FDR corection
 p_sig = p_all;
-p_sig(p_ind) = p_sort<thisVal';
+p_sig(p_ind) = p_sort<thisVal;
 for rr1 = 1:4
     for rr2 = 1:4
         subplot(4,4,(rr1-1)*4+rr2),hold on
@@ -226,18 +229,18 @@ end
 figureName = fullfile(myDataPath.output,'derivatives','age',...
             ['AllSortAge_tmax' int2str(ttmax*1000)]);
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
-%%
+%% figure with colormap
 
 figure('Position',[0 0 150 40])
 imagesc(1:100)
 colormap(parula)
 axis off
 figureName = fullfile(myDataPath.output,'derivatives','age',...
-            ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
+    ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 % print('-depsc','-r300',figureName)
