@@ -65,9 +65,9 @@ sgtitle('Pearson correlation between age and #CCEPs')
 
 figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1');
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
 %% figure relative number of CCEPs from one region to another
 % (corrected for total number of electrodes on response region) 
@@ -145,9 +145,9 @@ end
 
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsNumber_N1');
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
 %% print number of electrodes in each region
 clc

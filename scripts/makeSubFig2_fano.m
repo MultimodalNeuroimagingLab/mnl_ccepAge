@@ -52,6 +52,9 @@ title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 %% figure latency connections from one region to another
 
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions % --> gives roi_name with order of regions
+
 regions_connect = {'temporal','central','parietal','frontal'};
 conn_matrix = [1 1; 1 2; 1 3; 1 4; 2 1; 2 2; 2 3; 2 4; 3 1; 3 2; 3 3; 3 4; 4 1; 4 2; 4 3; 4 4];
 
@@ -87,10 +90,13 @@ for outInd = 1:size(conn_matrix,1)
     % get variable per subject
     for kk = 1:length(out{outInd}.sub)
         my_output(kk,1) = out{outInd}.sub(kk).age;
-        my_output(kk,2) = mean(1000*out{outInd}.sub(kk).latencies,'omitnan');
-        my_output(kk,3) = var(1000*out{outInd}.sub(kk).latencies,'omitnan');
+        
+        if length(out{outInd}.sub(kk).latencies) > 1
+            my_output(kk,2) = mean(1000*out{outInd}.sub(kk).latencies,'omitnan');
+            my_output(kk,3) = var(1000*out{outInd}.sub(kk).latencies,'omitnan');
+        end
     end
-
+    
     % age vs mean CCEP
     subplot(4,4,outInd),hold on
 %     plot(1:100,1:100,'b')
@@ -149,8 +155,10 @@ for outInd = 1:size(conn_matrix,1)
     % get variable per subject
     for kk = 1:length(out{outInd}.sub)
         my_output(kk,1) = out{outInd}.sub(kk).age;
-        my_output(kk,2) = mean(out{outInd}.sub(kk).latencies,'omitnan');
-        my_output(kk,3) = var(out{outInd}.sub(kk).latencies,'omitnan');
+        if length(out{outInd}.sub(kk).latencies) > 1
+            my_output(kk,2) = mean(out{outInd}.sub(kk).latencies,'omitnan');
+            my_output(kk,3) = var(out{outInd}.sub(kk).latencies,'omitnan');
+        end
     end
 
     % age vs mean CCEP
@@ -209,9 +217,11 @@ for outInd = 1:size(conn_matrix,1)
     % get variable per subject
     for kk = 1:length(out{outInd}.sub)
         my_output(kk,1) = out{outInd}.sub(kk).age;
-        my_output(kk,2) = mean(out{outInd}.sub(kk).latencies,'omitnan');
-        my_output(kk,3) = var(out{outInd}.sub(kk).latencies,'omitnan');
-        my_output(kk,4) = my_output(kk,3)/my_output(kk,2); % fano: variance/mean
+        if length(out{outInd}.sub(kk).latencies) > 1
+            my_output(kk,2) = mean(out{outInd}.sub(kk).latencies,'omitnan');
+            my_output(kk,3) = var(out{outInd}.sub(kk).latencies,'omitnan');
+            my_output(kk,4) = my_output(kk,3)/my_output(kk,2); % fano: variance/mean
+        end
     end
 
     % age vs mean CCEP
