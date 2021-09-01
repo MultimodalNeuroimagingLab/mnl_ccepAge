@@ -298,7 +298,7 @@ fprintf('mean delta (min-max) = %1.2fms/year (%1.2f - %1.2f)\n',...
     mean(delta_all), min(delta_all),max(delta_all))
 
 fprintf('Mean latency at age 4 years: %1.2f ms \nMean latency at age 51 years: %1.2f ms\n \n',...
-    mean(y_lin(:,1),'omitnan'), mean(y_lin(:,2),'omitnan'))
+    mean(y_lin(:,1),'omitnan'), mean(y_lin(:,3),'omitnan'))
 
 fprintf('         SECOND ORDER MODEL FIT \n')
 delta_sec = diff(y_sec,[],2)./diff([repmat(4,16,1), min_age, repmat(51,16,1)],[],2);
@@ -316,7 +316,8 @@ fprintf('Minimal latency (min-max) = %1.2f ms (%1.2f - %1.2f)\n \n',...
 y = y_lin;
 y(~isnan(y_sec(:,1)),1:3) = y_sec(~isnan(y_sec(:,1)),1:3);
 
-disp([connection(:), fit(:), num2cell(y)])
+disp([{'Connection'} ,{'Fit'}, {'Latency (4)'},{'Latency(25/min_age)'},{'Latency(51)'},{'min_age'};...
+    connection(:), fit(:), num2cell(y), num2cell(min_age)])
 
 %% extra explained variance
 
