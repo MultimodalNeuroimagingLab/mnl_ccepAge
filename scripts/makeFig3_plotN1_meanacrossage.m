@@ -1,17 +1,32 @@
 % This script produces Figure 3 of the article
-clear
-close
-clc
 
 %% load the n1Latencies from the derivatives
 
-myDataPath = setLocalDataPath(1);
-if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+% we use this code both for analysis in the main script, and for checks
+% with only subjects in whom it is certain that 8mA is used for
+% stimulation. 
+
+% in the script makeSubFig3_only8maSubs, mode is defined as follows: 
+% mode = {'8mA'}; --> if this is defined, n1Latencies from derivatives are
+% not loaded. 
+
+if exist('mode','var')
+    close all
     
-    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    if strcmpi(mode{1},'8ma')
+    end
 else
-    disp('Run first ccep02_loadN1.mat')
+    mode = {'allmA'};
+    clear
+    close all
+    
+    myDataPath = setLocalDataPath(1);
+    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+        load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    else
+        disp('Run first ccep02_loadN1.mat')
+    end
 end
 
 %% put latency connections from one region to another into variable "out"
@@ -220,13 +235,13 @@ for outInd = 1:size(conn_matrix,1)
     else
         fill([x_age x_age(end:-1:1)],[low_ci up_ci(end:-1:1)],cmap,'EdgeColor',cmap)
     end
-    if cod_out(outInd,4)>20 && cod_out(outInd,2)>cod_out(outInd,1)% more than 20 subjects & 2nd order
+    if cod_out(outInd,4)>=20 && cod_out(outInd,2)>cod_out(outInd,1)% more than 20 subjects & 2nd order
         % calculate minimum x
         min_age = -cross_val_second(:,4)./(2*cross_val_second(:,3));
         plot([quantile(min_age,0.025,1) quantile(min_age,0.975,1)],[5 5],'Color',[.2 .7 .6],'LineWidth',10)
     end
     % put COD in title
-%     title(['COD=' int2str(max(cod_out(outInd,1:2)))]) % plot maximal COD (1st or 2nd order)
+    title(['COD=' int2str(max(cod_out(outInd,1:2)))]) % plot maximal COD (1st or 2nd order)
     
     plot(x_vals,y_vals,'k.','MarkerSize',6)
     
@@ -240,7 +255,14 @@ end
 if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
     mkdir(fullfile(myDataPath.output,'derivatives','age'));
 end
-figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1_meanacrossage');
+
+if strcmpi(mode{1},'allma') % if all subjects are included
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        'AgeVsLatency_N1_meanacrossage');
+elseif strcmpi(mode{1},'8ma') % if only subjects in whom we are certain that 8mA stimulation was applied
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        'AgeVsLatency_N1_meanacrossage_8mA');
+end
 
 set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
@@ -497,7 +519,7 @@ for outInd = 1:size(conn_matrix,1)
     
 end
 
-if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
-    mkdir(fullfile(myDataPath.output,'derivatives','age'));
-end
-figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1_meanacrossage');
+% if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
+%     mkdir(fullfile(myDataPath.output,'derivatives','age'));
+% end
+% figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsLatency_N1_meanacrossage');
