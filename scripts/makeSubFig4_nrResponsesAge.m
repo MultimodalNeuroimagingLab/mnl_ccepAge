@@ -63,7 +63,7 @@ title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 sgtitle('Pearson correlation between age and #CCEPs')
 
-figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1');
+% figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1');
 
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
@@ -112,14 +112,19 @@ for outInd = 1:size(conn_matrix,1)
     % age vs # CCEP
     subplot(4,4,outInd),hold on
     plot(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'k.','MarkerSize',10)
-    xlabel('age (years)'),ylabel('# CCEPs')
+%     xlabel('age (years)'),ylabel('# CCEPs')
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'Type','Pearson');
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
     xlim([0 60])%, ylim([0 100])
     
     p_all(outInd) = p;
     r_all(outInd) = r;
-
+    % Yeatman et al., fit a second order polynomial:
+    % y  = w1* age^2 * w2*age + w3
+    [P,S] = polyfit(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),1);
+    x_mean = 1:1:100;
+    y_fit = P(1)*x_mean + P(2);
+    plot(x_mean,y_fit,'r')
 end
 
 % FDR correction
@@ -145,9 +150,9 @@ end
 
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsNumber_N1');
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 %% print number of electrodes in each region
 clc
