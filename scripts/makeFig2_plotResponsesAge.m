@@ -2,20 +2,34 @@
 % This code is used to plot the normalized ccep of all patients in order of
 % age. This figure is displayed as Figure 2 in the article.
 
-clear
-close
-clc
 
 %% load the n1Latencies from the derivatives
+% we use this code both for analysis in the main script, and for checks
+% with only subjects in whom it is certain that 8mA is used for
+% stimulation. 
 
-myDataPath = setLocalDataPath(1);
-if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
-    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+% in the script makeSubFig3_only8maSubs, mode is defined as follows: 
+% mode = {'8mA'}; --> if this is defined, n1Latencies from derivatives are
+% not loaded. 
+
+if exist('mode','var')
+    close all
+    
+    if strcmpi(mode{1},'8ma')
+    end
 else
-    disp('Run first ccep02_loadN1.mat')
+    mode = {'allmA'};
+    clear
+    close all
+    
+    myDataPath = setLocalDataPath(1);
+    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+        load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    else
+        disp('Run first ccep02_loadN1.mat')
+    end
 end
-
 
 %% load ccep responses and categorize into connections from stimulated region to responding regions
 % rois: temporal, central, parietal, frontal
@@ -226,8 +240,13 @@ for rr1 = 1:4
     end
 end
 
-figureName = fullfile(myDataPath.output,'derivatives','age',...
-            ['AllSortAge_tmax' int2str(ttmax*1000)]);
+if strcmpi(mode{1},'allma')
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        ['AllSortAge_tmax' int2str(ttmax*1000)]);
+elseif strcmpi(mode{1},'8ma')
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        ['AllSortAge_tmax' int2str(ttmax*1000), '_8mA']);
+end
 
 set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
