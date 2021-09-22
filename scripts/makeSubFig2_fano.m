@@ -8,9 +8,9 @@
 % 3. the correlation between age and fano factor: variance/mean.
 % --> this does not show any significant results
 
-
-
 %% load the n1Latencies from the derivatives
+clear
+close all
 
 myDataPath = setLocalDataPath(1);
 if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
@@ -76,7 +76,7 @@ for outInd = 1:size(conn_matrix,1)
 
 end
 
-%% mean vs var
+%% mean vs var (Figure S2)
 % calculate correlation and p
 p_all = zeros(size(conn_matrix,1),1);
 r_all = zeros(size(conn_matrix,1),1);
@@ -101,7 +101,7 @@ for outInd = 1:size(conn_matrix,1)
     subplot(4,4,outInd),hold on
 %     plot(1:100,1:100,'b')
     plot(my_output(:,2),my_output(:,3),'k.','MarkerSize',10)
-    xlabel('mean latency (ms)'),ylabel('variance latency')
+%     xlabel('mean latency (ms)'),ylabel('variance latency')
     [r,p] = corr(my_output(~isnan(my_output(:,2)),2),my_output(~isnan(my_output(:,2)),3),'Type','Pearson');
     %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
@@ -141,7 +141,17 @@ for outInd = 1:size(conn_matrix,1)
     
 end
 
-%% age vs var
+if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
+    mkdir(fullfile(myDataPath.output,'derivatives','age'));
+end
+figureName = fullfile(myDataPath.output,'derivatives','age','MeanVsVariance_N1');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
+
+%% age vs var (Figure S1)
 % calculate correlation and p
 p_all = zeros(size(conn_matrix,1),1);
 r_all = zeros(size(conn_matrix,1),1);
@@ -164,7 +174,7 @@ for outInd = 1:size(conn_matrix,1)
     % age vs mean CCEP
     subplot(4,4,outInd),hold on
     plot(my_output(:,1),1000*my_output(:,3),'k.','MarkerSize',10)
-    xlabel('age (years)'),ylabel('variance latency')
+%     xlabel('age (years)'),ylabel('variance latency')
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),3),'Type','Pearson');
 %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
@@ -201,6 +211,15 @@ for outInd = 1:size(conn_matrix,1)
     end
     
 end
+
+if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
+    mkdir(fullfile(myDataPath.output,'derivatives','age'));
+end
+figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsVariance_N1');
+
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 
 %% age vs fano

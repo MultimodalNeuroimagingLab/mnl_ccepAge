@@ -6,6 +6,8 @@
 
 % Dora Hermes, Dorien van Blooijs, 2021
 
+clear
+clc
 
 %% load the n1Latencies from the derivatives
 
@@ -29,6 +31,9 @@ end
 
 % initialize output: age, mean and variance in latency per subject
 my_output = NaN(length(n1Latencies),3);
+
+% categorize anatomical regions
+ccep_categorizeAnatomicalRegions % --> gives roi_name with order of regions
 
 % get variable per subject
 for kk = 1:length(n1Latencies)
@@ -58,7 +63,7 @@ title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 sgtitle('Pearson correlation between age and #CCEPs')
 
-figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1');
+% figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1');
 
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
@@ -70,11 +75,22 @@ clear out
 regions_connect = {'temporal','central','parietal','frontal'};
 conn_matrix = [1 1; 1 2; 1 3; 1 4; 2 1; 2 2; 2 3; 2 4; 3 1; 3 2; 3 3; 3 4; 4 1; 4 2; 4 3; 4 4];
 out = cell(1,size(conn_matrix,1));
+% calculate correlation and p
+p_all = zeros(size(conn_matrix,1),1);
+r_all = zeros(size(conn_matrix,1),1);
 
 for outInd = 1:size(conn_matrix,1)
-    region_start = regions_connect{conn_matrix(outInd,1)};
-    region_end = regions_connect{conn_matrix(outInd,2)};
-    temp = ccep_connectRegions(n1Latencies,region_start,region_end);
+    
+    % print what is loaded
+    region_start = roi_name{conn_matrix(outInd,1)};
+    region_end = roi_name{conn_matrix(outInd,2)};
+    string_start = [repmat('%d, ',1,size(roi{conn_matrix(outInd,1)},2)-1), '%d'];
+    string_end = [repmat('%d, ',1,size(roi{conn_matrix(outInd,2)},2)-1), '%d'];
+    fprintf(['Run %s (' string_start ') - %s (' string_end ') \n'],...
+        region_start,str2double(roi{conn_matrix(outInd,1)}),...
+        region_end,str2double(roi{conn_matrix(outInd,2)}))
+    
+    temp = ccep_connectRegions(n1Latencies,roi{conn_matrix(outInd,1)},roi{conn_matrix(outInd,2)});
     out{outInd} = temp;
     out{outInd}.name = {region_start,region_end};
 end
@@ -96,18 +112,47 @@ for outInd = 1:size(conn_matrix,1)
     % age vs # CCEP
     subplot(4,4,outInd),hold on
     plot(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'k.','MarkerSize',10)
-    xlabel('age (years)'),ylabel('# CCEPs')
+%     xlabel('age (years)'),ylabel('# CCEPs')
     [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'Type','Pearson');
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
     xlim([0 60])%, ylim([0 100])
+    
+    p_all(outInd) = p;
+    r_all(outInd) = r;
+    % Yeatman et al., fit a second order polynomial:
+    % y  = w1* age^2 * w2*age + w3
+    [P,S] = polyfit(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),1);
+    x_mean = 1:1:100;
+    y_fit = P(1)*x_mean + P(2);
+    plot(x_mean,y_fit,'r')
+end
+
+% FDR correction
+m = length(p_all);
+[p_sort,p_ind] = sort(p_all(:));
+thisVal = NaN(size(p_sort));
+for kk = 1:length(p_sort)
+    thisVal(kk) = (kk/m)*0.05;
+end
+% figure,hold on,plot(thisVal),plot(p_sort,'r.'),title('Significant p-values after FDR correction')
+
+% add significant stars indicating which subplots showed significant
+% results after FDR corection
+p_sig = p_all;
+p_sig(p_ind) = p_sort<thisVal;
+for outInd = 1:size(conn_matrix,1)
+    subplot(4,4,outInd),hold on
+    if p_sig(outInd)==1 % significant!
+        plot(100,0,'r*')
+    end
     
 end
 
 figureName = fullfile(myDataPath.output,'derivatives','age','AgeVsNumber_N1');
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 %% print number of electrodes in each region
 clc
