@@ -3,7 +3,7 @@
 % age. This figure is displayed as Figure 2 in the article.
 
 
-%% load the n1Latencies from the derivatives
+%% 1. load the n1Latencies from the derivatives
 % we use this code both for analysis in the main script, and for checks
 % with only subjects in whom it is certain that 8mA is used for
 % stimulation. 
@@ -11,17 +11,12 @@
 % in the script makeSubFig3_only8maSubs, mode is defined as follows: 
 % mode = {'8mA'}; --> if this is defined, n1Latencies from derivatives are
 % not loaded. 
+clear
+close all
 
-if exist('mode','var')
-    close all
-    
-    if strcmpi(mode{1},'8ma')
-    end
-else
-    mode = {'allmA'};
-    clear
-    close all
-    
+select_amplitude = 0; % make this 8 for only 8mA
+
+if select_amplitude==0 
     myDataPath = setLocalDataPath(1);
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
         % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
@@ -29,9 +24,21 @@ else
     else
         disp('Run first ccep02_loadN1.mat')
     end
+elseif select_amplitude==8 % only 8 mA
+    myDataPath = setLocalDataPath(1);
+
+%%%%% THIS NEEDS TO BE CHANGED    
+%     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+%         % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+%         load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+%     else
+%         disp('Run first ccep02_loadN1.mat')
+%     end
 end
 
-%% load ccep responses and categorize into connections from stimulated region to responding regions
+%% 2. load ccep responses and categorize into connections from stimulated region to responding regions
+%% skip to 3. if you ran and saved output before (takes ~5 mins to run) 
+%
 % rois: temporal, central, parietal, frontal
 
 % the CCEPs are averaged for each run, and then averaged CCEPs per patient
@@ -136,14 +143,16 @@ for kk = 1:size(n1Latencies,2) % number of subjects
     clear average_ccep_pat average_ccep_pat_nonnorm average_n1_pat
 end
 
+save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','tt','roi','roi_name');
 
-% save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
+% load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','tt','roi','roi_name');
 
-% load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_n1_age','tt','roi','roi_name');
+%% 3. sort all cceps for each region to another region according to age
 
-%% sort all cceps for each region to another region according to age
 % this does not average any cceps when there are multiple subjects at the
 % same age.
+
+load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','tt','roi','roi_name');
 
 sortage = struct();
 
@@ -156,9 +165,9 @@ for rr1 = 1:4 % for each stimulation region
         
         for age = 1:max([n1Latencies.age])
             if size(average_ccep_age{age},1)>0 % there are some subjects at this age
-                addThis = squeeze(average_ccep_age{age}(rr1,rr2,:,:));
+                addThis = squeeze(average_ccep_age{age}(rr1,rr2,:,:)); % normalized CCEP
                 addThis(isnan(addThis(:,1)),:) = [];
-                addThisNonnorm = squeeze(average_ccep_age_nonnorm{age}(rr1,rr2,:,:));
+                addThisNonnorm = squeeze(average_ccep_age_nonnorm{age}(rr1,rr2,:,:)); % nonnormalized CCEP
                 addThisNonnorm(isnan(addThisNonnorm(:,1)),:) = [];
                 addN1 = squeeze(average_n1_age{age}(rr1,rr2,:));
                 addN1(isnan(addN1)) = [];
@@ -193,11 +202,6 @@ for rr1 = 1:4
         plot(1000*sortage(rr1,rr2).average_n1,1:length(sortage(rr1,rr2).age_ind),'k.')
         colormap(parula)
         hold on
-        %         plot([20 20],[1 length(sortage(rr1,rr2).age_ind)],'k')
-        %         plot([30 30],[1 length(sortage(rr1,rr2).age_ind)],'k')
-        %         plot([40 40],[1 length(sortage(rr1,rr2).age_ind)],'k')
-        
-        %         set(gca,'YTick',1:length(sortage(rr1,rr2).age_ind),'YTickLabel',sortage(rr1,rr2).age_ind)
         set(gca,'XTick',20:20:80,'YTick',[])
         axis tight
     end
@@ -210,7 +214,7 @@ for rr1 = 1:4
     for rr2 = 1:4
         n1_latency = 1000*sortage(rr1,rr2).average_n1;
         age = sortage(rr1,rr2).age_ind;
-        [r,p] = corr(n1_latency,age);
+        [r,p] = corr(n1_latency,age,'type','Spearman');
         p_all(rr1,rr2) = p;
         r_all(rr1,rr2) = r;
     end
@@ -240,17 +244,14 @@ for rr1 = 1:4
     end
 end
 
-if strcmpi(mode{1},'allma')
+if select_amplitude==0 
     figureName = fullfile(myDataPath.output,'derivatives','age',...
         ['AllSortAge_tmax' int2str(ttmax*1000)]);
-elseif strcmpi(mode{1},'8ma')
+elseif select_amplitude==8
     figureName = fullfile(myDataPath.output,'derivatives','age',...
         ['AllSortAge_tmax' int2str(ttmax*1000), '_8mA']);
 end
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
 
 %% figure with colormap
 

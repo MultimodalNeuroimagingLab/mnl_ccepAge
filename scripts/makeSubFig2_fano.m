@@ -100,24 +100,22 @@ for outInd = 1:size(conn_matrix,1)
     % age vs mean CCEP
     subplot(4,4,outInd),hold on
 %     plot(1:100,1:100,'b')
-    plot(my_output(:,2),my_output(:,3),'k.','MarkerSize',10)
+    plot(my_output(:,2),(my_output(:,3)),'k.','MarkerSize',10)
 %     xlabel('mean latency (ms)'),ylabel('variance latency')
-    [r,p] = corr(my_output(~isnan(my_output(:,2)),2),my_output(~isnan(my_output(:,2)),3),'Type','Pearson');
+    [r,p] = corr(my_output(~isnan(my_output(:,2)),2),(my_output(~isnan(my_output(:,2)),3)),'Type','Pearson');
     %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
-    %     xlim([0 60])%, ylim([0 100])
+
     
     p_all(outInd) = p;
     r_all(outInd) = r;
-    % Yeatman et al., fit a second order polynomial:
-    % y  = w1* age^2 * w2*age + w3
-    [P,S] = polyfit(my_output(~isnan(my_output(:,2)),2),my_output(~isnan(my_output(:,2)),3),1);
+    [P,S] = polyfit(my_output(~isnan(my_output(:,2)),2),(my_output(~isnan(my_output(:,2)),3)),1);
     x_mean = 1:1:100;
     y_fit = P(1)*x_mean + P(2);
     plot(x_mean,y_fit,'r')
 
     xlim([0 100])
-    ylim([0 max(my_output(:,3))])
+    ylim([0 (max(my_output(:,3)))])
 end
 
 % FDR correction
@@ -140,15 +138,15 @@ for outInd = 1:size(conn_matrix,1)
     end
     
 end
-
-if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
-    mkdir(fullfile(myDataPath.output,'derivatives','age'));
-end
-figureName = fullfile(myDataPath.output,'derivatives','age','MeanVsVariance_N1');
-
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
+% 
+% if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
+%     mkdir(fullfile(myDataPath.output,'derivatives','age'));
+% end
+% figureName = fullfile(myDataPath.output,'derivatives','age','MeanVsVariance_N1');
+% 
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
 
 %% age vs var (Figure S1)

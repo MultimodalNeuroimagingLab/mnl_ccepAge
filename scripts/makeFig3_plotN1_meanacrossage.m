@@ -10,24 +10,17 @@
 % mode = {'8mA'}; --> if this is defined, n1Latencies from derivatives are
 % not loaded. 
 
-if exist('mode','var')
-    close all
-    
-    if strcmpi(mode{1},'8ma')
-    end
+clear
+close all
+
+myDataPath = setLocalDataPath(1);
+if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
 else
-    mode = {'allmA'};
-    clear
-    close all
-    
-    myDataPath = setLocalDataPath(1);
-    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
-        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-        load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
-    else
-        disp('Run first ccep02_loadN1.mat')
-    end
+    disp('Run first ccep02_loadN1.mat')
 end
+
 
 %% put latency connections from one region to another into variable "out"
 clear out
@@ -139,15 +132,7 @@ for outInd = 1:size(conn_matrix,1)
         sub_counter = sub_counter+1;
         % leave out kk
         theseSubsTrain = ~ismember(1:length(y_vals),kk)';
-        
-        %             % use the slmengine tool from here:
-        %             % John D'Errico (2020). SLM - Shape Language Modeling (https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling), MATLAB Central File Exchange. Retrieved July 14, 2020.
-        %             slm = slmengine(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),'degree',1,'plot','off','knots',3,'interiorknots','free');
-        %             % predicted value at left out x
-        %             yhat = slmeval(my_output(kk,1),slm,0);
-        %             cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
-        %             cross_val_piecewiselin(sub_counter,2) = yhat;
-        
+                
         % use our own function:
         x = x_vals(theseSubsTrain);
         y = y_vals(theseSubsTrain);
@@ -256,30 +241,26 @@ if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
     mkdir(fullfile(myDataPath.output,'derivatives','age'));
 end
 
-if strcmpi(mode{1},'allma') % if all subjects are included
-    figureName = fullfile(myDataPath.output,'derivatives','age',...
-        'AgeVsLatency_N1_meanacrossage');
-elseif strcmpi(mode{1},'8ma') % if only subjects in whom we are certain that 8mA stimulation was applied
-    figureName = fullfile(myDataPath.output,'derivatives','age',...
-        'AgeVsLatency_N1_meanacrossage_8mA');
-end
+figureName = fullfile(myDataPath.output,'derivatives','age',...
+    'AgeVsLatency_N1_meanacrossage');
+ 
+% set(gcf,'PaperPositionMode','auto')
+% print('-dpng','-r300',figureName)
+% print('-depsc','-r300',figureName)
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
 
 %% display in command window the cod and delta for each subplot
 % this info is displayed in Figure 3 as well.
 clc 
 
-for i = 1:size(out,2)
+for ii = 1:size(out,2)
    
-    if strcmp(out{i}.fit,'linear')
+    if strcmp(out{ii}.fit,'linear')
         fprintf('%s-%s: best fit is linear, with COD = %2.0f, and delta %1.2f \n',...
-            out{i}.name{1},out{i}.name{2}, out{i}.cod, out{i}.delta)
-    elseif strcmp(out{i}.fit,'second')
+            out{ii}.name{1},out{ii}.name{2}, out{ii}.cod, out{ii}.delta)
+    elseif strcmp(out{ii}.fit,'second')
         fprintf('%s-%s: best fit is second, with COD = %2.0f, and \n   delta: age0-10 = %1.2f, age10-20 = %1.2f, age20-30 = %1.2f, age30-40 = %1.2f, age40-50 = %1.2f \n',...
-            out{i}.name{1},out{i}.name{2}, out{i}.cod, out{i}.delta);
+            out{ii}.name{1},out{ii}.name{2}, out{ii}.cod, out{ii}.delta);
     end
     
 end
@@ -294,24 +275,24 @@ y_sec = NaN(size(out,2),3);
 min_age = NaN(size(out,2),1);
 connection = cell(size(out,2),1);
 fit = cell(size(out,2),1);
-for i=1:size(out,2)
-    if strcmp(out{i}.fit,'linear') && out{i}.cod >0
-        delta_all = [delta_all, out{i}.delta]; %#ok<AGROW>
+for ii = 1:size(out,2)
+    if strcmp(out{ii}.fit,'linear') && out{ii}.cod >0
+        delta_all = [delta_all, out{ii}.delta]; %#ok<AGROW>
         
         age = [4, 25, 51];
-        y_lin(i,1:3) = linear_avparams(i,1)*age + linear_avparams(i,2);
-        connection{i} = [out{i}.name{1} '-' out{i}.name{2}];
-        fit{i} = out{i}.fit;
-    elseif strcmp(out{i}.fit,'second') && out{i}.cod>0
-        min_age(i) = -second_avparams(i,2)./(2*second_avparams(i,1));
-        connection{i} = [out{i}.name{1} '-' out{i}.name{2}];
-        fit{i} = out{i}.fit;
+        y_lin(ii,1:3) = linear_avparams(ii,1)*age + linear_avparams(ii,2);
+        connection{ii} = [out{ii}.name{1} '-' out{ii}.name{2}];
+        fit{ii} = out{ii}.fit;
+    elseif strcmp(out{ii}.fit,'second') && out{ii}.cod>0
+        min_age(ii) = -second_avparams(ii,2)./(2*second_avparams(ii,1));
+        connection{ii} = [out{ii}.name{1} '-' out{ii}.name{2}];
+        fit{ii} = out{ii}.fit;
         
-        age = [4, min_age(i), 51];
-        y_sec(i,1:3) = second_avparams(i,1)*age.^2 + second_avparams(i,2)*age + second_avparams(i,3);
+        age = [4, min_age(ii), 51];
+        y_sec(ii,1:3) = second_avparams(ii,1)*age.^2 + second_avparams(ii,2)*age + second_avparams(ii,3);
 
     else
-        connection{i} = [out{i}.name{1} '-' out{i}.name{2}];        
+        connection{ii} = [out{ii}.name{1} '-' out{ii}.name{2}];        
     end
 end
 
@@ -429,14 +410,6 @@ for outInd = 1:size(conn_matrix,1)
         sub_counter = sub_counter+1;
         % leave out kk
         theseSubsTrain = ~ismember(1:length(y_vals),kk)';
-        
-        %             % use the slmengine tool from here:
-        %             % John D'Errico (2020). SLM - Shape Language Modeling (https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling), MATLAB Central File Exchange. Retrieved July 14, 2020.
-        %             slm = slmengine(my_output(theseSubsTrain,1),1000*my_output(theseSubsTrain,2),'degree',1,'plot','off','knots',3,'interiorknots','free');
-        %             % predicted value at left out x
-        %             yhat = slmeval(my_output(kk,1),slm,0);
-        %             cross_val_piecewiselin(sub_counter,1) = 1000*my_output(kk,2);
-        %             cross_val_piecewiselin(sub_counter,2) = yhat;
         
         % use our own function:
         x = x_vals(theseSubsTrain);
