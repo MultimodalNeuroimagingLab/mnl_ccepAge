@@ -201,8 +201,20 @@ title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 %% run other scripts with only patients with 8mA stimulation
 
-mode = {'8mA'};
-makeFig2_plotResponsesAge
+%%%% Dora broke this on purpose, because this should be a function of so,
+%%%% does not work as is.
 
-makeFig3_plotN1_meanacrossage
+% this needs to ne corrected, you can't use mode as a variablem and
+% makeFig3 does not work as is now, use functions instead if you want to do
+% this
+
+%%%%%%% TODO: change such that we save this as a variable, and not calling
+%%%%%%% scripts in scripts
+
+% mode = {'8mA'};
+% makeFig2_plotResponsesAge
+% 
+% makeFig3_plotN1_meanacrossage
+% figureName = fullfile(myDataPath.output,'derivatives','age',...
+%     'AgeVsLatency_N1_meanacrossage_8mA');
 
