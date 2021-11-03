@@ -163,16 +163,16 @@ for kk = 1:size(n1Latencies,2) % number of subjects
     clear average_ccep_pat average_ccep_pat_nonnorm average_n1_pat
 end
 
-save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age_width'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','tt','roi','roi_name');
+save(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age_width'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','average_width_age','tt','roi','roi_name');
 
-% load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','tt','roi','roi_name');
+% load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age_width'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','average_width_age','tt','roi','roi_name');
 
 %% 3. sort all cceps for each region to another region according to age
 
 % this does not average any cceps when there are multiple subjects at the
 % same age.
 
-load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','tt','roi','roi_name');
+load(fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age_width'),'average_ccep_age','average_ccep_age_nonnorm','average_n1_age','average_width_age','tt','roi','roi_name');
 
 sortage = struct();
 
@@ -222,12 +222,7 @@ for rr1 = 1:4
     for rr2 = 1:4
         subplot(4,4,(rr1-1)*4+rr2),hold on
         plot(sortage(rr1,rr2).average_n1,sortage(rr1,rr2).average_width,'k.')
-%         imagesc(1000*tt(tt>ttmin & tt< ttmax),1:length(sortage(rr1,rr2).age_ind),-sortage(rr1,rr2).average_ccep(:,tt>ttmin & tt< ttmax),...
-%             [-0.1 0.1])
-%         plot(1000*sortage(rr1,rr2).average_n1,1:length(sortage(rr1,rr2).age_ind),'k.')
-%         colormap(parula)
         hold on
-%         set(gca,'XTick',20:20:80,'YTick',[])
         axis tight
     end
 end
@@ -235,13 +230,16 @@ end
 % calculate correlation and p
 p_all = zeros(4,4);
 r_all = zeros(4,4);
+b_all = zeros(4,4);
 for rr1 = 1:4
     for rr2 = 1:4
         n1_width = sortage(rr1,rr2).average_width;
-        age = sortage(rr1,rr2).average_n1;
-        [r,p] = corr(n1_width(~isnan(n1_width)),age(~isnan(n1_width)),'type','Spearman');
+        n1_latency = sortage(rr1,rr2).average_n1;
+        [r,p] = corr(n1_width(~isnan(n1_width)),n1_latency(~isnan(n1_width)),'type','Spearman');
         p_all(rr1,rr2) = p;
         r_all(rr1,rr2) = r;
+        b = regress(n1_width(~isnan(n1_width)),n1_latency(~isnan(n1_width)));
+        b_all(rr1,rr2) = b;
     end
 end
 
@@ -256,7 +254,7 @@ for kk = 1:length(p_sort)
 end
 % figure,hold on,plot(thisVal),plot(p_sort,'r.'),title('Significant p-values after FDR correction')
 
-% add significant stars indicating which subplots showed significant
+% add significant 1:1 line indicating which subplots showed significant
 % results after FDR corection
 p_sig = p_all;
 p_sig(p_ind) = p_sort<thisVal;
@@ -264,51 +262,15 @@ for rr1 = 1:4
     for rr2 = 1:4
         subplot(4,4,(rr1-1)*4+rr2),hold on
         if p_sig(rr1,rr2)==1 % significant!
-            plot(0,0,'r*')
             plot([0 .05],[0 .05],'r')
+            % plot regression
+            x = [0:.01:.05];
+            plot(x,b_all(rr1,rr2)*x,'b')
         end
     end
 end
-% 
-% if select_amplitude==0 
-%     figureName = fullfile(myDataPath.output,'derivatives','age',...
-%         ['AllSortAge_tmax' int2str(ttmax*1000)]);
-% elseif select_amplitude==8
-%     figureName = fullfile(myDataPath.output,'derivatives','age',...
-%         ['AllSortAge_tmax' int2str(ttmax*1000), '_8mA']);
-% end
-
-
-%% figure with colormap
-
-figure('Position',[0 0 150 40])
-imagesc(1:100)
-colormap(parula)
-axis off
 figureName = fullfile(myDataPath.output,'derivatives','age',...
-    ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
+    ['All_widthVSlatency']);
+
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
-
-
-%% %%% NOTES
-
-rr1 = 9;
-rr2 = 1;
-
-figure,
-thisResp = squeeze(thisData.average_ccep(rr1,rr2,:));
-plot(thisResp)
-hold on
-thisSample = thisData.n1_peak_sample(rr1,rr2);
-plot(thisSample,thisData.n1_peak_amplitude(rr1,rr2),'r.')
-
-this_th = .5*(thisData.n1_peak_amplitude(rr1,rr2));
-steps_back = find(thisResp(thisSample:-1:1)>this_th,1)-1; % walk back from min
-steps_forw = find(thisResp(thisSample:1:end)>this_th,1)-1; % walk forward from min
-peak_FWHM = thisData.tt(thisSample+steps_forw)-thisData.tt(thisSample-steps_back);
-
-plot(thisSample-steps_back,0,'b.')
-plot(thisSample+steps_forw,0,'b.')
-peak_FWHM
