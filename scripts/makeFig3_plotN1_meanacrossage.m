@@ -6,21 +6,40 @@
 % with only subjects in whom it is certain that 8mA is used for
 % stimulation. 
 
-% in the script makeSubFig3_only8maSubs, mode is defined as follows: 
-% mode = {'8mA'}; --> if this is defined, n1Latencies from derivatives are
-% not loaded. 
-
 clear
 close all
 
-myDataPath = setLocalDataPath(1);
-if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
-    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+selectPat = input('Would you like to include all patients, or only the ones for whom it is certain that 8mA was applied (supplemental material)? [all/8] ','s');
+
+if strcmp(selectPat,'all')
+    select_amplitude = 0; % make this 8 for only 8mA
+elseif strcmp(selectPat,'8')
+    select_amplitude = 8;
 else
-    disp('Run first ccep02_loadN1.mat')
+    error('Answer to previous question is not recognized.')
 end
 
+if select_amplitude==0 
+    myDataPath = setLocalDataPath(1);
+    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+        load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    else
+        disp('Run first ccep02_loadN1.mat')
+    end
+elseif select_amplitude==8 % only 8 mA
+    myDataPath = setLocalDataPath(1);
+
+    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'file')
+        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+        load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
+
+        n1Latencies = n1Latencies8ma;
+        filename_averageCCEP = fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age_8ma.mat');
+    else
+        disp('Run first script ccep02_loadN1.m')
+    end
+end
 
 %% put latency connections from one region to another into variable "out"
 clear out
@@ -241,9 +260,16 @@ if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
     mkdir(fullfile(myDataPath.output,'derivatives','age'));
 end
 
-figureName = fullfile(myDataPath.output,'derivatives','age',...
-    'AgeVsLatency_N1_meanacrossage');
- 
+if select_amplitude == 0
+
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        'AgeVsLatency_N1_meanacrossage');
+    
+elseif select_amplitude == 8
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        'AgeVsLatency_N1_meanacrossage_8mA');
+
+end
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 % print('-depsc','-r300',figureName)
