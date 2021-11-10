@@ -7,6 +7,7 @@
 % Dora Hermes, Dorien van Blooijs, 2021
 
 clear
+close all
 clc
 
 %% load the n1Latencies from the derivatives
@@ -52,16 +53,16 @@ figure
 subplot(2,1,1),
 plot(my_output(:,1),my_output(:,2),'.')
 xlabel('age (years)'),ylabel('relative mean #CCEPs')
-[r,p] = corr(my_output(:,1),my_output(:,2),'Type','Pearson');
+[r,p] = corr(my_output(:,1),my_output(:,2),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 subplot(2,1,2),
 plot(my_output(:,1),my_output(:,3),'.')
 xlabel('age (years)'),ylabel('relative variance in #CCEPs')
-[r,p] = corr(my_output(:,1),my_output(:,3),'Type','Pearson');
+[r,p] = corr(my_output(:,1),my_output(:,3),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
-sgtitle('Pearson correlation between age and #CCEPs')
+sgtitle('Spearman correlation between age and #CCEPs')
 
 % figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsNumber_N1');
 
@@ -113,7 +114,7 @@ for outInd = 1:size(conn_matrix,1)
     subplot(4,4,outInd),hold on
     plot(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'k.','MarkerSize',10)
 %     xlabel('age (years)'),ylabel('# CCEPs')
-    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'Type','Pearson');
+    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'Type','Spearman');
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
     xlim([0 60])%, ylim([0 100])
     
