@@ -294,7 +294,7 @@ cmap = Rcolortable.table(:,1:3)./256;
 figure
 gr.faces = Rmniinfl_face+1;
 gr.vertices = Rmniinfl_vert;
-gr = gifti(gr);d
+gr = gifti(gr);
 % tH = ieeg_RenderGifti(gl);
 % with Destrieux labels:
 tH = ieeg_RenderGiftiLabels(gr,Rsulcal_labels,[.5 .5 .5;.8 .8 .8]); %#ok<NASGU>

@@ -69,15 +69,15 @@ end
 %% plot means for all subjects and the ones with only 8mA
 
 % initialize output: age, mean and variance in latency per subject
-my_output_all = NaN(length(n1Latenciesall)-1,3);
+my_output_all = NaN(length(n1Latencies)-1,3);
 my_output_8ma = NaN(length(n1Latencies8ma)-1,3);
 
 % get variable per subject --> all subjects
-for kk = 1:length(n1Latenciesall)
-    my_output_all(kk,1) = n1Latenciesall(kk).age;
+for kk = 1:length(n1Latencies)
+    my_output_all(kk,1) = n1Latencies(kk).age;
     allLatenciesall = [];
-    for ll = 1:length(n1Latenciesall(kk).run)
-        allLatenciesall = [allLatenciesall n1Latenciesall(kk).run(ll).allLatencies]; %#ok<AGROW>
+    for ll = 1:length(n1Latencies(kk).run)
+        allLatenciesall = [allLatenciesall n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output_all(kk,2) = mean(allLatenciesall);
     my_output_all(kk,3) = var(allLatenciesall);
@@ -97,10 +97,10 @@ for kk = 1:length(n1Latencies8ma)
 end
 
 figure
-subplot(2,1,1),hold on
+subplot(1,2,1),hold on
 plot(my_output_all(:,1),1000*my_output_all(:,2),'.k')
 xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output_all(:,1),my_output_all(:,2),'Type','Pearson');
+[r,p] = corr(my_output_all(:,1),my_output_all(:,2),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 [P,S] = polyfit(my_output_all(:,1),1000*my_output_all(:,2),1);
 [y_fit, ~] = polyval(P,my_output_all(:,1),S);
@@ -110,10 +110,10 @@ plot(my_output_all(:,1),y_fit,'Color','r','LineWidth',1)
 hold off
 xlim([0 50]), ylim([10 50])
 
-subplot(2,1,2),hold on
+subplot(1,2,2),hold on
 plot(my_output_8ma(:,1),1000*my_output_8ma(:,2),'.k')
 xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output_8ma(:,1),my_output_8ma(:,2),'Type','Pearson');
+[r,p] = corr(my_output_8ma(:,1),my_output_8ma(:,2),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 [P,S] = polyfit(my_output_8ma(:,1),1000*my_output_8ma(:,2),1);
 [y_fit, ~] = polyval(P,my_output_8ma(:,1),S);
@@ -134,22 +134,17 @@ set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 print('-depsc','-r300',figureName)
 
-%% change n1Latencies in only the subjects with 8mA to run the rest of the code
-
-n1Latenciesall = n1Latencies;
-n1Latencies = n1Latencies8ma;
-
 %% plot means, var etc
 
 % initialize output: age, mean and variance in latency per subject
-my_output = NaN(length(n1Latencies)-1,3);
+my_output = NaN(length(n1Latencies8ma)-1,3);
 
 % get variable per subject
-for kk = 1:length(n1Latencies)
-    my_output(kk,1) = n1Latencies(kk).age;
+for kk = 1:length(n1Latencies8ma)
+    my_output(kk,1) = n1Latencies8ma(kk).age;
     allLatencies = [];
-    for ll = 1:length(n1Latencies(kk).run)
-        allLatencies = [allLatencies n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
+    for ll = 1:length(n1Latencies8ma(kk).run)
+        allLatencies = [allLatencies n1Latencies8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output(kk,2) = mean(allLatencies);
     my_output(kk,3) = var(allLatencies);
@@ -157,10 +152,10 @@ for kk = 1:length(n1Latencies)
 end
 
 figure
-subplot(2,1,1),hold on
+subplot(1,2,1),hold on
 plot(my_output(:,1),1000*my_output(:,2),'.')
 xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(:,1),my_output(:,2),'Type','Pearson');
+[r,p] = corr(my_output(:,1),my_output(:,2),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 [P,S] = polyfit(my_output(:,1),1000*my_output(:,2),1);
 [y_fit, ~] = polyval(P,my_output(:,1),S);
@@ -169,10 +164,10 @@ hold on
 plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
 hold off
 
-subplot(2,1,2),hold on
+subplot(1,2,2),hold on
 plot(my_output(:,1),my_output(:,3),'.')
 xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(:,1),my_output(:,3),'Type','Pearson');
+[r,p] = corr(my_output(:,1),my_output(:,3),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 [P,S] = polyfit(my_output(:,1),my_output(:,3),1);
 [y_fit, ~] = polyval(P,my_output(:,1),S);
@@ -188,33 +183,23 @@ figure
 subplot(2,1,1),hold on
 plot(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),'.')
 xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,2),'Type','Pearson');
+[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,2),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 
 subplot(2,1,2),hold on
 plot(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'.')
 xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
+[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Spearman');
 title(['r=' num2str(r,3) ' p=' num2str(p,3)]) 
-
 
 
 %% run other scripts with only patients with 8mA stimulation
 
-%%%% Dora broke this on purpose, because this should be a function of so,
-%%%% does not work as is.
+% optional save the n1Latencies structure, add more fields later as neccesary
+s = input('Do you want to save the n1Latencies structure with subjects in whom only 8mA stimulation is applied? [y/n]: ','s');
+if strcmp(s,'y')
+    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
+end
 
-% this needs to ne corrected, you can't use mode as a variablem and
-% makeFig3 does not work as is now, use functions instead if you want to do
-% this
-
-%%%%%%% TODO: change such that we save this as a variable, and not calling
-%%%%%%% scripts in scripts
-
-% mode = {'8mA'};
-% makeFig2_plotResponsesAge
-% 
-% makeFig3_plotN1_meanacrossage
-% figureName = fullfile(myDataPath.output,'derivatives','age',...
-%     'AgeVsLatency_N1_meanacrossage_8mA');
-
+% run makeFig2_plotResponsesAge
+% run makeFig3_plotN1_meanacrossage

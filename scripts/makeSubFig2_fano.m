@@ -169,11 +169,11 @@ for outInd = 1:size(conn_matrix,1)
         end
     end
 
-    % age vs mean CCEP
+    % age vs variance CCEP
     subplot(4,4,outInd),hold on
     plot(my_output(:,1),1000*my_output(:,3),'k.','MarkerSize',10)
 %     xlabel('age (years)'),ylabel('variance latency')
-    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),3),'Type','Pearson');
+    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),3),'Type','Spearman');
 %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
     xlim([0 60])%, ylim([0 100])
@@ -241,11 +241,11 @@ for outInd = 1:size(conn_matrix,1)
         end
     end
 
-    % age vs mean CCEP
+    % age vs fano
     subplot(4,4,outInd),hold on
     plot(my_output(:,1),my_output(:,4),'k.','MarkerSize',10)
     xlabel('age'),ylabel('fano')
-    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'Type','Pearson');
+    [r,p] = corr(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),'Type','Spearman');
 %     title([out(outInd).name ' to ' out(outInd).name   ', r=' num2str(r,3) ' p=' num2str(p,3)])
     title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 %     xlim([0 60])%, ylim([0 100])
