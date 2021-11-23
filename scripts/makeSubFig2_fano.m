@@ -112,8 +112,9 @@ for outInd = 1:size(conn_matrix,1)
     [P,S] = polyfit(my_output(~isnan(my_output(:,2)),2),(my_output(~isnan(my_output(:,2)),3)),1);
     x_mean = 1:1:100;
     y_fit = P(1)*x_mean + P(2);
-    plot(x_mean,y_fit,'r')
-
+    if p<0.05
+        plot(x_mean,y_fit,'r')
+    end
     xlim([0 100])
     ylim([0 (max(my_output(:,3)))])
 end
@@ -149,7 +150,7 @@ end
 % print('-depsc','-r300',figureName)
 
 
-%% age vs var (Figure S1)
+%% age vs var (Figure S4)
 % calculate correlation and p
 p_all = zeros(size(conn_matrix,1),1);
 r_all = zeros(size(conn_matrix,1),1);
@@ -186,7 +187,9 @@ for outInd = 1:size(conn_matrix,1)
     [P,S] = polyfit(my_output(~isnan(my_output(:,2)),1),1000*my_output(~isnan(my_output(:,2)),3),1);
     x_age = 1:1:60;
     y_fit = P(1)*x_age + P(2);
-    plot(x_age,y_fit,'r')
+    if p<0.05
+        plot(x_age,y_fit,'r')
+    end
 end
 
 % FDR correction
@@ -257,8 +260,9 @@ for outInd = 1:size(conn_matrix,1)
     [P,S] = polyfit(my_output(~isnan(my_output(:,2)),1),my_output(~isnan(my_output(:,2)),4),1);
     x_mean = 1:1:50;
     y_fit = P(1)*x_mean + P(2);
-    plot(x_mean,y_fit,'r')
-
+    if p<0.05
+        plot(x_mean,y_fit,'r')
+    end
 end
 
 % FDR correction
