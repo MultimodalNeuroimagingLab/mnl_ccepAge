@@ -21,8 +21,9 @@ else
     error('Answer to previous question is not recognized.')
 end
 
+myDataPath = setLocalDataPath(1);
+
 if select_amplitude==0 
-    myDataPath = setLocalDataPath(1);
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
         % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
         load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
@@ -32,9 +33,8 @@ if select_amplitude==0
         disp('Run first script ccep02_loadN1.m')
     end
 elseif select_amplitude==8 % only 8 mA
-    myDataPath = setLocalDataPath(1);
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'file')
-        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
+        % ?if the n1Latencies_8ma.mat was saved after ccep02_loadN1?, load the n1Latencies structure here
         load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
 
         n1Latencies = n1Latencies8ma;
@@ -254,17 +254,17 @@ for rr1 = 1:4
     end
 end
 
-% if select_amplitude==0
-%     figureName = fullfile(myDataPath.output,'derivatives','age',...
-%         ['AllSortAge_tmax' int2str(ttmax*1000)]);
-% elseif select_amplitude==8
-%     figureName = fullfile(myDataPath.output,'derivatives','age',...
-%         ['AllSortAge_tmax' int2str(ttmax*1000), '_8mA']);
-% end
+if select_amplitude==0
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        ['AllSortAge_tmax' int2str(ttmax*1000)]);
+elseif select_amplitude==8
+    figureName = fullfile(myDataPath.output,'derivatives','age',...
+        ['AllSortAge_tmax' int2str(ttmax*1000), '_8mA']);
+end
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
-% print('-depsc','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
 
 
 %% figure with colormap
@@ -275,6 +275,7 @@ colormap(parula)
 axis off
 figureName = fullfile(myDataPath.output,'derivatives','age',...
     ['AllSortAge_tmax' int2str(ttmax*1000) '_cm']);
+
 % set(gcf,'PaperPositionMode','auto')
 % print('-dpng','-r300',figureName)
 % print('-depsc','-r300',figureName)

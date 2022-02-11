@@ -209,10 +209,10 @@ ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_central),:),[
 ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
 
-% figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIpial');
+figureName = fullfile(myDataPath.output,'derivatives','render','leftMNIpial');
 
-% set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
 
 
 %% Plot figure with right pial with electrodes in mni space
@@ -222,7 +222,7 @@ figure
 gr.faces = Rmnipial_face+1;
 gr.vertices = Rmnipial_vert;
 gr = gifti(gr);
-tH = ieeg_RenderGifti(gr); %#ok<NASGU>
+tH = ieeg_RenderGifti(gr); 
 
 % make sure electrodes pop out
 a_offset = .5*max(abs(allmni_coords(:,1)))*[cosd(v_d(1)-90)*cosd(v_d(2)) sind(v_d(1)-90)*cosd(v_d(2)) sind(v_d(2))];
@@ -236,10 +236,10 @@ ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_central),:),[
 ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels,roi_parietal),:),[0 .5 0],15)
 ieeg_viewLight(v_d(1),v_d(2))
 
-figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIpial'); %#ok<NASGU>
+figureName = fullfile(myDataPath.output,'derivatives','render','rightMNIpial'); 
 
 set(gcf,'PaperPositionMode','auto')
-% print('-dpng','-r300',figureName)
+print('-dpng','-r300',figureName)
 
 
 %% Plot left inflated brain surface with electrodes in mni space
