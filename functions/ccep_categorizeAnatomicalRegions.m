@@ -9,9 +9,9 @@ roi_temporal = [37 38 34 23 21];
 
 % central areas
 % G_postcentral G_precentral S_central
-roi{2} = {'28','29','46'};
+roi{2} = {'28','29','45'};
 roi_name{2} = 'central';
-roi_central = [28 29 46];
+roi_central = [28 29 45];
 
 % parietal areas:
 % G_pariet_inf-Angular, G_pariet_inf-Supramar, G_parietal_sup
@@ -21,7 +21,7 @@ roi_parietal = [25 26 27];
 
 % frontal areas:
 % G_front_inf-Triangul, G_front_middle, G_front_inf-Opercular
-roi{4} = {'14','15','12'}; % maybe add 16: G_front_sup
+roi{4} = {'14','15','12'}; 
 roi_name{4} = 'frontal';
 roi_frontal = [14 15 12]; 
 

@@ -24,8 +24,9 @@ else
     error('Answer to previous question is not recognized.')
 end
 
+myDataPath = setLocalDataPath(1);
+
 if select_amplitude==0
-    myDataPath = setLocalDataPath(1);
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
         % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
         load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
@@ -36,7 +37,7 @@ if select_amplitude==0
         disp('Run first ccep02_loadN1.mat')
     end
 elseif select_amplitude==8 % only 8 mA
-    myDataPath = setLocalDataPath(1);
+    
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'file')
         % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
         load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
@@ -429,6 +430,81 @@ figureName = fullfile(myDataPath.output,'derivatives','age',...
     'ShortRange_widthVSlatency');
 
 xlim([0 70]),ylim([0 70])
+set(gcf,'PaperPositionMode','auto')
+print('-dpng','-r300',figureName)
+print('-depsc','-r300',figureName)
+
+%% Age VS Width
+
+%% figure of subplots for each stimulated and responding region:
+% temporal, central, parietal, frontal
+% with normalized CCEPs + N1 sorted by age
+
+figure('Position',[0 0 600 600])
+max_plot = zeros(4,4);
+for rr1 = 1:4
+    for rr2 = 1:4
+        subplot(4,4,(rr1-1)*4+rr2),hold on
+        plot(sortage(rr1,rr2).age_ind,1000*sortage(rr1,rr2).average_width,'k.')
+        hold on
+        max_plot(rr1,rr2) = 1000*max([sortage(rr1,rr2).average_n1; sortage(rr1,rr2).average_width]);
+        xlim([0 max_plot(rr1,rr2)])
+        ylim([0 max_plot(rr1,rr2)])
+    end
+end
+
+% calculate correlation and p
+p_all = zeros(4,4);
+r_all = zeros(4,4);
+b_all = zeros(4,4,2);
+for rr1 = 1:4
+    for rr2 = 1:4
+        age = sortage(rr1,rr2).age_ind;
+        n1_width = 1000*sortage(rr1,rr2).average_width;
+        % n1_latency = 1000*sortage(rr1,rr2).average_n1;
+        [r,p] = corr(age(~isnan(n1_width)),n1_width(~isnan(n1_width)),'type','Spearman');
+        p_all(rr1,rr2) = p;
+        r_all(rr1,rr2) = r;
+        b = polyfit(age(~isnan(n1_width)),n1_width(~isnan(n1_width)),1);
+        b_all(rr1,rr2,1:2) = b;
+       
+    end
+end
+
+% FDR correction
+p_vals = p_all(:);
+
+m = length(p_vals);
+[p_sort,p_ind] = sort(p_vals(:));
+thisVal = NaN(size(p_sort));
+for kk = 1:length(p_sort)
+    thisVal(kk) = (kk/m)*0.05;
+end
+% figure,hold on,plot(thisVal),plot(p_sort,'r.'),title('Significant p-values after FDR correction')
+
+% add significant 1:1 line indicating which subplots showed significant
+% results after FDR corection
+p_sig = p_all;
+p_sig(p_ind) = p_sort<thisVal;
+for rr1 = 1:4
+    for rr2 = 1:4
+        subplot(4,4,(rr1-1)*4+rr2),hold on
+        if p_sig(rr1,rr2)==1 % significant!
+            % plot([0 .05],[0 .05],'r')
+            % plot regression
+            x = 0:1:ceil(max_plot(rr1,rr2));
+            y = squeeze(b_all(rr1,rr2,:))'*[x; ones(size(x))];
+            plot(x,y,'r')
+            set(gca,'XTick',20:20:100,'YTick',20:20:100)
+            
+        end
+        title(sprintf('p=%1.5f, r=%1.5f',p_all(rr1,rr2),r_all(rr1,rr2)))
+
+    end
+end
+figureName = fullfile(myDataPath.output,'derivatives','age',...
+    'All_ageVSwidth');
+
 set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 print('-depsc','-r300',figureName)
