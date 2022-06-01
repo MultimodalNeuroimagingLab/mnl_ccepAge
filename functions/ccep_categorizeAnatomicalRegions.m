@@ -8,14 +8,8 @@
 %
 
 
-%[19;37;38;34;25;36;4;26;15;14;68;52;12;0;23;43;10;21;72;9;22;8;16;3;30;27;42;2;67;28;29;54;71;59;50;57;20;56;44;73;11;46;24;65;58;5;1;13;7;31;53;45;64;61;6;60;66;55;62;47;35;49;63;69;32;33;40;18;41;74;17]
-%{'G_occipital_middle';'G_temporal_inf';'G_temporal_middle';'G_temp_sup-Lateral';'G_pariet_inf-Angular';'G_temp_sup-Plan_tempo';'G&S_subcentral';'G_pariet_inf-Supramar';'G_front_middle';'G_front_inf-Triangul';'S_precentral-inf-part';'S_front_inf';'G_front_inf-Opercular';'Unknown';'G_oc-temp_med-Parahip';'Pole_temporal';'G_cingul-Post-ventral';'G_oc-temp_lat-fusifor';'S_temporal_inf';'G_cingul-Post-dorsal';'G_oc-temp_med-Lingual';'G&S_cingul-Mid-Post';'G_front_sup';'G&S_paracentral';'G_precuneus';'G_parietal_sup';'Pole_occipital';'G&S_occipital_inf';'S_postcentral';'G_postcentral';'G_precentral';'S_front_sup';'S_subparietal';'S_occipital_ant';'S_collat_transv_ant';'S_oc_middle&Lunatus';'G_occipital_sup';'S_intrapariet&P_trans';'S_calcarine';'S_temporal_sup';'G_cuneus';'S_cingul-Marginalis';'G_orbital';'S_parieto_occipital';'S_oc_sup&transversal';'G&S_transv_frontopol';'G&S_frontomargin';'G_front_inf-Orbital';'G&S_cingul-Mid-Ant';'G_rectus';'S_front_middle';'S_central';'S_orbital-H_Shaped';'S_oc-temp_med&Lingual';'G&S_cingul-Ant';'S_oc-temp_lat';'S_pericallosal';'S_interm_prim-Jensen';'S_orbital_lateral';'S_circular_insula_ant';'G_temp_sup-Plan_polar';'S_circular_insula_sup';'S_orbital_med-olfact';'S_precentral-sup-part';'G_subcallosal';'G_temp_sup-G_T_transv';'Lat_Fis-ant-Vertical';'G_insular_short';'Lat_Fis-post';'S_temporal_transverse';'G_Ins_lg&S_cent_ins'}
-
-
 %{
-a = [65;58;5;1;31;64;61;6;60;66;55;35;63;32;33;40;41;74];
-b = {'S_parieto_occipital';'S_oc_sup&transversal';'G&S_transv_frontopol';'G&S_frontomargin';'G_rectus';'S_orbital-H_Shaped';'S_oc-temp_med&Lingual';'S_oc-temp_lat';'S_pericallosal';'S_interm_prim-Jensen';'G_temp_sup-Plan_polar';'S_orbital_med-olfact';'G_subcallosal';'G_temp_sup-G_T_transv';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'S_temporal_transverse'};
-find(contains(b, 'S_orbital_lateral'))
+{'S_parieto_occipital';'S_oc_sup&transversal';'G&S_transv_frontopol';'G&S_frontomargin';'G_rectus';'S_orbital-H_Shaped';'S_oc-temp_med&Lingual';'S_oc-temp_lat';'S_pericallosal';'S_interm_prim-Jensen';'G_temp_sup-Plan_polar';'S_orbital_med-olfact';'G_subcallosal';'G_temp_sup-G_T_transv';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'S_temporal_transverse'};
 %}
 
 
