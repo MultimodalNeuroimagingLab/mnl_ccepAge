@@ -13,8 +13,8 @@
 
 
 %{
-a = [71;57;56;65;58;5;1;31;64;61;6;60;66;55;35;63;32;33;40;41;74];
-b = {'S_subparietal';'S_oc_middle&Lunatus';'S_intrapariet&P_trans';'S_parieto_occipital';'S_oc_sup&transversal';'G&S_transv_frontopol';'G&S_frontomargin';'G_rectus';'S_orbital-H_Shaped';'S_oc-temp_med&Lingual';'S_oc-temp_lat';'S_pericallosal';'S_interm_prim-Jensen';'G_temp_sup-Plan_polar';'S_orbital_med-olfact';'G_subcallosal';'G_temp_sup-G_T_transv';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'S_temporal_transverse'};
+a = [65;58;5;1;31;64;61;6;60;66;55;35;63;32;33;40;41;74];
+b = {'S_parieto_occipital';'S_oc_sup&transversal';'G&S_transv_frontopol';'G&S_frontomargin';'G_rectus';'S_orbital-H_Shaped';'S_oc-temp_med&Lingual';'S_oc-temp_lat';'S_pericallosal';'S_interm_prim-Jensen';'G_temp_sup-Plan_polar';'S_orbital_med-olfact';'G_subcallosal';'G_temp_sup-G_T_transv';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'S_temporal_transverse'};
 find(contains(b, 'S_orbital_lateral'))
 %}
 
@@ -94,13 +94,13 @@ roi{1} = {'2', '59'};
 roi_name{1} = 'O_inf';
 
 % Yeh:              Occipital Middle (Omd)
-% Destrieux:        G_occipital_middle (19)
-roi{1} = {'19'};
+% Destrieux:        G_occipital_middle (19), S_oc_middle&Lunatus (57)
+roi{1} = {'19', '57'};
 roi_name{1} = 'O_md';
 
-% Yeh:              Occipital Middle (Osp)
-% Destrieux:        G_occipital_sup (20)
-roi{1} = {'20'};
+% Yeh:              Occipital Superior (Osp)
+% Destrieux:        G_occipital_sup (20), S_intrapariet&P_trans (56)
+roi{1} = {'20', '56'};
 roi_name{1} = 'O_sp';
 
 % Yeh:              Lingual (Lin)
