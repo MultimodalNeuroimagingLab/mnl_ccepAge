@@ -7,14 +7,14 @@ This repository contains the scripts and functions necessary to reproduce the an
 
 # Generating the figures
 Scripts to process the data and detect N1 responses:
-scripts/ccep01_averageCCEPs.m
-scripts/ccep02_loadN1.m
+- scripts/ccep01_averageCCEPs.m
+- scripts/ccep02_loadN1.m
 
 Scripts to make the figure panels:
-makeFig1A_plotMNI.m
-makeFig1B_ExampleResponse.m
-makeFig2_plotResponsesAge.m
-makeFig3and4_plotN1_meanacrossage.m
+- makeFig1A_plotMNI.m
+- makeFig1B_ExampleResponse.m
+- makeFig2_plotResponsesAge.m
+- makeFig3and4_plotN1_meanacrossage.m
 
 
 To make all functions work, an m-file called personalDataPath.m should be stored in the root dir. This file should have the following content:
@@ -28,8 +28,8 @@ ft_defaults
 ```
 
 # Dependencies
-  Fieldtrip: http://www.fieldtriptoolbox.org/
-  Lead DBS: https://www.lead-dbs.org/
+- Fieldtrip: http://www.fieldtriptoolbox.org/  
+- Lead DBS: https://www.lead-dbs.org/
 
 
 # Acknowledgements
@@ -38,4 +38,4 @@ The project is funded by the National Institute Of Mental Health of the National
 
 # Contact
 ----------------------------
-Please contact Dora Hermes (dorahermes@gmail.com) or Dorien van Blooijs for questions. 
+Please contact Dora Hermes (hermes.dora@mayo.edu), Dorien van Blooijs or Max van den Boom for questions. 
