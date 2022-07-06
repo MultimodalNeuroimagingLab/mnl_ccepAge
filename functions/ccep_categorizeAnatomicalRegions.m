@@ -15,10 +15,12 @@
 % Frontal <----> Parietal
 
 % Yeh: Fmid
+roi_track{1} = 'SLF';
 roi_name{1} = 'SLF_FP_front';
 roi{1} = {'15', '53'};
 
 % Yeh: Pinf, PSp, Ag
+roi_track{2} = 'SLF';
 roi_name{2} = 'SLF_FP_parietal';
 roi{2} = {'25', '26', '27'};
 
@@ -26,12 +28,35 @@ roi{2} = {'25', '26', '27'};
 % Frontal <----> Central
 
 % Yeh: FSp, Finf, Fmid
+roi_track{3} = 'SLF';
 roi_name{3} = 'SLF_FC_frontal';
 roi{3} = {'12', '13', '14', '15', '16', '52', '53', '54'};
 
 % Yeh: PreC, ParaC
+roi_track{4} = 'SLF';
 roi_name{4} = 'SLF_FC_central';
 roi{4} = {'3', '4', '29', '68', '69'};
+
+
+
+%%
+%  Arcuate Fasciculus tract-segments
+
+
+% Frontal <----> Temporal
+
+% Yeh: Finf, Fmid
+roi_track{5} = 'AF';
+roi_name{5} = 'AF_FT_front';
+roi{5} = {'12', '13', '14', '15', '52', '53'};
+
+% Yeh: Tinf, TMd, TSp
+roi_track{6} = 'AF';
+roi_name{6} = 'AF_FT_temp';
+roi{6} = {'34', '36', '37', '38', '72', '73'};
+
+
+
 
 
 
