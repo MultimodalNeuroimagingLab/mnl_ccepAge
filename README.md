@@ -29,6 +29,7 @@ ft_defaults
 
 # Dependencies
   Fieldtrip: http://www.fieldtriptoolbox.org/
+  Lead DBS: https://www.lead-dbs.org/
 
 
 # Acknowledgements
