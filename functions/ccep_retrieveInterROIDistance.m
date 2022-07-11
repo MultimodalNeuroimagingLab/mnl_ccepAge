@@ -27,7 +27,7 @@
 %
 %
 %
-%   Max van den Boom, Multimodal Neuroimaging Lab, Mayo Clinic
+%   Max van den Boom, Multimodal Neuroimaging Lab, Mayo Clinic, 2022
 %
 function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2)
     
