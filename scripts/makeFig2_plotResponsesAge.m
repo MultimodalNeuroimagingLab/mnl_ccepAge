@@ -22,6 +22,7 @@ else
 end
 
 myDataPath = setLocalDataPath(1);
+track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
 if select_amplitude == 0 
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
@@ -46,8 +47,6 @@ end
 
 %% 2. load ccep responses and categorize into connections from stimulated region to responding regions
 %% skips automatically to 3. if you ran and saved output before (takes ~5 mins to run)
-%
-% rois: temporal, central, parietal, frontal
 
 % the CCEPs are averaged for each run, and then averaged CCEPs per patient
 % are collected for all subjects. Multiple subjects with the same age are
@@ -57,8 +56,8 @@ end
 
 if ~exist(filename_averageCCEP, 'file')
 
-    % categorize anatomical regions
-    ccep_categorizeAnatomicalRegions
+    % categorize anatomical regions 
+    [roi_track,roi_name,roi] = ccep_categorizeAnatomicalRegions();
 
     % retrieve a time vector in ms (this patient has fs-2048)
     tt = n1Latencies(2).run(1).tt;
@@ -109,7 +108,6 @@ if ~exist(filename_averageCCEP, 'file')
                     % find response electrode within specific region
                     chanSig = find(ismember(string(n1Latencies(kk).run(iRun).channel_DestrieuxNr), roi{rr2}) > 0);
 
-                    
                     %
                     % collect all signals with stimulation pair and response electrode within specific region
                     %
@@ -156,7 +154,6 @@ if ~exist(filename_averageCCEP, 'file')
                         
                     end
                     
-                    
                     %
                     % collect tract distance
                     %
@@ -168,7 +165,7 @@ if ~exist(filename_averageCCEP, 'file')
                         % and the stimulation and response end-point ROIs are not the same
                         if strcmpi(roi_track{rr1}, roi_track{rr2}) && rr1 ~= rr2
                             
-                            trkFile = fullfile('/Users/m218483/Documents/leadDBS/tracks/', roi_track{rr1});
+                            trkFile = fullfile(track_path, roi_track{rr1});
                             disp('Retrieving tract distance');
                             
                             % retrieve the distance between the stimulation and response end-point ROIs

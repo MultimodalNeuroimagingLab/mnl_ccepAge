@@ -14,7 +14,7 @@ myDataPath = setLocalDataPath(1);
 
 theseSubs = ccep_getSubFilenameInfo(myDataPath);
 
-%% initialize N1latencies and get subject label and age
+%% initialize N1latencies in N1latencies_init.mat and add subject label and age
 
 if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'file')
     load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
@@ -50,7 +50,7 @@ else
     
 end
 
-%% load all N1 data
+%% load all N1 data and add to initialized N1latencies_init, then save as N1latencies_V1
 for kk = 1:length(theseSubs)
     disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
         
@@ -73,7 +73,7 @@ for kk = 1:length(theseSubs)
     end
 end
 
-%% get Freesurfer labels for stimulation and recording pair
+%% get Freesurfer labels for stimulation and recording pair and add to initialized N1latencies
 
 for kk = 1:length(n1Latencies) % loop subjects
    
@@ -142,6 +142,13 @@ for kk = 1:length(n1Latencies) % loop subjects
             end            
         end
     end    
+end
+
+
+% optional save the n1Latencies structure, add more fields later as neccesary
+s = input('Do you want to save the n1Latencies structure? [y/n]: ','s');
+if strcmp(s,'y')
+    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
 end
 
 
@@ -240,12 +247,5 @@ set(gcf,'PaperPositionMode','auto')
 print('-dpng','-r300',figureName)
 print('-depsc','-r300',figureName)
 
-%%
-
-% optional save the n1Latencies structure, add more fields later as neccesary
-s = input('Do you want to save the n1Latencies structure? [y/n]: ','s');
-if strcmp(s,'y')
-    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
-end
 
 
