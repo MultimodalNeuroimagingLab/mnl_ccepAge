@@ -168,24 +168,24 @@ if ~exist(filename_averageCCEP, 'file')
                         % and the stimulation and response end-point ROIs are not the same
                         if strcmpi(roi_track{rr1}, roi_track{rr2}) && rr1 ~= rr2
                             
-                            trkFolder = '/Users/m218483/Documents/leadDBS/tracks/';
-                            trkSets = {fullfile(trkFolder, [roi_track{rr1}, '_L.trk.gz']), fullfile(trkFolder, [roi_track{rr1}, '_R.trk.gz'])};
+                            trkFile = fullfile('/Users/m218483/Documents/leadDBS/tracks/', roi_track{rr1});
                             disp('Retrieving tract distance');
                             
-                            % retrieve the distance between the stimulation and response end-point areas
-                            % for this particular patient
-                            [thisDist, thisTrcs] = ccep_retrieveInterROIDistance( ...
-                                            trkSets, ...
-                                            fullfile(myDataPath.input, 'derivatives', 'coreg_ANTs', n1Latencies(kk).id), ...
-                                            roi{rr1}, roi{rr2});
+                            % retrieve the distance between the stimulation and response end-point ROIs
+                            % for this particular patient given specific tracts
+                            [trkDist, trkFiles, trkIndices] = ccep_retrieveInterROIDistance( 0, ...
+                                                                trkFile, ...
+                                                                fullfile(myDataPath.input, 'derivatives', 'coreg_ANTs', n1Latencies(kk).id), ...
+                                                                fullfile(myDataPath.input, 'derivatives', 'freesurfer', n1Latencies(kk).id), ...
+                                                                roi{rr1}, roi{rr2});
                             
                             % TODO: store only if found. So if only LH
                             % electrodes, than RH tract file should not
                             % find distance/tract-lines
                                         
                             % store the distances and included MNI tract-lines
-                            ROIsDist{rr1, rr2}            = thisDist;
-                            ROIsTrcs{rr1, rr2}            = {trkSets, thisTrcs};
+                            ROIsDist{rr1, rr2}            = trkDist;
+                            ROIsTrcs{rr1, rr2}            = {trkFiles, trkIndices};
                             
                         end 
                     end
