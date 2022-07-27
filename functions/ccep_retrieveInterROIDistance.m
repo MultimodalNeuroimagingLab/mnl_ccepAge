@@ -29,7 +29,7 @@
 %
 %   Max van den Boom, Multimodal Neuroimaging Lab, Mayo Clinic, 2022
 %
-function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2)
+function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2)
     
     % check leadDBS availability and setup
     if exist('ea_getearoot') ~= 2 || exist('ea_prefs') ~= 2
@@ -119,6 +119,7 @@ function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(int
 
             % debug, show all tracts in native
             %viewGii(gPial, 'trans.1');
+            %{
             viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge');
             hold on;
             startV = 1;
@@ -130,7 +131,9 @@ function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(int
             end
             plot3(trcLineEndPoints(:, 1), trcLineEndPoints(:, 2), trcLineEndPoints(:, 3), 'ob');
             hold off;
-
+            %}
+            
+            %{
             % debug, show ROI tracts in native
             %viewGii(gPial, 'trans.1');
             viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge');
@@ -148,12 +151,13 @@ function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(int
             end
             %plot3(trcLineEndPoints(:, 1), trcLineEndPoints(:, 2), trcLineEndPoints(:, 3), 'ob');
             hold off;
-            
+            %}
 
             % debug, show excluded tracts in native
             
             excludedTrkLines = 1:length(idx);
             excludedTrkLines(roisTrkLines) = [];
+            %{
             %g = b(:, excludedTrkLines);
             %viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge', fibers(g(:), :), ['WireSpheres', radius]);
             viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge');
@@ -169,7 +173,8 @@ function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(int
             end
             %plot3(trcLineEndPoints(:, 1), trcLineEndPoints(:, 2), trcLineEndPoints(:, 3), 'ob');
             hold off;
-
+            %}
+            
             % return the tract-lines between the ROIs
             trkIndices{iHemi} = roisTrkLines;
             
@@ -196,6 +201,10 @@ function [trkDistance, trkFiles, trkIndices] = ccep_retrieveInterROIDistance(int
 
             % store(/return) the average over all tract-lines
             trkDistance{iHemi} = mean(trkLengths);
+            
+            if nargout > 3
+                trkNativeFibers{iHemi} = {fibers, idx};
+            end
 
         end
     end
@@ -207,7 +216,7 @@ function [proxTrkLines, gROIPial] = retrieveROI(roiCodes, annotColortable, annot
     % convert the Destrieux codes to Destrieux labels
     dstrxCodeToLabel = {'G_and_S_frontomargin';'G_and_S_occipital_inf';'G_and_S_paracentral';'G_and_S_subcentral';'G_and_S_transv_frontopol';'G_and_S_cingul-Ant';'G_and_S_cingul-Mid-Ant';'G_and_S_cingul-Mid-Post';'G_cingul-Post-dorsal';'G_cingul-Post-ventral';'G_cuneus';'G_front_inf-Opercular';'G_front_inf-Orbital';'G_front_inf-Triangul';'G_front_middle';'G_front_sup';'G_Ins_lg_and_S_cent_ins';'G_insular_short';'G_occipital_middle';'G_occipital_sup';'G_oc-temp_lat-fusifor';'G_oc-temp_med-Lingual';'G_oc-temp_med-Parahip';'G_orbital';'G_pariet_inf-Angular';'G_pariet_inf-Supramar';'G_parietal_sup';'G_postcentral';'G_precentral';'G_precuneus';'G_rectus';'G_subcallosal';'G_temp_sup-G_T_transv';'G_temp_sup-Lateral';'G_temp_sup-Plan_polar';'G_temp_sup-Plan_tempo';'G_temporal_inf';'G_temporal_middle';'Lat_Fis-ant-Horizont';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'Pole_occipital';'Pole_temporal';'S_calcarine';'S_central';'S_cingul-Marginalis';'S_circular_insula_ant';'S_circular_insula_inf';'S_circular_insula_sup';'S_collat_transv_ant';'S_collat_transv_post';'S_front_inf';'S_front_middle';'S_front_sup';'S_interm_prim-Jensen';'S_intrapariet_and_P_trans';'S_oc_middle_and_Lunatus';'S_oc_sup_and_transversal';'S_occipital_ant';'S_oc-temp_lat';'S_oc-temp_med_and_Lingual';'S_orbital_lateral';'S_orbital_med-olfact';'S_orbital-H_Shaped';'S_parieto_occipital';'S_pericallosal';'S_postcentral';'S_precentral-inf-part';'S_precentral-sup-part';'S_suborbital';'S_subparietal';'S_temporal_inf';'S_temporal_sup';'S_temporal_transverse'};
     roi_lbls = {};
-    for roiCode = roiCodes,     roi_lbls{end + 1} = dstrxCodeToLabel{str2num(roiCode{1})};  end
+    for roiCode = roiCodes,     roi_lbls{end + 1} = dstrxCodeToLabel{roiCode};      end
 
     % label the vertices according to the freesurfer labels
     roiVertexLabels = mx.freesurfer.fsRelabelToAreas(roi_lbls, annotColortable, annotVertexLabels);
