@@ -1,21 +1,23 @@
-%% load the n1Latencies from the derivatives
-% This code is used to plot the normalized ccep of all patients in order of
-% age. This figure is displayed as Figure 2 in the article.
+% 
+%  Load the n1Latencies from the derivatives
+%  This code is used to plot the normalized ccep of all patients in order of age. 
+%  This figure is displayed as Figure 2 in the article.
+%
 
 
-%% 1. load the n1Latencies from the derivatives
-% we use this code both for analysis in the main script, and for checks
-% with only subjects in whom it is certain that 8mA is used for
-% stimulation. 
+%% 
+%  1. Load the n1Latencies from the derivatives
+%  We use this code both for analysis in the main script, and for checks with only
+%  subjects in whom it is certain that 8mA is used for stimulation. 
 
 clear
 close all
 
 selectPat = input('Would you like to include all patients, or only the ones for whom it is certain that 8mA was applied (supplemental material)? [all/8] ','s');
 
-if strcmp(selectPat,'all')
+if strcmp(selectPat, 'all')
     select_amplitude = 0; % make this 8 for only 8mA
-elseif strcmp(selectPat,'8')
+elseif strcmp(selectPat, '8')
     select_amplitude = 8;
 else
     error('Answer to previous question is not recognized.')
@@ -25,13 +27,13 @@ myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
 if select_amplitude == 0 
-    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+    if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'n1Latencies_V2.mat'), 'file')
         % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-        load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+        load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'n1Latencies_V2.mat'), 'n1Latencies')
 
-        filename_averageCCEP = fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age.mat');
+        filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'average_ccep_age.mat');
     else
-        disp('Run first script ccep02_loadN1.m')
+        disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
     end
 elseif select_amplitude == 8 % only 8 mA
     if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'file')
@@ -39,191 +41,204 @@ elseif select_amplitude == 8 % only 8 mA
         load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
 
         n1Latencies = n1Latencies8ma;
-        filename_averageCCEP = fullfile(myDataPath.output,'derivatives','av_ccep','average_ccep_age_8ma.mat');
+        filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'average_ccep_age_8ma.mat');
     else
-        disp('Run first script ccep02_loadN1.m')
+        disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
     end
 end
 
-%% 2. load ccep responses and categorize into connections from stimulated region to responding regions
-%% skips automatically to 3. if you ran and saved output before (takes ~5 mins to run)
 
-% the CCEPs are averaged for each run, and then averaged CCEPs per patient
-% are collected for all subjects. Multiple subjects with the same age are
-% collected for each age (average_ccep_age_nonnorm) and normalized
-% (average_ccep_age)
-
+%% 
+%  2. Load ccep responses and categorize into connections from stimulated region to responding regions
+%  skips automatically to 3. if you ran and saved output before (takes ~5 mins to run)
+%
+%  the CCEPs are averaged for each run, and then averaged CCEPs per patient
+%  are collected for all subjects. Multiple subjects with the same age are
+%  collected for each age (average_ccep_age_nonnorm) and normalized
+%  (average_ccep_age)
 
 if ~exist(filename_averageCCEP, 'file')
 
     % categorize anatomical regions 
-    [roi_track,roi_name,roi] = ccep_categorizeAnatomicalRegions();
+    %[roi_track,roi_name,roi] = ccep_categorizeAnatomicalRegions();
+    rois = ccep_categorizeAnatomicalRegions();
 
     % retrieve a time vector in ms (this patient has fs-2048)
     tt = n1Latencies(2).run(1).tt;
 
     % initialize variables to store ...
     % (each cell represents a year of age, upto the highest age of all participants)
-    average_ccep_age            = cell(max([n1Latencies.age]), 1);
-    average_ccep_age_nonnorm    = cell(max([n1Latencies.age]), 1);
-    average_n1_age              = cell(max([n1Latencies.age]), 1);
+    for iTr = 1:length(rois)
+        for iSubTr = 1:length(rois(iTr).sub_tract)
+            average_ccep_age{iTr}{iSubTr}           = cell(max([n1Latencies.age]), 1);
+            average_ccep_age_nonnorm{iTr}{iSubTr}   = cell(max([n1Latencies.age]), 1);
+            average_n1_age{iTr}{iSubTr}             = cell(max([n1Latencies.age]), 1);
+        end
+    end
     
     % loop over the subjects
-    for kk = 1:size(n1Latencies, 2)
-        fprintf('Load subj %d of %d \n', kk, size(n1Latencies, 2))
-        age = n1Latencies(kk).age;
+    for iSubj = 1:size(n1Latencies, 2)
+        fprintf('Load subj %d of %d \n', iSubj, size(n1Latencies, 2))
+        age = n1Latencies(iSubj).age;
         
-        % variables to store the distance and included MNI tracks (file & line indices)
-        % between a stimulation end-point ROI and a response end-point ROI
-        ROIsDist                    = cell(size(roi, 2), size(roi, 2));          % [roi_start, roi_end]
-        ROIsTrcs                    = cell(size(roi, 2), size(roi, 2));          % [roi_start, roi_end]
-
-        % variables to collect the seperate CCEP responses and eventually contain the average
-        average_ccep_run         = NaN(size(roi, 2), size(roi, 2), size(n1Latencies(kk).run, 2), 5 * 2048); % [roi_start, roi_end, run, tt]
-        average_ccep_run_nonnorm = NaN(size(roi, 2), size(roi, 2), size(n1Latencies(kk).run, 2), 5 * 2048); % [roi_start, roi_end, run, tt]
-        average_N1_run           = NaN(size(roi, 2), size(roi, 2), size(n1Latencies(kk).run, 2));           % [roi_start, roi_end, run]
+        % create the cells and empty matrices to store CCEP traces and N1 quantifications in, and eventually contain the average
+        for iTr = 1:length(rois)
+            for iSubTr = 1:length(rois(iTr).sub_tract)
+                average_ccep_run{iTr}{iSubTr}           = NaN(2, size(n1Latencies(iSubj).run, 2), 5 * 2048);    % [roiDir, run, tt]
+                average_ccep_run_nonnorm{iTr}{iSubTr}   = NaN(2, size(n1Latencies(iSubj).run, 2), 5 * 2048);    % [roiDir, run, tt]
+                average_N1_run{iTr}{iSubTr}             = NaN(2, size(n1Latencies(iSubj).run, 2));              % [roiDir, run]
+            end
+        end
         
         % get the session directory name
-        sesDir = dir(fullfile(myDataPath.output, 'derivatives', 'av_ccep', n1Latencies(kk).id, 'ses-*'));
+        sesDir = dir(fullfile(myDataPath.output, 'derivatives', 'av_ccep', n1Latencies(iSubj).id, 'ses-*'));
         sesDir = sesDir.name;
 
         % loop over the runs
-        for iRun = 1:size(n1Latencies(kk).run, 2)
+        for iRun = 1:size(n1Latencies(iSubj).run, 2)
             
-            % get this run file name
-            thisRun = fullfile(myDataPath.output, 'derivatives', 'av_ccep', n1Latencies(kk).id, sesDir, n1Latencies(kk).run(iRun).runName);
-            thisData = load(thisRun);
+            % load the run data
+            runData = load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', n1Latencies(iSubj).id, sesDir, n1Latencies(iSubj).run(iRun).runName));
             
             % we will resample all cceps to 2048Hz, no need to preselect
             
-            % loop over the "end-point" areas, as stimulation ROIs
-            for rr1 = 1:size(roi, 2)
-                
-                % find stimulation pair within specific region
-                chanPair = find(sum(contains(n1Latencies(kk).run(iRun).average_ccep_DestrieuxNr, roi{rr1}), 2) > 0);
-                
-                % loop over the "end-point" areas, as response ROIs
-                for rr2 = 1:size(roi, 2)
-                    
-                    % find response electrode within specific region
-                    chanSig = find(ismember(string(n1Latencies(kk).run(iRun).channel_DestrieuxNr), roi{rr2}) > 0);
+            % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
+            for iTr = 1:length(rois)
+                for iSubTr = 1:length(rois(iTr).sub_tract)
 
-                    %
-                    % collect all signals with stimulation pair and response electrode within specific region
-                    %
-                    
-                    average_ccep_select  = NaN(size(chanPair, 1), size(chanSig, 1), size(thisData.average_ccep, 3));
-                    average_N1_select    = NaN(size(chanPair, 1), size(chanSig, 1)); % N1latency
-                    for cp = 1:size(chanPair, 1)
-                        for cs = 1:size(chanSig, 1)
-                            if ~isnan(n1Latencies(kk).run(iRun).n1_peak_sample(chanSig(cs),chanPair(cp)))
-                                if thisData.tt(n1Latencies(kk).run(iRun).n1_peak_sample(chanSig(cs), chanPair(cp))) == 0, disp('what???'), end
-                                tempResp = squeeze(thisData.average_ccep(chanSig(cs),chanPair(cp), :));
-                                average_ccep_select(cp, cs, :) = tempResp;
-                                average_N1_select(cp, cs) = thisData.tt(n1Latencies(kk).run(iRun).n1_peak_sample(chanSig(cs), chanPair(cp)));
-                                clear tempResp
+                    % use both directions (consider stim on roi1 and response on roi2, and vice versa)
+                    for iDir = [false true]
+                        stimRoi = rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]);
+                        respRoi = rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]);
+                        
+                        % find stimulation pairs within specific region
+                        stimPairs = find(sum(ismember(str2double(n1Latencies(iSubj).run(iRun).average_ccep_DestrieuxNr), stimRoi), 2) > 0);
+                        
+                        % find response electrodes within specific region
+                        respChan = find(ismember(str2double(n1Latencies(iSubj).run(iRun).channel_DestrieuxNr), respRoi) > 0);
+                        
+                        
+                        %
+                        % collect all signals with stimulation pair and response electrode within specific region
+                        %
+
+                        average_ccep_select  = NaN(size(stimPairs, 1), size(respChan, 1), size(runData.average_ccep, 3));
+                        average_N1_select    = NaN(size(stimPairs, 1), size(respChan, 1)); % N1latency
+                        for cp = 1:size(stimPairs, 1)
+                            for cs = 1:size(respChan, 1)
+                                if ~isnan(n1Latencies(iSubj).run(iRun).n1_peak_sample(respChan(cs),stimPairs(cp)))
+                                    if runData.tt(n1Latencies(iSubj).run(iRun).n1_peak_sample(respChan(cs), stimPairs(cp))) == 0, disp('what???'), end
+                                    tempResp = squeeze(runData.average_ccep(respChan(cs),stimPairs(cp), :));
+                                    average_ccep_select(cp, cs, :) = tempResp;
+                                    average_N1_select(cp, cs) = runData.tt(n1Latencies(iSubj).run(iRun).n1_peak_sample(respChan(cs), stimPairs(cp)));
+                                    clear tempResp
+                                end
                             end
                         end
-                    end
 
-                    % if responses are added to average_ccep_select
-                    if any(~isnan(average_ccep_select(:)))
-                        thisResp = squeeze(mean(mean(average_ccep_select, 1, 'omitnan'), 2, 'omitnan'));
-                        thisN1   = squeeze(mean(mean(average_N1_select,   1, 'omitnan'), 2, 'omitnan'));
-                        
-                        % upsample if necessary
-                        if length(thisResp) ~= 5 * 2048
-                            thisResp = resample(thisResp, 5 * 2048, length(thisResp));
+                        % if responses are added to average_ccep_select
+                        if any(~isnan(average_ccep_select(:)))
+                            thisResp = squeeze(mean(mean(average_ccep_select, 1, 'omitnan'), 2, 'omitnan'));
+                            thisN1   = squeeze(mean(mean(average_N1_select,   1, 'omitnan'), 2, 'omitnan'));
+
+                            % upsample if necessary
+                            if length(thisResp) ~= 5 * 2048
+                                thisResp = resample(thisResp, 5 * 2048, length(thisResp));
+                            end
+
+                            thisResp2 = thisResp; % non-normalized
+
+                            % 'normalize' 0.15-0.100 by unit length
+                            thisResp = thisResp ./ sqrt(sum(thisResp(tt > .015 & tt < 0.100) .^ 2));
+
+                            % store the ...
+                            average_ccep_run{iTr}{iSubTr}(iDir + 1, iRun, :)           = thisResp;   %[roiDir, run, samples]
+                            average_ccep_run_nonnorm{iTr}{iSubTr}(iDir + 1, iRun, :)   = thisResp2;  %[roiDir, run, samples]
+                            average_N1_run{iTr}{iSubTr}(iDir + 1, iRun)                = thisN1;     %[roiDir, run]
+
+                        else
+                            
+                            average_ccep_run{iTr}{iSubTr}(iDir + 1, iRun, :)           = NaN(5 * 2048, 1);
+                            average_ccep_run_nonnorm{iTr}{iSubTr}(iDir + 1, iRun, :)   = NaN(5 * 2048, 1);
+                            average_N1_run{iTr}{iSubTr}(iDir + 1, iRun)                = NaN;
+
                         end
-
-                        thisResp2 = thisResp; % non-normalized
-
-                        % 'normalize' 0.15-0.100 by unit length
-                        thisResp = thisResp ./ sqrt(sum(thisResp(tt > .015 & tt < 0.100) .^ 2));
-                        
-                        % store the ...
-                        average_ccep_run_nonnorm(rr1, rr2, iRun, :) = thisResp2;  %[roi1, roi2, run, samples]
-                        average_ccep_run(rr1, rr2, iRun, :)         = thisResp;   %[roi1, roi2, run, samples]
-                        average_N1_run(rr1, rr2, iRun)              = thisN1;     %[roi1, roi2, run]
-                        
-                    else
-                        
-                        average_ccep_run_nonnorm(rr1, rr2, iRun, :) = NaN(5 * 2048, 1);
-                        average_ccep_run(rr1, rr2, iRun, :)         = NaN(5 * 2048, 1);
-                        average_N1_run(rr1, rr2, iRun)              = NaN;
-                        
-                    end
+                        clear average_ccep_select average_N1_select;
                     
-                    %
-                    % collect tract distance
-                    %
-                    
-                    % equal for all runs, so only perform on the first run
-                    if iRun == 1
-
-                        % check if the stimulus and response end-point area concern the same tract
-                        % and the stimulation and response end-point ROIs are not the same
-                        if strcmpi(roi_track{rr1}, roi_track{rr2}) && rr1 ~= rr2
-                            
-                            trkFile = fullfile(track_path, roi_track{rr1});
-                            disp('Retrieving tract distance');
-                            
-                            % retrieve the distance between the stimulation and response end-point ROIs
-                            % for this particular patient given specific tracts
-                            [trkDist, trkFiles, trkIndices] = ccep_retrieveInterROIDistance( 0, ...
-                                                                trkFile, ...
-                                                                fullfile(myDataPath.input, 'derivatives', 'coreg_ANTs', n1Latencies(kk).id), ...
-                                                                fullfile(myDataPath.input, 'derivatives', 'freesurfer', n1Latencies(kk).id), ...
-                                                                roi{rr1}, roi{rr2});
-                            
-                            % TODO: store only if found. So if only LH
-                            % electrodes, than RH tract file should not
-                            % find distance/tract-lines
-                                        
-                            % store the distances and included MNI tract-lines
-                            ROIsDist{rr1, rr2}            = trkDist;
-                            ROIsTrcs{rr1, rr2}            = {trkFiles, trkIndices};
-                            
-                        end 
                     end
-                      
                     
                 end
             end
-            clear thisData thisRun thisN1 thisLen;
+            
+            clear runData thisN1;
         end
 
-        % average for this patient across these areas
-        average_ccep_pat_nonnorm  = squeeze(mean(average_ccep_run_nonnorm, 3, 'omitnan'));  %[roi1, roi2,samples]
-        average_ccep_pat          = squeeze(mean(average_ccep_run, 3, 'omitnan'));          %[roi1, roi2,samples]
-        average_n1_pat            = squeeze(mean(average_N1_run, 3, 'omitnan'));
-        clear average_ccep_run_nonnorm average_ccep_run average_N1_run
-
-        if ~isempty(average_ccep_age{age})
-            n = size(average_ccep_age{age}, 3);
-            average_ccep_age_nonnorm{age}(:, :, n + 1, :) = average_ccep_pat_nonnorm;       % [roi1, roi2, subjects, samples]
-            average_ccep_age{age}(:, :, n + 1, :)         = average_ccep_pat;               % [roi1, roi2, subjects, samples]
-            average_n1_age{age}(:, :, n + 1)              = average_n1_pat;
-        else
-            n = 0;
-            average_ccep_age_nonnorm{age}(:, :, n + 1, :) = average_ccep_pat_nonnorm;
-            average_ccep_age{age}(:, : ,n + 1, :)         = average_ccep_pat;
-            average_n1_age{age}(:, : ,n + 1)              = average_n1_pat;
+        
+        %
+        % Average over the runs and store in an 'age' specific cell
+        %
+        
+        % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
+        for iTr = 1:length(rois)
+            %if ~iscell(average_ccep_age{age}),  average_ccep_age{age} = cell(1, length(rois));  end
+            
+            for iSubTr = 1:length(rois(iTr).sub_tract)
+                %if ~iscell(average_ccep_age{age}{iTr}),  average_ccep_age{age}{iTr} = cell(1, length(rois(iTr).sub_tract));  end
+                
+                % average over runs
+                average_ccep_pat          = squeeze(mean(average_ccep_run{iTr}{iSubTr}, 2, 'omitnan'));         %[roiDir, samples]
+                average_ccep_pat_nonnorm  = squeeze(mean(average_ccep_run_nonnorm{iTr}{iSubTr}, 2, 'omitnan')); %[roiDir, samples]
+                average_n1_pat            = squeeze(mean(average_N1_run{iTr}{iSubTr}, 2, 'omitnan'));           %[roiDir]
+                
+                % 
+                n = 0;
+                if ~isempty(average_ccep_age{iTr}{iSubTr}{age})
+                    n = size(average_ccep_age{iTr}{iSubTr}{age}, 2);
+                end
+                average_ccep_age{iTr}{iSubTr}{age}(:, n + 1, :)         = average_ccep_pat;          % [roiDir, subjects, samples]
+                average_ccep_age_nonnorm{iTr}{iSubTr}{age}(:, n + 1, :) = average_ccep_pat_nonnorm;  % [roiDir, subjects, samples]
+                average_n1_age{iTr}{iSubTr}{age}(:, n + 1)              = average_n1_pat;            % [roiDir, subjects]
+                
+            end
         end
-        clear average_ccep_pat average_ccep_pat_nonnorm average_n1_pat
+        clear average_ccep_run average_ccep_run_nonnorm average_N1_run
+        clear average_ccep_pat average_ccep_pat_nonnorm average_n1_pat ROIsDist ROIsTrcs;
     end
 
-    save(filename_averageCCEP, 'average_ccep_age', 'average_ccep_age_nonnorm', 'average_n1_age', 'tt', 'roi', 'roi_name');
+    save(filename_averageCCEP, 'average_ccep_age', 'average_ccep_age_nonnorm', 'average_n1_age', 'tt', 'rois');
 else
-    load(filename_averageCCEP, 'average_ccep_age', 'average_ccep_age_nonnorm', 'average_n1_age', 'tt', 'roi', 'roi_name');
+    load(filename_averageCCEP, 'average_ccep_age', 'average_ccep_age_nonnorm', 'average_n1_age', 'tt', 'rois');
 end
 
-%% 3. sort all cceps for each region to another region according to age
 
-% this does not average any cceps when there are multiple subjects at the
-% same age.
 
-sortage = struct();
+%%
+%  3. sort all cceps for each region to another region according to age
+%
+%   this does not average any cceps when there are multiple subjects at the same age.
+%
+
+sortage = cell(1, length(rois));
+
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        sortage{iTr}{iSubTr} = struct();
+        sortage{iTr}{iSubTr}.average_ccep = [];
+        sortage{iTr}{iSubTr}.average_ccep_nonnorm = [];
+        sortage{iTr}{iSubTr}.age_ind = [];
+        sortage{iTr}{iSubTr}.average_n1 = [];
+        
+        for age = 1:max([n1Latencies.age])
+            if ~isempty(average_ccep_age{iTr}{iSubTr}{age})
+                
+                for iDir = [false true]
+                    
+    
+                end
+            end
+        end
+    end
+end
 
 for rr1 = 1:4 % for each stimulation region
     for rr2 = 1:4 % for each response region
@@ -295,8 +310,8 @@ p_vals = p_all(:);
 m = length(p_vals);
 [p_sort,p_ind] = sort(p_vals(:));
 thisVal = NaN(size(p_sort));
-for kk = 1:length(p_sort)
-    thisVal(kk) = (kk/m)*0.05;
+for iSubj = 1:length(p_sort)
+    thisVal(iSubj) = (iSubj/m)*0.05;
 end
 % figure,hold on,plot(thisVal),plot(p_sort,'r.'),title('Significant p-values after FDR correction')
 
