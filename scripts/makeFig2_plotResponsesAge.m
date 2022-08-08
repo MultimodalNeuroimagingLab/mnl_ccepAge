@@ -218,64 +218,96 @@ end
 %   this does not average any cceps when there are multiple subjects at the same age.
 %
 
-sortage = cell(1, length(rois));
+sortage = {};
 
 for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         sortage{iTr}{iSubTr} = struct();
-        sortage{iTr}{iSubTr}.average_ccep = [];
-        sortage{iTr}{iSubTr}.average_ccep_nonnorm = [];
-        sortage{iTr}{iSubTr}.age_ind = [];
-        sortage{iTr}{iSubTr}.average_n1 = [];
         
         for age = 1:max([n1Latencies.age])
             if ~isempty(average_ccep_age{iTr}{iSubTr}{age})
                 
                 for iDir = [false true]
                     
-    
+                    sortage{iTr}{iSubTr}(iDir + 1).average_ccep = [];
+                    sortage{iTr}{iSubTr}(iDir + 1).average_ccep_nonnorm = [];
+                    sortage{iTr}{iSubTr}(iDir + 1).age_ind = [];
+                    sortage{iTr}{iSubTr}(iDir + 1).average_n1 = [];
+
+                    addThis = squeeze(average_ccep_age{iTr}{iSubTr}{age}(iDir + 1, :, :))'; % normalized CCEP
+                    addThis(isnan(addThis(:,1)),:) = [];
+                    addThisNonnorm = squeeze(average_ccep_age_nonnorm{iTr}{iSubTr}{age}(iDir + 1, :, :))'; % nonnormalized CCEP
+                    addThisNonnorm(isnan(addThisNonnorm(:,1)),:) = [];
+                    addN1 = squeeze(average_n1_age{iTr}{iSubTr}{age}(iDir + 1, :))';
+                    addN1(isnan(addN1)) = [];
+
+                    if ~isempty(addThis) % there are subjects with electrodes on ROI
+                        if size(addThis, 1) > size(addThis, 2), addThis = addThis'; addThisNonnorm = addThisNonnorm'; end
+                        nr_subs = size(addThis, 1);
+
+                        sortage{iTr}{iSubTr}(iDir + 1).average_ccep = [sortage{iTr}{iSubTr}(iDir + 1).average_ccep; addThis];
+                        sortage{iTr}{iSubTr}(iDir + 1).average_ccep_nonnorm = [sortage{iTr}{iSubTr}(iDir + 1).average_ccep_nonnorm; addThisNonnorm];
+                        sortage{iTr}{iSubTr}(iDir + 1).average_n1 = [sortage{iTr}{iSubTr}(iDir + 1).average_n1; addN1];
+                        sortage{iTr}{iSubTr}(iDir + 1).age_ind = [sortage{iTr}{iSubTr}(iDir + 1).age_ind; zeros(nr_subs,1)+age];
+                        clear addThis addThisNonnorm addN1
+                    end
+
                 end
             end
         end
     end
 end
 
-for rr1 = 1:4 % for each stimulation region
-    for rr2 = 1:4 % for each response region
-        sortage(rr1, rr2).average_ccep = [];
-        sortage(rr1, rr2).average_ccep_nonnorm = [];
-        sortage(rr1, rr2).age_ind = [];
-        sortage(rr1, rr2).average_n1 = [];
+
+%% 
+%  figure of subplots for each stimulated and responding region:
+%  temporal, central, parietal, frontal
+%  with normalized CCEPs + N1 sorted by age
+
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
         
-        for age = 1:max([n1Latencies.age])
-            if size(average_ccep_age{age},1)>0 % there are some subjects at this age
-                addThis = squeeze(average_ccep_age{age}(rr1,rr2,:,:)); % normalized CCEP
-                addThis(isnan(addThis(:,1)),:) = [];
-                addThisNonnorm = squeeze(average_ccep_age_nonnorm{age}(rr1,rr2,:,:)); % nonnormalized CCEP
-                addThisNonnorm(isnan(addThisNonnorm(:,1)),:) = [];
-                addN1 = squeeze(average_n1_age{age}(rr1,rr2,:));
-                addN1(isnan(addN1)) = [];
-                if ~isempty(addThis) % there are subjects with electrodes on ROI
-                    if size(addThis,1)>size(addThis,2), addThis = addThis'; addThisNonnorm = addThisNonnorm'; end
-                    nr_subs = size(addThis,1);
-                    sortage(rr1,rr2).average_ccep = [sortage(rr1,rr2).average_ccep; addThis];
-                    sortage(rr1,rr2).average_ccep_nonnorm = [sortage(rr1,rr2).average_ccep_nonnorm; addThisNonnorm];
-                    sortage(rr1,rr2).average_n1 = [sortage(rr1,rr2).average_n1; addN1];
-                    sortage(rr1,rr2).age_ind = [sortage(rr1,rr2).age_ind; zeros(nr_subs,1)+age];
-                    clear addThis
-                end
-            end
+        p_all{iTr}{iSubTr} = zeros(1, 2);
+        r_all{iTr}{iSubTr} = zeros(1, 2);
+        
+        for iDir = [false true]
+            
+            n1_latency = 1000 * sortage{iTr}{iSubTr}(iDir + 1).average_n1;
+            age = sortage{iTr}{iSubTr}(iDir + 1).age_ind;
+            [r, p] = corr(n1_latency, age, 'type', 'Spearman');
+            p_all{iTr}{iSubTr}(iDir + 1) = p;
+            r_all{iTr}{iSubTr}(iDir + 1) = r;
+            
         end
     end
 end
 
-
-%% figure of subplots for each stimulated and responding region:
-% temporal, central, parietal, frontal
-% with normalized CCEPs + N1 sorted by age
 
 ttmin = 0.010;
 ttmax = .100;
+
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        for iDir = [false true]
+            
+            %
+            figure('Position',[0 0 600 300])
+            hold on;
+            imagesc(1000 * tt(tt > ttmin & tt < ttmax), 1:length(sortage{iTr}{iSubTr}(iDir + 1).age_ind), ...
+                    -sortage{iTr}{iSubTr}(iDir + 1).average_ccep(:, tt > ttmin & tt < ttmax), ...
+                    [-0.1 0.1]);
+            
+            plot(1000 * sortage{iTr}{iSubTr}(iDir + 1).average_n1, 1:length(sortage{iTr}{iSubTr}(iDir + 1).age_ind), 'k.')
+            colormap(parula)
+            hold on
+            set(gca,'XTick',20:20:80,'YTick',[])
+            axis tight
+  
+        end
+    end
+end
+
+%%
 
 figure('Position',[0 0 600 300])
 for rr1 = 1:4
