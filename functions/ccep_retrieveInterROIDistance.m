@@ -5,14 +5,14 @@
 %       interHemi         = indicate if both hemispheres are processed together with one tract
 %                           file and combined FS hemisphere surfaces (1), or seperately with different
 %                           tract files and FS surfaces for left and right (0).
-%       trkFile           = the tract file(s) to load the MNI tracts from. If 'interHemi' is set
+%       trkFile           = the tract file(s) to load the MNI-152 tracts from. If 'interHemi' is set
 %                           to 0, tract files will be loaded seperately for the left and the right
 %                           hemisphere and either '_L.trk.gz' '_R.trk.gz' will be appended (e.g. 
 %                           when '/tracks/FA' is passed, both '/tracks/FA_L.trk.gz' and 
 %                           '/tracks/FA_R.trk.gz' will be processed seperately with their respective
 %                           hemispheres). If 'interHemi' is set to 1, only '.trk.gz' will be appended.
 %       subjectANTsFolder = the subject specific folder with the ANTs transformation files, this is 
-%                           used to transform the tracts from MNI space to subject native space
+%                           used to transform the tracts from MNI-152 space to subject native space
 %       subjectFsFolder   = the subject-specific freesurfer folder, ...
 %
 %   Returns: 
@@ -56,7 +56,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
 
 
             %%
-            %  Load the tract file and transform the line vertices from MNI space to native space
+            %  Load the tract file and transform the line vertices from MNI-152 space to native space
 
             % load
             trkFiles{iHemi} = [trkFile, '_', upper(hemi), '.trk.gz'];
@@ -74,7 +74,8 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
 
             % get the fiber end-point coordinates
             trcLineEndPoints = nan(length(idx) * 2, 3);
-            trcLineEndPoints2 = nan(length(idx) * 2, 1);
+            trcLineEnds = nan(length(idx) * 2, 6);              % the last two points of each end of a line (order: inner x,y,z + outer x,y,z)
+            trcLineEndPointsIndices = nan(length(idx) * 2, 1);
             startV = 1;
             for iTrk = 1:length(idx)
 
@@ -82,16 +83,19 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
                 if iTrk > 1,   startV = sum(idx(1:iTrk - 1)) + 1;   end
                 endV = startV + idx(iTrk) - 1;
 
-                trcLineEndPoints2((iTrk - 1) * 2 + 1, :)   = startV;
-                trcLineEndPoints2((iTrk - 1) * 2 + 2, :)   = endV;
+                trcLineEndPointsIndices((iTrk - 1) * 2 + 1, :)   = startV;
+                trcLineEndPointsIndices((iTrk - 1) * 2 + 2, :)   = endV;
+                
                 trcLineEndPoints((iTrk - 1) * 2 + 1, :)   = fibers(startV, 1:3);
+                trcLineEnds((iTrk - 1) * 2 + 1, :)   = [fibers(startV + 1, 1:3), fibers(startV, 1:3)];
+                
                 trcLineEndPoints((iTrk - 1) * 2 + 2, :)   = fibers(endV, 1:3);
+                trcLineEnds((iTrk - 1) * 2 + 2, :)   = [fibers(endV - 1, 1:3), fibers(endV, 1:3)];
 
             end
             
-            b = reshape(trcLineEndPoints2, 2, []);
+            b = reshape(trcLineEndPointsIndices, 2, []);
             
-
             
             %%
             %  Determine which tract-lines that are close enough to the ROIs
@@ -104,12 +108,16 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
             % the vertex annotation (color) labels to the ROI area indices
             [~, annotVertexLabels, annotColortable] = read_annotation(fullfile(subjectFsFolder, 'label', [hemi, 'h.aparc.a2009s.annot']));
             
+            % for each ROI, retrieve the tract-lines with a forward search
+            [proxTrkLines1, gROIPial1] = retrieveROIForward(roi1, annotColortable, annotVertexLabels, trcLineEnds, gPial);
+            [proxTrkLines2, gROIPial2] = retrieveROIForward(roi2, annotColortable, annotVertexLabels, trcLineEnds, gPial);
             
-            radius = 5; % in mm
-            
+            %{
             % for each ROI, retrieve the tract-lines of which an end-point is within x radius of any of the ROI's vertices
+            radius = 5; % in mm
             [proxTrkLines1, gROIPial1] = retrieveROI(roi1, annotColortable, annotVertexLabels, radius, trcLineEndPoints, gPial);
             [proxTrkLines2, gROIPial2] = retrieveROI(roi2, annotColortable, annotVertexLabels, radius, trcLineEndPoints, gPial);
+            %}
             
             % determine whether there are tract-lines that touch upon both ROIs
             roisTrkLines = find(all([proxTrkLines1; proxTrkLines2], 1));
@@ -154,10 +162,9 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
             %}
 
             % debug, show excluded tracts in native
-            
+            %{
             excludedTrkLines = 1:length(idx);
             excludedTrkLines(roisTrkLines) = [];
-            %{
             %g = b(:, excludedTrkLines);
             %viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge', fibers(g(:), :), ['WireSpheres', radius]);
             viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge');
@@ -211,6 +218,61 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
     
 end
 
+function [proxTrkLines, gROIPial] = retrieveROIForward(roiCodes, annotColortable, annotVertexLabels, trcLineEnds, gPial)
+
+    % convert the Destrieux codes to Destrieux labels
+    dstrxCodeToLabel = {'G_and_S_frontomargin';'G_and_S_occipital_inf';'G_and_S_paracentral';'G_and_S_subcentral';'G_and_S_transv_frontopol';'G_and_S_cingul-Ant';'G_and_S_cingul-Mid-Ant';'G_and_S_cingul-Mid-Post';'G_cingul-Post-dorsal';'G_cingul-Post-ventral';'G_cuneus';'G_front_inf-Opercular';'G_front_inf-Orbital';'G_front_inf-Triangul';'G_front_middle';'G_front_sup';'G_Ins_lg_and_S_cent_ins';'G_insular_short';'G_occipital_middle';'G_occipital_sup';'G_oc-temp_lat-fusifor';'G_oc-temp_med-Lingual';'G_oc-temp_med-Parahip';'G_orbital';'G_pariet_inf-Angular';'G_pariet_inf-Supramar';'G_parietal_sup';'G_postcentral';'G_precentral';'G_precuneus';'G_rectus';'G_subcallosal';'G_temp_sup-G_T_transv';'G_temp_sup-Lateral';'G_temp_sup-Plan_polar';'G_temp_sup-Plan_tempo';'G_temporal_inf';'G_temporal_middle';'Lat_Fis-ant-Horizont';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'Pole_occipital';'Pole_temporal';'S_calcarine';'S_central';'S_cingul-Marginalis';'S_circular_insula_ant';'S_circular_insula_inf';'S_circular_insula_sup';'S_collat_transv_ant';'S_collat_transv_post';'S_front_inf';'S_front_middle';'S_front_sup';'S_interm_prim-Jensen';'S_intrapariet_and_P_trans';'S_oc_middle_and_Lunatus';'S_oc_sup_and_transversal';'S_occipital_ant';'S_oc-temp_lat';'S_oc-temp_med_and_Lingual';'S_orbital_lateral';'S_orbital_med-olfact';'S_orbital-H_Shaped';'S_parieto_occipital';'S_pericallosal';'S_postcentral';'S_precentral-inf-part';'S_precentral-sup-part';'S_suborbital';'S_subparietal';'S_temporal_inf';'S_temporal_sup';'S_temporal_transverse'};
+    roi_lbls = {};
+    for roiCode = roiCodes,     roi_lbls{end + 1} = dstrxCodeToLabel{roiCode};      end
+
+    % label the vertices according to the freesurfer labels
+    roiVertexLabels = mx.freesurfer.fsRelabelToAreas(roi_lbls, annotColortable, annotVertexLabels);
+
+    % extract the vertices/faces that belong to the ROI
+    roiVertexIDs = find(~isnan(roiVertexLabels));
+    roiFacesLabels = ismember(gPial.faces, roiVertexIDs);
+    roiFacesLabels = all(roiFacesLabels, 2);
+    [vertexMatrix, facesMatrix, ~] = mx.three_dimensional.extract3DFaces(gPial, roiFacesLabels == 1);
+    gROIPial = gPial;
+    gROIPial.vertices = vertexMatrix;
+    gROIPial.faces = facesMatrix;
+    
+    
+    extendedLines = ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 50) + trcLineEnds(:, 1:3);
+    extendedLines = [trcLineEnds(:, 1:3), extendedLines];
+    %viewGii(gROIPial, trcLineEnds(:, 1:3), trcLineEnds(:, 4:6), extendedLines);
+    
+    %{
+    pt = 1;
+    intersect = TriangleRayIntersection(extendedLines(pt, 1:3), extendedLines(pt, 4:6), ...
+                                        gROIPial.vertices(gROIPial.faces(:, 1), :), gROIPial.vertices(gROIPial.faces(:, 2), :), gROIPial.vertices(gROIPial.faces(:, 3), :));
+    figure(1); clf;
+    trisurf(gROIPial.faces, gROIPial.vertices(:, 1), gROIPial.vertices(:, 2), gROIPial.vertices(:, 3), intersect * 1.0,'FaceAlpha', 0.9)
+    hold on;
+    line('XData',a(pt, 1)+[0 a(pt, 4)],'YData',a(pt, 2)+[0 a(pt, 5)],'ZData',a(pt, 3)+[0 a(pt, 6)],'Color','r','LineWidth',3)
+    set(gca, 'CameraPosition', [106.2478  -35.9079  136.4875])
+    %}
+   
+    
+    % TODO: all points at once
+    allInter = [];
+    for iLine = 1:2:size(trcLineEnds, 1)
+        
+        % check if either end intersects
+        intersect1 = TriangleRayIntersection(extendedLines(iLine, 1:3), extendedLines(iLine, 4:6), ...
+                                            gROIPial.vertices(gROIPial.faces(:, 1), :), gROIPial.vertices(gROIPial.faces(:, 2), :), gROIPial.vertices(gROIPial.faces(:, 3), :));
+        intersect2 = TriangleRayIntersection(extendedLines(iLine + 1, 1:3), extendedLines(iLine + 1, 4:6), ...
+                                            gROIPial.vertices(gROIPial.faces(:, 1), :), gROIPial.vertices(gROIPial.faces(:, 2), :), gROIPial.vertices(gROIPial.faces(:, 3), :));
+        
+        allInter(end + 1, :) = [any(intersect1), any(intersect2)];
+        
+    end
+
+    % resolve which tract lines has one of it's ends intersting with a ROI
+    proxTrkLines = any(allInter, 2)';
+
+end
+
 function [proxTrkLines, gROIPial] = retrieveROI(roiCodes, annotColortable, annotVertexLabels, radius, trcLineEndPoints, gPial)
 
     % convert the Destrieux codes to Destrieux labels
@@ -230,6 +292,9 @@ function [proxTrkLines, gROIPial] = retrieveROI(roiCodes, annotColortable, annot
     gROIPial.vertices = vertexMatrix;
     gROIPial.faces = facesMatrix;
     
+    
+    %viewGii(gROIPial, trcLineEndPoints);
+    
     % calculate the distance from each search point to each retrieval point
     % and determine which end points are within radius distance
     dist = (trcLineEndPoints(:, 1)' - vertexMatrix(:, 1)) .^ 2 + ...
@@ -237,7 +302,7 @@ function [proxTrkLines, gROIPial] = retrieveROI(roiCodes, annotColortable, annot
            (trcLineEndPoints(:, 3)' - vertexMatrix(:, 3)) .^ 2;
     dist = dist < (radius  .^ 2);
 
-    % resolve which tract lines have both end-points within the ROIs radius
+    % resolve which tract lines has one of it's end-points within the ROI radius
     b2 = reshape(any(dist, 1), 2, []);
     proxTrkLines = any(b2, 1);
 
