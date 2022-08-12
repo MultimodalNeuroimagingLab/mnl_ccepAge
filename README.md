@@ -24,6 +24,7 @@ function localDataPath = personalDataPath()
 localDataPath.input = '/my/path/to/load/data/';
 localDataPath.output = '/my/path/to/save/data/';
 addpath('/my/path/to/fieldtrip')
+addpath('/my/path/to/leadDBS')
 ft_defaults
 ```
 
