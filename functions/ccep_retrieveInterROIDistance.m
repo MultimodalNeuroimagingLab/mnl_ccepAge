@@ -14,11 +14,16 @@
 %       subjectANTsFolder = the subject specific folder with the ANTs transformation files, this is 
 %                           used to transform the tracts from MNI-152 space to subject native space
 %       subjectFsFolder   = the subject-specific freesurfer folder, ...
+%       roi1              = ...
+%       roi2              = ...
+%       elecPositions     = ...
+%       elecHemi          = Indicates for the electrodes on which hemisphere they are
 %
 %   Returns: 
 %       trkDistance       = the distance in mm between the ROI's end-points
 %       trkFiles          = the tract files that were used to calculate the distance
 %       trkIndices        = the indices of the tract-lines that were used to calculate the distance
+%       trkNativeFibers   = the positions of the fiber vertices in native space
 %
 %
 %   Note: For Linux and Mac, execute permissions might need to be set for
@@ -27,9 +32,9 @@
 %
 %
 %
-%   Max van den Boom, Multimodal Neuroimaging Lab, Mayo Clinic, 2022
+%   Max van den Boom, Multimodal Neuroimaging Lab (MNL), Mayo Clinic, 2022
 %
-function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2)
+function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2, elecPositions, elecHemi)
     
     % check leadDBS availability and setup
     if exist('ea_getearoot') ~= 2 || exist('ea_prefs') ~= 2
@@ -53,7 +58,6 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
         for iHemi = 1:2
             hemi = 'l';
             if iHemi == 2, hemi = 'r';  end
-
 
             %%
             %  Load the tract file and transform the line vertices from MNI-152 space to native space
@@ -83,22 +87,25 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
                 if iTrk > 1,   startV = sum(idx(1:iTrk - 1)) + 1;   end
                 endV = startV + idx(iTrk) - 1;
 
-                trcLineEndPointsIndices((iTrk - 1) * 2 + 1, :)   = startV;
-                trcLineEndPointsIndices((iTrk - 1) * 2 + 2, :)   = endV;
+                trcLineEndPointsIndices((iTrk - 1) * 2 + 1, :)  = startV;
+                trcLineEndPointsIndices((iTrk - 1) * 2 + 2, :)  = endV;
                 
-                trcLineEndPoints((iTrk - 1) * 2 + 1, :)   = fibers(startV, 1:3);
-                trcLineEnds((iTrk - 1) * 2 + 1, :)   = [fibers(startV + 1, 1:3), fibers(startV, 1:3)];
+                trcLineEndPoints((iTrk - 1) * 2 + 1, :)         = fibers(startV, 1:3);
+                trcLineEndPoints((iTrk - 1) * 2 + 2, :)         = fibers(endV, 1:3);
                 
-                trcLineEndPoints((iTrk - 1) * 2 + 2, :)   = fibers(endV, 1:3);
-                trcLineEnds((iTrk - 1) * 2 + 2, :)   = [fibers(endV - 1, 1:3), fibers(endV, 1:3)];
+                trcLineEnds((iTrk - 1) * 2 + 1, :)              = [fibers(startV + 3, 1:3), fibers(startV, 1:3)];
+                trcLineEnds((iTrk - 1) * 2 + 2, :)              = [fibers(endV - 3, 1:3), fibers(endV, 1:3)];
 
             end
+
+            % extend the tract-lines by 20x (from the end)
+            extLines = ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 25) + trcLineEnds(:, 1:3);
+            extLines = [trcLineEnds(:, 1:3), extLines];
             
-            b = reshape(trcLineEndPointsIndices, 2, []);
             
             
             %%
-            %  Determine which tract-lines that are close enough to the ROIs
+            %  Determine which tract-lines end in the ROIs
 
             % debug
             %gPial = gifti(fullfile(subjectFsFolder, ['/surf/', hemi, 'h.pial.gii']));
@@ -109,84 +116,146 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
             [~, annotVertexLabels, annotColortable] = read_annotation(fullfile(subjectFsFolder, 'label', [hemi, 'h.aparc.a2009s.annot']));
             
             % for each ROI, retrieve the tract-lines with a forward search
-            [proxTrkLines1, gROIPial1] = retrieveROIForward(roi1, annotColortable, annotVertexLabels, trcLineEnds, gPial);
-            [proxTrkLines2, gROIPial2] = retrieveROIForward(roi2, annotColortable, annotVertexLabels, trcLineEnds, gPial);
+            [proxTrkLines1, gROIPial1] = retrieveROILines(roi1, annotColortable, annotVertexLabels, trcLineEnds, extLines, gPial);
+            [proxTrkLines2, gROIPial2] = retrieveROILines(roi2, annotColortable, annotVertexLabels, trcLineEnds, extLines, gPial);
             
+            % determine which tract-lines that touch upon both ROIs 
+            roisTrkLines = find((proxTrkLines1(:, 1) & proxTrkLines2(:, 2)) | (proxTrkLines1(:, 2) & proxTrkLines2(:, 1)))';
+            
+            % calculate the length of each tract-line
+            for iTrk = 1:length(roisTrkLines)
+
+                % determine the start- and end-vertex indices
+                startV = 1;
+                if roisTrkLines(iTrk) > 1,   startV = sum(idx(1:roisTrkLines(iTrk) - 1)) + 1;   end
+                endV = startV + idx(roisTrkLines(iTrk)) - 1;
+
+                % calculate and store the length of the current tract line
+                trkLengths(iTrk) = sqrt(sum(sum(diff(fibers(startV:endV, 1:3), 1, 1) .^ 2, 2)));
+
+            end
+
+            % return the tract-lines that run between the ROIs
+            trkIndices{iHemi} = roisTrkLines;
+            
+            
+
+            %%
+            %  Determine which electrodes are at the end of the tract-lines
+
+            % specify the point of detection along the extended lines of the line-tracts that pierce the ROIs
+            steps = 20;
+            extPoints = nan(length(roisTrkLines), 2, steps, 3);
+            for iLine = 1:length(roisTrkLines)
+                lineIdx = (roisTrkLines(iLine) - 1) * 2 + 1;
+
+                extPoints(iLine, 1, :, :)  = [linspace(extLines(lineIdx, 1),     extLines(lineIdx, 4), steps); ...
+                                              linspace(extLines(lineIdx, 2),     extLines(lineIdx, 5), steps); ...
+                                              linspace(extLines(lineIdx, 3),     extLines(lineIdx, 6), steps)]';
+                extPoints(iLine, 2, :, :)  = [linspace(extLines(lineIdx + 1, 4), extLines(lineIdx + 1, 1), steps); ...
+                                              linspace(extLines(lineIdx + 1, 5), extLines(lineIdx + 1, 2), steps); ...
+                                              linspace(extLines(lineIdx + 1, 6), extLines(lineIdx + 1, 3), steps)]';
+            end
+            extPoints = reshape(extPoints, [], 3);
+
             %{
-            % for each ROI, retrieve the tract-lines of which an end-point is within x radius of any of the ROI's vertices
-            radius = 5; % in mm
-            [proxTrkLines1, gROIPial1] = retrieveROI(roi1, annotColortable, annotVertexLabels, radius, trcLineEndPoints, gPial);
-            [proxTrkLines2, gROIPial2] = retrieveROI(roi2, annotColortable, annotVertexLabels, radius, trcLineEndPoints, gPial);
+            % debug, check detection points and lines
+            b = (roisTrkLines - 1) * 2 + 1;
+            viewGii(gROIPial1, gROIPial2, 'merge', extLines(b, :), extLines(b + 1, :), extPoints);
             %}
-            
-            % determine whether there are tract-lines that touch upon both ROIs
-            roisTrkLines = find(all([proxTrkLines1; proxTrkLines2], 1));
 
-            % debug, show ROI pials
-            %viewGii(gPial, gROIPial1, gROIPial2);
+            % check which electrodes are at the end of the extended tract-lines
+            elecRadius = 8;
+            dist = (elecPositions(:, 1)' - extPoints(:, 1)) .^ 2 + ...
+                   (elecPositions(:, 2)' - extPoints(:, 2)) .^ 2 + ...
+                   (elecPositions(:, 3)' - extPoints(:, 3)) .^ 2;
+            dist = dist < (elecRadius  .^ 2);
+            roisTrkElecs = find(any(dist, 1));
 
-            % debug, show all tracts in native
-            %viewGii(gPial, 'trans.1');
             %{
+            % debug, show all tracts in native
             viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge');
             hold on;
             startV = 1;
             for i = 1:length(idx)    
                 if i > 1,   startV = sum(idx(1:i - 1)) + 1;   end
                 endV = startV + idx(i) - 1;
-
                 plot3(fibers(startV:endV, 1), fibers(startV:endV, 2), fibers(startV:endV, 3));
             end
-            plot3(trcLineEndPoints(:, 1), trcLineEndPoints(:, 2), trcLineEndPoints(:, 3), 'ob');
             hold off;
             %}
-            
+
             %{
-            % debug, show ROI tracts in native
-            %viewGii(gPial, 'trans.1');
-            viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge');
-            %g = b(:, roisTrkLines);
-            %viewGii(gROIPial1, gROIPial2, 'trans.1', 'merge', fibers(g(:), :), 'WireSpheres5');
-            hold on;
-            for i = roisTrkLines
-            
+            % debug, show ROI tracts in native with relevant electrodes
+            if (iHemi == 1 && any(contains(elecHemi, 'L'))) || (iHemi == 2 && any(contains(elecHemi, 'R')))   % only on hemisphere that matters
+
+                excludedTrkElecs = 1:size(elecPositions, 1);
+                excludedTrkElecs(roisTrkElecs) = [];
+                b = (roisTrkLines - 1) * 2 + 1;
+                %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), 'WireSpheres3');
+                viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres3');
+                hold on;
                 startV = 1;
-                if i > 1,   startV = sum(idx(1:i - 1)) + 1;   end
-                endV = startV + idx(i) - 1;
+                for iLine = roisTrkLines
+                    if iLine > 1,   startV = sum(idx(1:iLine - 1)) + 1;   end
+                    endV = startV + idx(iLine) - 1;
+                    plot3(fibers(startV:endV, 1), fibers(startV:endV, 2), fibers(startV:endV, 3));
+                end
+                hold off;
+                if iHemi == 1
+                    campos([-1452.248, 40.763, 153.4652]);
+                    camtarget([-59.8763, -11.4336, 25.2902]);
+                    camup([0.092386, 0.019813, 0.99553]);
+                    camva(7.4861);
+                else
+                    campos([1291.6518, -5.5822, 365.3929]);
+                    camtarget([63.1831, -23.0754, 6.116]);
+                    camup([-0.28023, -0.027494, 0.95954]);
+                    camva(5.6837);
+                end
+                delete(findall(gcf, 'Type', 'light'));
+                camlight(gca, 'headlight');
 
-                plot3(fibers(startV:endV, 1), fibers(startV:endV, 2), fibers(startV:endV, 3));
+                %
+                [~, trc] = fileparts(trkFile);
+                [~, sub] = fileparts(subjectFsFolder);
+                myDataPath = setLocalDataPath(1);
+                figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [sub, '_', upper(hemi), '_', trc, '_',  strrep(num2str(roi1), ' ', ''), '_', strrep(num2str(roi2), ' ', ''), '.png']);
+                set(gcf,'PaperPositionMode', 'auto')
+                print('-dpng', '-r300', figureName);
 
+                close(gcf)
+                
             end
-            %plot3(trcLineEndPoints(:, 1), trcLineEndPoints(:, 2), trcLineEndPoints(:, 3), 'ob');
-            hold off;
             %}
-
-            % debug, show excluded tracts in native
+            
             %{
+            % debug, show excluded tracts in native
             excludedTrkLines = 1:length(idx);
             excludedTrkLines(roisTrkLines) = [];
-            %g = b(:, excludedTrkLines);
-            %viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge', fibers(g(:), :), ['WireSpheres', radius]);
-            viewGii(gROIPial1, gROIPial2, 'trans.8', 'merge');
+            b = (excludedTrkLines - 1) * 2 + 1;
+            viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge');
             hold on;
-            for i = excludedTrkLines
-            
-                startV = 1;
-                if i > 1,   startV = sum(idx(1:i - 1)) + 1;   end
-                endV = startV + idx(i) - 1;
-
+            startV = 1;
+            for iLine = excludedTrkLines
+                if iLine > 1,   startV = sum(idx(1:iLine - 1)) + 1;   end
+                endV = startV + idx(iLine) - 1;
                 plot3(fibers(startV:endV, 1), fibers(startV:endV, 2), fibers(startV:endV, 3));
-
             end
-            %plot3(trcLineEndPoints(:, 1), trcLineEndPoints(:, 2), trcLineEndPoints(:, 3), 'ob');
             hold off;
             %}
+
+            %{
+            % debug, show electrodes detection regions (included and excluded
+            excludedTrkElecs = 1:size(elecPositions, 1);
+            excludedTrkElecs(roisTrkElecs) = [];
+            viewGii(gROIPial1, gROIPial2, 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), ['WireSpheres', num2str(elecRadius)]);
+            viewGii(gROIPial1, gROIPial2, 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(excludedTrkElecs, :), ['WireSpheres', num2str(elecRadius)]);
+            %}
             
-            % return the tract-lines between the ROIs
-            trkIndices{iHemi} = roisTrkLines;
+            % return the electrodes that the extended tract-lines pierces
+            trkExtElecs{iHemi} = roisTrkElecs;
             
-            % debug, pick all
-            %trkIndices{iSet} = 1:length(idx);
 
 
             %%
@@ -205,7 +274,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
                 trkLengths(iTrk) = sqrt(sum(sum(diff(fibers(startV:endV, 1:3), 1, 1) .^ 2, 2)));
 
             end
-
+            
             % store(/return) the average over all tract-lines
             trkDistance{iHemi} = mean(trkLengths);
             
@@ -218,7 +287,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers] = ccep_retrieveInt
     
 end
 
-function [proxTrkLines, gROIPial] = retrieveROIForward(roiCodes, annotColortable, annotVertexLabels, trcLineEnds, gPial)
+function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, annotVertexLabels, trcLineEnds, trcExtLines, gPial)
 
     % convert the Destrieux codes to Destrieux labels
     dstrxCodeToLabel = {'G_and_S_frontomargin';'G_and_S_occipital_inf';'G_and_S_paracentral';'G_and_S_subcentral';'G_and_S_transv_frontopol';'G_and_S_cingul-Ant';'G_and_S_cingul-Mid-Ant';'G_and_S_cingul-Mid-Post';'G_cingul-Post-dorsal';'G_cingul-Post-ventral';'G_cuneus';'G_front_inf-Opercular';'G_front_inf-Orbital';'G_front_inf-Triangul';'G_front_middle';'G_front_sup';'G_Ins_lg_and_S_cent_ins';'G_insular_short';'G_occipital_middle';'G_occipital_sup';'G_oc-temp_lat-fusifor';'G_oc-temp_med-Lingual';'G_oc-temp_med-Parahip';'G_orbital';'G_pariet_inf-Angular';'G_pariet_inf-Supramar';'G_parietal_sup';'G_postcentral';'G_precentral';'G_precuneus';'G_rectus';'G_subcallosal';'G_temp_sup-G_T_transv';'G_temp_sup-Lateral';'G_temp_sup-Plan_polar';'G_temp_sup-Plan_tempo';'G_temporal_inf';'G_temporal_middle';'Lat_Fis-ant-Horizont';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'Pole_occipital';'Pole_temporal';'S_calcarine';'S_central';'S_cingul-Marginalis';'S_circular_insula_ant';'S_circular_insula_inf';'S_circular_insula_sup';'S_collat_transv_ant';'S_collat_transv_post';'S_front_inf';'S_front_middle';'S_front_sup';'S_interm_prim-Jensen';'S_intrapariet_and_P_trans';'S_oc_middle_and_Lunatus';'S_oc_sup_and_transversal';'S_occipital_ant';'S_oc-temp_lat';'S_oc-temp_med_and_Lingual';'S_orbital_lateral';'S_orbital_med-olfact';'S_orbital-H_Shaped';'S_parieto_occipital';'S_pericallosal';'S_postcentral';'S_precentral-inf-part';'S_precentral-sup-part';'S_suborbital';'S_subparietal';'S_temporal_inf';'S_temporal_sup';'S_temporal_transverse'};
@@ -232,78 +301,42 @@ function [proxTrkLines, gROIPial] = retrieveROIForward(roiCodes, annotColortable
     roiVertexIDs = find(~isnan(roiVertexLabels));
     roiFacesLabels = ismember(gPial.faces, roiVertexIDs);
     roiFacesLabels = all(roiFacesLabels, 2);
-    [vertexMatrix, facesMatrix, ~] = mx.three_dimensional.extract3DFaces(gPial, roiFacesLabels == 1);
+    [roiVertices, roiFaces, ~] = mx.three_dimensional.extract3DFaces(gPial, roiFacesLabels == 1);
+    clear roiVertexIDs roiFacesLabels;
+    
+    % build output gifti
     gROIPial = gPial;
-    gROIPial.vertices = vertexMatrix;
-    gROIPial.faces = facesMatrix;
+    gROIPial.vertices = roiVertices;
+    gROIPial.faces = roiFaces;
+    %viewGii(gROIPial, trcLineEnds(:, 1:3), trcLineEnds(:, 4:6), trcExtLines);
     
-    
-    extendedLines = ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 50) + trcLineEnds(:, 1:3);
-    extendedLines = [trcLineEnds(:, 1:3), extendedLines];
-    %viewGii(gROIPial, trcLineEnds(:, 1:3), trcLineEnds(:, 4:6), extendedLines);
-    
-    %{
-    pt = 1;
-    intersect = TriangleRayIntersection(extendedLines(pt, 1:3), extendedLines(pt, 4:6), ...
-                                        gROIPial.vertices(gROIPial.faces(:, 1), :), gROIPial.vertices(gROIPial.faces(:, 2), :), gROIPial.vertices(gROIPial.faces(:, 3), :));
-    figure(1); clf;
-    trisurf(gROIPial.faces, gROIPial.vertices(:, 1), gROIPial.vertices(:, 2), gROIPial.vertices(:, 3), intersect * 1.0,'FaceAlpha', 0.9)
-    hold on;
-    line('XData',a(pt, 1)+[0 a(pt, 4)],'YData',a(pt, 2)+[0 a(pt, 5)],'ZData',a(pt, 3)+[0 a(pt, 6)],'Color','r','LineWidth',3)
-    set(gca, 'CameraPosition', [106.2478  -35.9079  136.4875])
-    %}
-   
-    
-    % TODO: all points at once
-    allInter = [];
+    % build points along the extended lines
+    % TODO: probably could optimize this
+    steps = 20;
+    extPoints = nan(size(trcLineEnds, 1), steps, 3);
     for iLine = 1:2:size(trcLineEnds, 1)
         
-        % check if either end intersects
-        intersect1 = TriangleRayIntersection(extendedLines(iLine, 1:3), extendedLines(iLine, 4:6), ...
-                                            gROIPial.vertices(gROIPial.faces(:, 1), :), gROIPial.vertices(gROIPial.faces(:, 2), :), gROIPial.vertices(gROIPial.faces(:, 3), :));
-        intersect2 = TriangleRayIntersection(extendedLines(iLine + 1, 1:3), extendedLines(iLine + 1, 4:6), ...
-                                            gROIPial.vertices(gROIPial.faces(:, 1), :), gROIPial.vertices(gROIPial.faces(:, 2), :), gROIPial.vertices(gROIPial.faces(:, 3), :));
-        
-        allInter(end + 1, :) = [any(intersect1), any(intersect2)];
+        extPoints(iLine, :, :)      = [linspace(trcExtLines(iLine, 1),     trcExtLines(iLine, 4), steps); ...
+                                       linspace(trcExtLines(iLine, 2),     trcExtLines(iLine, 5), steps); ...
+                                       linspace(trcExtLines(iLine, 3),     trcExtLines(iLine, 6), steps)]';
+        extPoints(iLine + 1, :, :)  = [linspace(trcExtLines(iLine + 1, 4), trcExtLines(iLine + 1, 1), steps); ...
+                                       linspace(trcExtLines(iLine + 1, 5), trcExtLines(iLine + 1, 2), steps); ...
+                                       linspace(trcExtLines(iLine + 1, 6), trcExtLines(iLine + 1, 3), steps)]';
         
     end
+    extPoints = reshape(extPoints, [], 3);
+    %viewGii(gROIPial, trcExtLines, reshape(extPoints, [], 3));
 
-    % resolve which tract lines has one of it's ends intersting with a ROI
-    proxTrkLines = any(allInter, 2)';
-
-end
-
-function [proxTrkLines, gROIPial] = retrieveROI(roiCodes, annotColortable, annotVertexLabels, radius, trcLineEndPoints, gPial)
-
-    % convert the Destrieux codes to Destrieux labels
-    dstrxCodeToLabel = {'G_and_S_frontomargin';'G_and_S_occipital_inf';'G_and_S_paracentral';'G_and_S_subcentral';'G_and_S_transv_frontopol';'G_and_S_cingul-Ant';'G_and_S_cingul-Mid-Ant';'G_and_S_cingul-Mid-Post';'G_cingul-Post-dorsal';'G_cingul-Post-ventral';'G_cuneus';'G_front_inf-Opercular';'G_front_inf-Orbital';'G_front_inf-Triangul';'G_front_middle';'G_front_sup';'G_Ins_lg_and_S_cent_ins';'G_insular_short';'G_occipital_middle';'G_occipital_sup';'G_oc-temp_lat-fusifor';'G_oc-temp_med-Lingual';'G_oc-temp_med-Parahip';'G_orbital';'G_pariet_inf-Angular';'G_pariet_inf-Supramar';'G_parietal_sup';'G_postcentral';'G_precentral';'G_precuneus';'G_rectus';'G_subcallosal';'G_temp_sup-G_T_transv';'G_temp_sup-Lateral';'G_temp_sup-Plan_polar';'G_temp_sup-Plan_tempo';'G_temporal_inf';'G_temporal_middle';'Lat_Fis-ant-Horizont';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'Pole_occipital';'Pole_temporal';'S_calcarine';'S_central';'S_cingul-Marginalis';'S_circular_insula_ant';'S_circular_insula_inf';'S_circular_insula_sup';'S_collat_transv_ant';'S_collat_transv_post';'S_front_inf';'S_front_middle';'S_front_sup';'S_interm_prim-Jensen';'S_intrapariet_and_P_trans';'S_oc_middle_and_Lunatus';'S_oc_sup_and_transversal';'S_occipital_ant';'S_oc-temp_lat';'S_oc-temp_med_and_Lingual';'S_orbital_lateral';'S_orbital_med-olfact';'S_orbital-H_Shaped';'S_parieto_occipital';'S_pericallosal';'S_postcentral';'S_precentral-inf-part';'S_precentral-sup-part';'S_suborbital';'S_subparietal';'S_temporal_inf';'S_temporal_sup';'S_temporal_transverse'};
-    roi_lbls = {};
-    for roiCode = roiCodes,     roi_lbls{end + 1} = dstrxCodeToLabel{roiCode};      end
-
-    % label the vertices according to the freesurfer labels
-    roiVertexLabels = mx.freesurfer.fsRelabelToAreas(roi_lbls, annotColortable, annotVertexLabels);
-
-    % extract the vertices/faces that belong to the ROI
-    roiVertexIDs = find(~isnan(roiVertexLabels));
-    roiFacesLabels = ismember(gPial.faces, roiVertexIDs);
-    roiFacesLabels = all(roiFacesLabels, 2);
-    [vertexMatrix, facesMatrix, ~] = mx.three_dimensional.extract3DFaces(gPial, roiFacesLabels == 1);
-    gROIPial = gPial;
-    gROIPial.vertices = vertexMatrix;
-    gROIPial.faces = facesMatrix;
-    
-    
-    %viewGii(gROIPial, trcLineEndPoints);
-    
-    % calculate the distance from each search point to each retrieval point
-    % and determine which end points are within radius distance
-    dist = (trcLineEndPoints(:, 1)' - vertexMatrix(:, 1)) .^ 2 + ...
-           (trcLineEndPoints(:, 2)' - vertexMatrix(:, 2)) .^ 2 + ...
-           (trcLineEndPoints(:, 3)' - vertexMatrix(:, 3)) .^ 2;
+    % Check extPoints to roiVertices, this will allow for a "dilated" line piercing
+    % Note: because for some ROIs the sulci might not be included so an extended tract-line can pierce just between the gyri
+    radius = 2;
+    dist = (extPoints(:, 1)' - roiVertices(:, 1)) .^ 2 + ...
+           (extPoints(:, 2)' - roiVertices(:, 2)) .^ 2 + ...
+           (extPoints(:, 3)' - roiVertices(:, 3)) .^ 2;
     dist = dist < (radius  .^ 2);
-
-    % resolve which tract lines has one of it's end-points within the ROI radius
-    b2 = reshape(any(dist, 1), 2, []);
-    proxTrkLines = any(b2, 1);
-
+    
+    % return which tract-lines touch ROI <1st dim = tract-line, 2nd dim = which end of the tract line>
+    proxTrkLines = any(reshape(any(dist, 1), [], steps, 1), 2);
+    proxTrkLines = [proxTrkLines(1:2:end), proxTrkLines(2:2:end)];
+    
 end
