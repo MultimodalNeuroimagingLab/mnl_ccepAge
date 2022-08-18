@@ -165,7 +165,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             %}
 
             % check which electrodes are at the end of the extended tract-lines
-            elecRadius = 8;
+            elecRadius = 1;
             dist = (elecPositions(:, 1)' - extPoints(:, 1)) .^ 2 + ...
                    (elecPositions(:, 2)' - extPoints(:, 2)) .^ 2 + ...
                    (elecPositions(:, 3)' - extPoints(:, 3)) .^ 2;
@@ -193,7 +193,8 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
                 excludedTrkElecs(roisTrkElecs) = [];
                 b = (roisTrkLines - 1) * 2 + 1;
                 %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), 'WireSpheres3');
-                viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres3');
+                %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres3');
+                viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge');
                 hold on;
                 startV = 1;
                 for iLine = roisTrkLines
@@ -215,16 +216,15 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
                 end
                 delete(findall(gcf, 'Type', 'light'));
                 camlight(gca, 'headlight');
-
                 %
                 [~, trc] = fileparts(trkFile);
                 [~, sub] = fileparts(subjectFsFolder);
                 myDataPath = setLocalDataPath(1);
                 figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [sub, '_', upper(hemi), '_', trc, '_',  strrep(num2str(roi1), ' ', ''), '_', strrep(num2str(roi2), ' ', ''), '.png']);
-                set(gcf,'PaperPositionMode', 'auto')
-                print('-dpng', '-r300', figureName);
+                %set(gcf,'PaperPositionMode', 'auto')
+                %print('-dpng', '-r300', figureName);
 
-                close(gcf)
+                %close(gcf)
                 
             end
             %}
