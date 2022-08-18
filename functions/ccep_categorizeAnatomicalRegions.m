@@ -7,7 +7,8 @@
 %
 % Also see: Yeh, F. C., Panesar, S., Fernandes, D., Meola, A., Yoshino, M., Fernandez-Miranda, J. C., ... & Verstynen, T. (2018). Population-averaged atlas of the macroscale human structural connectome and its network topology. Neuroimage, 178, 57-68.
 %
-% DH, MvdB, DvB, 2022
+%
+% Dora Hermes, Max van den Boom, Dorien van Blooijs, 2022
 %
 function [rois] = ccep_categorizeAnatomicalRegions()
 
@@ -24,6 +25,13 @@ function [rois] = ccep_categorizeAnatomicalRegions()
     rois(1).sub_tract(2).roi2       = [3, 4, 29, 68, 69];     % Yeh: PreC, ParaC
     rois(1).sub_tract(2).interHemi  = 0;
     
+    % wang 2015
+    rois(1).sub_tract(3).name       = 'WFrontal-parietal';
+    rois(1).sub_tract(3).roi1       = [12, 13, 14, 15, 52, 53];
+    rois(1).sub_tract(3).roi2       = [25, 26];
+    rois(1).sub_tract(3).interHemi  = 0;
+    
+    
     %  Arcuate Fasciculus tract-segments
     
     rois(2).tract_name = 'AF';
@@ -33,11 +41,29 @@ function [rois] = ccep_categorizeAnatomicalRegions()
     rois(2).sub_tract(1).roi2       = [34, 36, 37, 38, 72, 73];    % Yeh: Tinf, TMd, TSp
     rois(2).sub_tract(1).interHemi  = 0;
 
+
+    rois(3).tract_name = 'U';
     
+    rois(3).sub_tract(1).name       = 'CentralPre-CentralPost';
+    rois(3).sub_tract(1).roi1       = [29];    % precentral
+    rois(3).sub_tract(1).roi2       = [28];    % postcentral
+    rois(3).sub_tract(1).interHemi  = 0;
+
+    rois(3).sub_tract(2).name       = 'Central-Central';
+    rois(3).sub_tract(2).roi1       = [28 ,29, 4, 45];
+    rois(3).sub_tract(2).roi2       = [28 ,29, 4, 45];
+    rois(3).sub_tract(2).interHemi  = 0;
 
 
+    rois(3).tract_name = 'VOF';
+    
+    rois(3).sub_tract(1).name       = 'Temporal-Parietal';
+    rois(3).sub_tract(1).roi1       = [2, 21, 22, 59];      % Yeh: Tinf, Fu, Oinf, Lin
+    rois(3).sub_tract(1).roi2       = [19, 20, 56];         % Yeh: Omd, Osp
+    rois(3).sub_tract(1).interHemi  = 0;
 
 
+    
     %{
 
     %%
