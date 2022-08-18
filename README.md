@@ -6,9 +6,10 @@ This repository contains the scripts and functions necessary to reproduce the an
 
 
 # Generating the figures
-Scripts to process the data and detect N1 responses:
+Scripts to process the data, detect N1 responses and add tract information:
 - scripts/ccep01_averageCCEPs.m
 - scripts/ccep02_loadN1.m
+- scripts/ccep03_addtracts.m
 
 Scripts to make the figure panels:
 - makeFig1A_plotMNI.m
