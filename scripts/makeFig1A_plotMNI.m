@@ -102,20 +102,10 @@ allmni305_coords_infl   = [];
 allmni305_labels        = [];
 allmni305_Destrlabels   = [];
 allmni305_hemi          = [];
-allmni305_lExtTract     = {};
-allmni305_rExtTract     = {};
-for iTr = 1:length(rois)
-    for iSubTr = 1:length(rois(iTr).sub_tract)
-        allmni305_lExtTract{iTr}{iSubTr}           = [];
-        allmni305_rExtTract{iTr}{iSubTr}           = [];
-    end
-end
 
 for iSubj = 1:length(ccepData)
 
     elecs = ccepData(iSubj).elecs;
-    lExtElec = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).extElecNames{1};
-    rExtElec = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).extElecNames{2};
     
     Destrieux_label = elecs.Destrieux_label;
     if iscell(Destrieux_label)                  % TODO: this is because bad BIDS store/loading (unnecessary)
@@ -138,12 +128,6 @@ for iSubj = 1:length(ccepData)
     allmni305_coords        = [allmni305_coords; mni305_coords];
     allmni305_Destrlabels   = [allmni305_Destrlabels; Destrieux_label];
     allmni305_hemi          = [allmni305_hemi; elecs.jsonHemi];
-    for iTr = 1:length(rois)
-        for iSubTr = 1:length(rois(iTr).sub_tract)
-            allmni305_lExtTract{iTr}{iSubTr}           = [allmni305_lExtTract{iTr}{iSubTr}; ismember(elecs.name, lExtElec)];
-            allmni305_rExtTract{iTr}{iSubTr}           = [allmni305_rExtTract{iTr}{iSubTr}; ismember(elecs.name, rExtElec)];
-        end
-    end
     
     % run through all coordinates and find the inflated points
     temp_inflated = NaN(size(mni305_coords));
@@ -163,7 +147,7 @@ for iSubj = 1:length(ccepData)
     allmni305_coords_infl = [allmni305_coords_infl; temp_inflated];
     
 end
-clear elecs lExtElec rExtElec temp_inflated;
+clear elecs temp_inflated;
 
 %%
 %  Label, for each (sub)tract, the ROIs for display (in color)
@@ -224,8 +208,6 @@ for iTr = 1:length(rois)
 
         roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1);
         roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2);
-        %roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1) & allmni305_lExtTract{iTr}{iSubTr};
-        %roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2) & allmni305_lExtTract{iTr}{iSubTr};
         
         % open the MNI pial
         figure
