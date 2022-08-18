@@ -16,11 +16,11 @@ clear
 myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
-% get a list of datasets
-subjects = ccep_getSubFilenameInfo(myDataPath);
+% Freesurfer subjects directory
+FSsubjectsdir = fullfile(myDataPath.input, 'derivatives', 'freesurfer');
 
-% load the data struct to retrieve the (sub-)tracts that run between different the end-point ROIs
-load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'n1Latencies_V2.mat'), 'n1Latencies');
+% load the data struct (for electrode information and (sub-)tracts that run between different the end-point ROIs)
+load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData');
 
 % load the tract/ROIs end-point structure to store the concatenated tract-lines and vertex colors in
 rois = ccep_categorizeAnatomicalRegions();
@@ -37,100 +37,19 @@ end
 
 
 
-%% 
-%  Get standardized electrodes through surface based registration or linear
-%  convert electrodes from patient's individual MRI to MNI305 space
-
-% Freesurfer subjects directory
-FSsubjectsdir = fullfile(myDataPath.input, 'derivatives', 'freesurfer');
-
-elec_coords = struct();
-
-for iSub = 1:length(subjects) 
-    disp(['subj ' int2str(iSub) ' of ' int2str(length(subjects))])
-    
-    % get electrodes info
-    elec_coords(iSub).elecs_tsv = readtable(fullfile(myDataPath.input, subjects(iSub).name, subjects(iSub).ses, 'ieeg', ...
-                                            [subjects(iSub).name, '_', subjects(iSub).ses, '_electrodes.tsv']), 'FileType', 'text', 'Delimiter', '\t');
-    if iscell(elec_coords(iSub).elecs_tsv.x)
-        elecmatrix = NaN(size(elec_coords(iSub).elecs_tsv, 1), 3);
-        for ll = 1:size(elec_coords(iSub).elecs_tsv, 1)
-            if ~isequal(elec_coords(iSub).elecs_tsv.x{ll}, 'n/a')
-                elecmatrix(ll, :) = [str2double(elec_coords(iSub).elecs_tsv.x{ll}) str2double(elec_coords(iSub).elecs_tsv.y{ll}) str2double(elec_coords(iSub).elecs_tsv.z{ll})];
-            end
-        end
-    else
-        elecmatrix = [elec_coords(iSub).elecs_tsv.x elec_coords(iSub).elecs_tsv.y elec_coords(iSub).elecs_tsv.z];
-    end
-    nElec = size(elecmatrix, 1);
-    
-    % get hemisphere for each electrode
-    these_json = dir(fullfile(myDataPath.input,subjects(iSub).name,subjects(iSub).ses, 'ieeg', [subjects(iSub).name, '_', subjects(iSub).ses, '_task-SPESclin*_ieeg.json']));
-    ieeg_json = jsonread(fullfile(these_json(1).folder, these_json(1).name));
-    if isequal(ieeg_json.iEEGPlacementScheme, 'left') || isequal(ieeg_json.iEEGPlacementScheme, 'left;')
-        hemi = num2cell(repmat('L', nElec,1));
-    elseif isequal(ieeg_json.iEEGPlacementScheme, 'right')|| isequal(ieeg_json.iEEGPlacementScheme, 'right;')
-        hemi = num2cell(repmat('R', nElec,1));
-    elseif contains(ieeg_json.iEEGPlacementScheme, {'left', 'right'}) % check with kk=17
-        hemi = cell(nElec, 1);
-        [hemi{:}] = deal('n/a');
-        
-        schemesplit = strsplit(ieeg_json.iEEGPlacementScheme, ';');
-        rightcell = find(contains(schemesplit, 'right'));
-        leftcell = find(contains(schemesplit, 'left'));
-        
-        if rightcell < leftcell
-            leftcells = extractAfter(ieeg_json.iEEGPlacementScheme, 'left');
-            rightcells = extractBetween(ieeg_json.iEEGPlacementScheme, 'right', 'left');
-            rightcells = rightcells{:};
-        else
-            rightcells = extractAfter(ieeg_json.iEEGPlacementScheme, 'right');
-            leftcells = extractBetween(ieeg_json.iEEGPlacementScheme, 'left', 'right');
-            leftcells = leftcells{:};
-        end
-        
-        leftelec = strsplit(leftcells, ';');
-        leftelec =  leftelec(~cellfun('isempty', leftelec));
-        rightelec = strsplit(rightcells, ';');
-        rightelec = rightelec(~cellfun('isempty', rightelec));
-        
-        for elec=1:size(leftelec,2)
-           C = strsplit(leftelec{elec}, {'[', ']'});
-           elecInd = find(contains(elec_coords(iSub).elecs_tsv.name, C{1}));
-           [hemi{elecInd}] = deal('L');
-        end
-        
-        for elec=1:size(rightelec,2)
-           C = strsplit(rightelec{elec}, {'[', ']'});
-           elecInd = find(contains(elec_coords(iSub).elecs_tsv.name, C{1}));
-           [hemi{elecInd}] = deal('R');
-        end
-    end
-    elec_coords(iSub).hemi = hemi;
-    
-    % conversion to MNI already done and stored in tsv, just use
-    elec_coords(iSub).mni_coords = [elec_coords(iSub).elecs_tsv.x, elec_coords(iSub).elecs_tsv.y, elec_coords(iSub).elecs_tsv.z];
-    
-end
-
-save(fullfile(myDataPath.output, 'derivatives', 'elec_coordinatesMNI305.mat'), 'elec_coords')
-% save(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305lin.mat'),'elec_coords')
-
-
-
 %%
-%  Retrieve the tracts from all subjects
+%  Retrieve the included line-tracts from all subjects
         
 % loop over the subjects
-for iSubj = 1:size(n1Latencies, 2)
+for iSubj = 1:size(ccepData, 2)
     
     % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
-    for iTr = 1:length(n1Latencies(iSubj).rois)
-        for iSubTr = 1:length(n1Latencies(iSubj).rois(iTr).sub_tract)
+    for iTr = 1:length(ccepData(iSubj).rois)
+        for iSubTr = 1:length(ccepData(iSubj).rois(iTr).sub_tract)
 
-            %nativeDistances = n1Latencies(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances;
-            %MNIfiles = n1Latencies(iSubj).rois(iTr).sub_tract(iSubTr).MNIfiles;
-            MNIlineIndices = n1Latencies(iSubj).rois(iTr).sub_tract(iSubTr).MNIlineIndices;
+            %nativeDistances = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances;
+            %MNIfiles = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).MNIfiles;
+            MNIlineIndices = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).MNIlineIndices;
             
             % concatenate the MNI line indices (for either the inter, or individual hemispheres)
             if ~isfield(rois(iTr).sub_tract(iSubTr), 'allMNIlineIndices') || isempty(rois(iTr).sub_tract(iSubTr).allMNIlineIndices)
@@ -147,17 +66,9 @@ for iSubj = 1:size(n1Latencies, 2)
 end
 
 
-%% 
-%  Start here to make figures
-%  load MNI electrode positions (saved in previous section), MNI sphere, pial, and surface labels
+%%
+%  load the MNI pial, inflated, and surface labels
 
-% linear is not so nice...
-% load(fullfile(myDataPath.output,'derivatives','elec_coordinatesMNI305lin.mat'),'elec_coords')
-% surface based is nice:
-load(fullfile(myDataPath.output, 'derivatives', 'elec_coordinatesMNI305.mat'), 'elec_coords')
-
-% Freesurfer subjects directory
-FSsubjectsdir = fullfile(myDataPath.input, 'derivatives', 'freesurfer');
 
 % load mni305 pial
 [Lmnipial_vert, Lmnipial_face] = read_surf(fullfile(FSsubjectsdir, 'fsaverage', 'surf', 'lh.pial'));
@@ -171,61 +82,88 @@ FSsubjectsdir = fullfile(myDataPath.input, 'derivatives', 'freesurfer');
 [Lvertices, Llabel, Lcolortable] = read_annotation(fullfile(FSsubjectsdir, 'fsaverage', 'label', 'lh.aparc.a2009s.annot'));
 Lvert_label = Llabel; % these labels are strange and do not go from 1:76, but need to be mapped to the colortable
 % mapping labels to colortable
-for iSub = 1:size(Lcolortable.table, 1) % 76 are labels
-    Lvert_label(Llabel == Lcolortable.table(iSub, 5)) = iSub;
+for iSubj = 1:size(Lcolortable.table, 1) % 76 are labels
+    Lvert_label(Llabel == Lcolortable.table(iSubj, 5)) = iSubj;
 end
 [Rvertices, Rlabel, Rcolortable] = read_annotation(fullfile(FSsubjectsdir, 'fsaverage', 'label', 'rh.aparc.a2009s.annot'));
 Rvert_label = Rlabel; % these labels are strange and do not go from 1:76, but need to be mapped to the colortable
 % mapping labels to colortable
-for iSub = 1:size(Rcolortable.table, 1) % 76 are labels
-    Rvert_label(Rlabel == Rcolortable.table(iSub, 5)) = iSub;
+for iSubj = 1:size(Rcolortable.table, 1) % 76 are labels
+    Rvert_label(Rlabel == Rcolortable.table(iSubj, 5)) = iSubj;
 end
 
 
 
 %% 
-%  Add all electrodes labels and left or right hemisphere into one  variable: allmni_coords and allmni_coords_infl
+%  Add all electrodes labels and left or right hemisphere into variables: allmni305_coords and allmni305_coords_infl
 
-allmni_coords = [];
-allmni_coords_infl = [];
+allmni305_coords        = [];
+allmni305_coords_infl   = [];
+allmni305_labels        = [];
+allmni305_Destrlabels   = [];
+allmni305_hemi          = [];
+allmni305_lExtTract     = {};
+allmni305_rExtTract     = {};
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        allmni305_lExtTract{iTr}{iSubTr}           = [];
+        allmni305_rExtTract{iTr}{iSubTr}           = [];
+    end
+end
 
-allmni_labels = [];
-all_hemi = [];
-for iSub = 1:length(elec_coords)
-    Destrieux_label = elec_coords(iSub).elecs_tsv.Destrieux_label;
-    if iscell(Destrieux_label)
-        for ll = 1:size(Destrieux_label,1)
-            if ischar(Destrieux_label{ll})
+for iSubj = 1:length(ccepData)
+
+    elecs = ccepData(iSubj).elecs;
+    lExtElec = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).extElecNames{1};
+    rExtElec = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).extElecNames{2};
+    
+    Destrieux_label = elecs.Destrieux_label;
+    if iscell(Destrieux_label)                  % TODO: this is because bad BIDS store/loading (unnecessary)
+        for iElec = 1:size(Destrieux_label,1)
+            if ischar(Destrieux_label{iElec})
                 if isequal(Destrieux_label, 'n/a') 
-                    Destrieux_label{ll} = NaN;
+                    Destrieux_label{iElec} = NaN;
                 else
-                    Destrieux_label{ll} = str2double(Destrieux_label{ll});
+                    Destrieux_label{iElec} = str2double(Destrieux_label{iElec});
                 end
             end
         end
         Destrieux_label = cell2mat(Destrieux_label);
     end
     
-    allmni_coords   = [allmni_coords; elec_coords(iSub).mni_coords];
-    allmni_labels   = [allmni_labels; Destrieux_label];
-    all_hemi        = [all_hemi; elec_coords(iSub).hemi];
+    mni305_coords           = [elecs.x, elecs.y, elecs.z];
     
-    % run through all coordinates and find the inflated points
-    temp_inflated = NaN(size(elec_coords(iSub).mni_coords));
-    for ll = 1:size(Destrieux_label, 1)
-        if isequal(elec_coords(iSub).hemi{ll}, 'L')
-            [~, min_ind] = min(sqrt(sum((Lmnipial_vert-elec_coords(iSub).mni_coords(ll, :)) .^ 2, 2)));
-            temp_inflated(ll, :) = Lmniinfl_vert(min_ind, :);
-        elseif isequal(elec_coords(iSub).hemi{ll}, 'R')
-            [~, min_ind] = min(sqrt(sum((Rmnipial_vert-elec_coords(iSub).mni_coords(ll, :)) .^ 2, 2)));
-            temp_inflated(ll, :) = Rmniinfl_vert(min_ind, :);
+    % 
+    allmni305_labels        = [allmni305_labels; strcat(['s', ccepData(iSubj).id(end - 1:end), '-'], elecs.name)];
+    allmni305_coords        = [allmni305_coords; mni305_coords];
+    allmni305_Destrlabels   = [allmni305_Destrlabels; Destrieux_label];
+    allmni305_hemi          = [allmni305_hemi; elecs.jsonHemi];
+    for iTr = 1:length(rois)
+        for iSubTr = 1:length(rois(iTr).sub_tract)
+            allmni305_lExtTract{iTr}{iSubTr}           = [allmni305_lExtTract{iTr}{iSubTr}; ismember(elecs.name, lExtElec)];
+            allmni305_rExtTract{iTr}{iSubTr}           = [allmni305_rExtTract{iTr}{iSubTr}; ismember(elecs.name, rExtElec)];
         end
     end
     
-    allmni_coords_infl = [allmni_coords_infl; temp_inflated];
+    % run through all coordinates and find the inflated points
+    temp_inflated = NaN(size(mni305_coords));
+    for iElec = 1:size(Destrieux_label, 1)
+        
+        if isequal(elecs.jsonHemi{iElec}, 'L')
+            [~, min_ind] = min(sqrt(sum((Lmnipial_vert - mni305_coords(iElec, :)) .^ 2, 2)));
+            temp_inflated(iElec, :) = Lmniinfl_vert(min_ind, :);
+            
+        elseif isequal(elecs.jsonHemi{iElec}, 'R')
+            [~, min_ind] = min(sqrt(sum((Rmnipial_vert - mni305_coords(iElec, :)) .^ 2, 2)));
+            temp_inflated(iElec, :) = Rmniinfl_vert(min_ind, :);
+            
+        end
+        
+    end
+    allmni305_coords_infl = [allmni305_coords_infl; temp_inflated];
+    
 end
-
-
+clear elecs lExtElec rExtElec temp_inflated;
 
 %%
 %  Label, for each (sub)tract, the ROIs for display (in color)
@@ -246,6 +184,9 @@ for iTr = 1:length(rois)
 end
 
 
+%% 
+%  Start here to make figures
+%
 
 
 %%
@@ -259,23 +200,54 @@ gl.vertices = Lmnipial_vert;
 gl = gifti(gl);
 
 % move the electrodes a bit away from the origin (0, 0, 0), to make sure electrodes pop out
-a_offset = .1 * max(abs(allmni_coords(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
-els = allmni_coords + repmat(a_offset, size(allmni_coords, 1), 1);
+a_offset = .1 * max(abs(allmni305_coords(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
+els = allmni305_coords + repmat(a_offset, size(allmni305_coords, 1), 1);
 
 % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
+%for iTr = 1:1
 for iTr = 1:length(rois)
+    %for iSubTr = 1:1
     for iSubTr = 1:length(rois(iTr).sub_tract)
         
-        % load the (sub)tract file
+        % load the (sub)tract file (is in MNI152 space)
         trkFile = fullfile(track_path, [rois(iTr).tract_name, '_L.trk.gz']);
         [fibers, idx] = ea_trk2ftr(trkFile, 1);
+        
+        % convert the tract point from MNI152 to MNI305 space
+        %trMNI152to305 =  [ 0.9975, -0.0073,  0.0176, -0.0429; ...
+        %                   0.0146,  1.0009, -0.0024, 1.5496; ...
+        %                  -0.0130, -0.0093,  0.9971, 1.1840];
+        trMNI152to305 =  [ 1.0022, 0.0071, -0.0177,  0.0528; ...
+                          -0.0146, 0.9990,  0.0027, -1.5519; ...
+                           0.0129, 0.0094,  1.0027, -1.2012];
+        %fibers = (trMNI152to305 * fibers')';
 
+        roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1);
+        roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2);
+        %roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1) & allmni305_lExtTract{iTr}{iSubTr};
+        %roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2) & allmni305_lExtTract{iTr}{iSubTr};
+        
         % open the MNI pial
         figure
-        tH = ieeg_RenderGifti(gl);
+        %tH = ieeg_RenderGifti(gl);
+        tH = ieeg_RenderGiftiLabels(gl, rois(iTr).sub_tract(iSubTr).vert_labels, 'jet');
         set(tH,'FaceAlpha', .2) % make transparent
-        %viewGii(gl, 'Trans.2')
-
+        %{
+        toolConfig = {};
+        toolConfig.hideToolWindow           = 1;
+        toolConfig.yokeCam                  = 1;
+        toolConfig.('overlay1')             = rois(iTr).sub_tract(iSubTr).vert_labels;
+        toolConfig.('overlay1PosEnabled')   = 1;
+        toolConfig.('overlay1PosColormap')  = 'green';
+        toolConfig.('overlay1PosMin')       = 1;
+        toolConfig.('overlay1PosMax')       = max(rois(iTr).sub_tract(iSubTr).vert_labels);
+        toolConfig.('overlay1NegEnabled')   = 0;
+        %toolConfig.pointSet1                = els(roi2elecs, :);
+        %toolConfig.pointSet1Text            = string(allmni305_Destrlabels(roi2elecs));
+        toolConfig.defaultBackgroundAlpha   = .8;
+        mx.three_dimensional.giftiTools(gl, toolConfig);
+        %}
+        
         % add the (sub)tracts
         roisTrkLines = rois(iTr).sub_tract(iSubTr).allMNIlineIndices{1, 1}; % cell 1 = left
         hold on;
@@ -288,11 +260,11 @@ for iTr = 1:length(rois)
         hold off;
         
         % plot electrodes not part of the end-point ROIs 
-        %ieeg_elAdd(els(ismember(all_hemi, 'L') & ~ismember(allmni_labels, [roi_temporal roi_frontal roi_central roi_parietal]), :), 'k', 10)
+        %ieeg_elAdd(els(ismember(allmni305_hemi, 'L') & ~ismember(allmni305_Destrlabels, [rois(iTr).sub_tract(iSubTr).roi1 rois(iTr).sub_tract(iSubTr).roi2]), :), 'k', 10)
         
         % plot the electrodes for the end-point ROIs
-        ieeg_elAdd(els(ismember(all_hemi, 'L') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15)
-        ieeg_elAdd(els(ismember(all_hemi, 'L') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi2), :), [.8 .3 0], 15)
+        ieeg_elAdd(els(roi1elecs, :), [0 0 .8], 15)
+        ieeg_elAdd(els(roi2elecs, :), [.8 .3 0], 15)
         ieeg_viewLight(v_d(1), v_d(2))
 
         % save the image
@@ -316,8 +288,8 @@ gr.vertices = Rmnipial_vert;
 gr = gifti(gr);
 
 % make sure electrodes pop out
-a_offset = .5 * max(abs(allmni_coords(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
-els = allmni_coords + repmat(a_offset, size(allmni_coords, 1), 1);      
+a_offset = .5 * max(abs(allmni305_coords(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
+els = allmni305_coords + repmat(a_offset, size(allmni305_coords, 1), 1);      
 
 % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
 for iTr = 1:length(rois)
@@ -349,11 +321,11 @@ for iTr = 1:length(rois)
         hold off;
         
         % plot electrodes not part of the end-point ROIs 
-        %ieeg_elAdd(els(ismember(all_hemi, 'R') & ~ismember(allmni_labels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
+        %ieeg_elAdd(els(ismember(allmni305_hemi, 'R') & ~ismember(allmni305_Destrlabels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
         
         % plot the electrodes for the end-point ROIs
-        ieeg_elAdd(els(ismember(all_hemi, 'R') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15);
-        ieeg_elAdd(els(ismember(all_hemi, 'R') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi2), :), [0 .5 0], 15);
+        ieeg_elAdd(els(ismember(allmni305_hemi, 'R') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15);
+        ieeg_elAdd(els(ismember(allmni305_hemi, 'R') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2), :), [0 .5 0], 15);
         ieeg_viewLight(v_d(1), v_d(2))
 
         % save the image
@@ -381,9 +353,9 @@ gl.vertices = Lmniinfl_vert;
 gl = gifti(gl);
 
 % make sure electrodes pop out
-a_offset = .1 * max(abs(allmni_coords_infl(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
-els = allmni_coords_infl+repmat(a_offset, size(allmni_coords_infl, 1), 1);      
-% els = allmni_coords_infl;
+a_offset = .1 * max(abs(allmni305_coords_infl(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
+els = allmni305_coords_infl+repmat(a_offset, size(allmni305_coords_infl, 1), 1);      
+% els = allmni305_coords_infl;
 
 % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
 for iTr = 1:length(rois)
@@ -402,11 +374,11 @@ for iTr = 1:length(rois)
         % tH = ieeg_RenderGiftiLabels(gl, sulci_rois, [.5 .5 .5; .8 .8 .8; 1 0 0; 0 1 0; 0 0 1]);
 
         % plot electrodes not part of the end-point ROIs
-        %ieeg_elAdd(els(ismember(all_hemi,'L') & ~ismember(allmni_labels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
+        %ieeg_elAdd(els(ismember(allmni305_hemi,'L') & ~ismember(allmni305_Destrlabels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
         
         % plot the electrodes for the end-point ROIs
-        ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15);
-        ieeg_elAdd(els(ismember(all_hemi,'L') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi2), :), [.8 .3 0], 15);
+        ieeg_elAdd(els(ismember(allmni305_hemi,'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15);
+        ieeg_elAdd(els(ismember(allmni305_hemi,'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2), :), [.8 .3 0], 15);
         ieeg_viewLight(v_d(1), v_d(2));
         
         %figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['leftMNIinflated_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
@@ -422,7 +394,7 @@ end
 %  Plot right inflated brain surface with electrodes in mni space
 
 v_d = [96 6];
-Rsulcal_labels = read_curv(fullfile(FSsubjectsdir,'fsaverage','surf','rh.sulc'));
+Rsulcal_labels = read_curv(fullfile(FSsubjectsdir,'fsaverage', 'surf', 'rh.sulc'));
 
 % make a colormap for the labels
 cmap = Rcolortable.table(:, 1:3) ./ 256;
@@ -433,9 +405,9 @@ gr.vertices = Rmniinfl_vert;
 gr = gifti(gr);
 
 % make sure electrodes pop out
-a_offset = .1 * max(abs(allmni_coords_infl(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
-els = allmni_coords_infl + repmat(a_offset,size(allmni_coords_infl, 1), 1);
-% els = allmni_coords_infl;
+a_offset = .1 * max(abs(allmni305_coords_infl(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
+els = allmni305_coords_infl + repmat(a_offset,size(allmni305_coords_infl, 1), 1);
+% els = allmni305_coords_infl;
 
 % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
 for iTr = 1:length(rois)
@@ -446,14 +418,14 @@ for iTr = 1:length(rois)
         % set(tH,'FaceAlpha',.5) % make transparent
         
         % with Destrieux labels:
-        tH = ieeg_RenderGiftiLabels(gr,Rsulcal_labels,[.5 .5 .5;.8 .8 .8]); %#ok<NASGU>
+        tH = ieeg_RenderGiftiLabels(gr,Rsulcal_labels,[.5 .5 .5;.8 .8 .8]);
 
         % plot electrodes not part of the end-point ROIs
-        %ieeg_elAdd(els(ismember(all_hemi,'R') & ~ismember(allmni_labels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
+        %ieeg_elAdd(els(ismember(allmni305_hemi,'R') & ~ismember(allmni305_Destrlabels,[roi_temporal roi_frontal roi_central roi_parietal]),:),'k',10)
         
         % plot the electrodes for the end-point ROIs
-        ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15);
-        ieeg_elAdd(els(ismember(all_hemi,'R') & ismember(allmni_labels, rois(iTr).sub_tract(iSubTr).roi2), :), [.8 .3 0], 15);
+        ieeg_elAdd(els(ismember(allmni305_hemi,'R') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1), :), [0 0 .8], 15);
+        ieeg_elAdd(els(ismember(allmni305_hemi,'R') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2), :), [.8 .3 0], 15);
         ieeg_viewLight(v_d(1), v_d(2));
 
         %figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['rightMNIinflated_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
@@ -476,9 +448,6 @@ end
 % TODO: perhaps rename rois here for this section to prevent conflict?
 rois = ccep_categorizeAnatomicalRegions();
 
-% Freesurfer subjects directory
-FSsubjectsdir = fullfile(myDataPath.input, 'derivatives', 'freesurfer');
-
 elec_coords = [];
 
 iSubj = 70; % in Fig1A of the article number 4 (4 years of age) and 70 (38 years of age) are used
@@ -495,9 +464,9 @@ elec_coords(iSubj).elecs_tsv = readtable(fullfile(myDataPath.input, 'derivatives
                                                 'FileType', 'text', 'Delimiter', '\t');
 if iscell(elec_coords(iSubj).elecs_tsv.x)
     elecmatrix = NaN(size(elec_coords(iSubj).elecs_tsv, 1), 3);
-    for ll = 1:size(elec_coords(iSubj).elecs_tsv, 1)
-        if ~isequal(elec_coords(iSubj).elecs_tsv.x{ll}, 'n/a')
-            elecmatrix(ll, :) = [str2double(elec_coords(iSubj).elecs_tsv.x{ll}) str2double(elec_coords(iSubj).elecs_tsv.y{ll}) str2double(elec_coords(iSubj).elecs_tsv.z{ll})];
+    for iElec = 1:size(elec_coords(iSubj).elecs_tsv, 1)
+        if ~isequal(elec_coords(iSubj).elecs_tsv.x{iElec}, 'n/a')
+            elecmatrix(iElec, :) = [str2double(elec_coords(iSubj).elecs_tsv.x{iElec}) str2double(elec_coords(iSubj).elecs_tsv.y{iElec}) str2double(elec_coords(iSubj).elecs_tsv.z{iElec})];
         end
     end
 else
@@ -506,53 +475,12 @@ end
 nElec = size(elecmatrix, 1);
 
 % get hemisphere for each electrode
-these_json = dir(fullfile(myDataPath.input,subjects(iSubj).name,subjects(iSubj).ses, 'ieeg', [subjects(iSubj).name, '_', subjects(iSubj).ses, '_task-SPESclin*_ieeg.json']));
-ieeg_json = jsonread(fullfile(these_json(1).folder, these_json(1).name));
-if isequal(ieeg_json.iEEGPlacementScheme, 'left') || isequal(ieeg_json.iEEGPlacementScheme, 'left;')
-    hemi = num2cell(repmat('L', nElec, 1));
-elseif isequal(ieeg_json.iEEGPlacementScheme, 'right') || isequal(ieeg_json.iEEGPlacementScheme, 'right;')
-    hemi = num2cell(repmat('R', nElec, 1));
-elseif contains(ieeg_json.iEEGPlacementScheme, {'left', 'right'}) % check with kk=17
-    hemi = cell(nElec, 1);
-    [hemi{:}] = deal('n/a');
-    
-    schemesplit = strsplit(ieeg_json.iEEGPlacementScheme,';'); 
-    rightcell = find(contains(schemesplit, 'right'));
-    leftcell = find(contains(schemesplit, 'left'));
-    
-    if rightcell < leftcell
-        leftcells = extractAfter(ieeg_json.iEEGPlacementScheme, 'left');
-        rightcells = extractBetween(ieeg_json.iEEGPlacementScheme, 'right', 'left');
-        rightcells = rightcells{:};
-    else
-        rightcells = extractAfter(ieeg_json.iEEGPlacementScheme, 'right');
-        leftcells = extractBetween(ieeg_json.iEEGPlacementScheme, 'left', 'right');
-        leftcells = leftcells{:};
-    end
-    
-    leftelec = strsplit(leftcells,';');
-    leftelec =  leftelec(~cellfun('isempty',leftelec));
-    rightelec = strsplit(rightcells,';');
-    rightelec = rightelec(~cellfun('isempty',rightelec));
-    
-    % set L in variable hemi for electrodes in the left hemisphere
-    for elec=1:size(leftelec,2)
-        C = strsplit(leftelec{elec},{'[',']'});
-        elecInd = find(contains(elec_coords(iSubj).elecs_tsv.name,C{1}));
-        [hemi{elecInd}] = deal('L');
-    end
-    
-    % set R in variable hemi for electrodes in the right hemisphere
-    for elec=1:size(rightelec,2)
-        C = strsplit(rightelec{elec},{'[',']'});
-        elecInd = find(contains(elec_coords(iSubj).elecs_tsv.name,C{1}));
-        [hemi{elecInd}] = deal('R');
-    end
-end
-
-% number of electrodes
-nElec = size(elecmatrix, 1);
-
+hemi = ccep_retrieveElecsHemisphere(fullfile(myDataPath.input, ccepData(iSubj).id, ccepData(iSubj).ses, 'ieeg', ...
+                                             [ccepData(iSubj).id, '_', ccepData(iSubj).ses, '_task-SPESclin*_ieeg.json']), ...
+                                    elecs_tsv);
+                                
+% TODO: check transformation steps below, from which to which
+                                
 % load mri orig header
 origName = fullfile(FSdir, 'mri', 'orig.mgz');
 orig = MRIread(origName, 'true');
@@ -581,12 +509,12 @@ end
 
 Destrieux_label = elec_coords(iSubj).elecs_tsv.Destrieux_label;
 if iscell(Destrieux_label)
-    for ll = 1:size(Destrieux_label, 1)
-        if ischar(Destrieux_label{ll})
+    for iElec = 1:size(Destrieux_label, 1)
+        if ischar(Destrieux_label{iElec})
             if isequal(Destrieux_label, 'n/a') 
-                Destrieux_label{ll} = NaN;
+                Destrieux_label{iElec} = NaN;
             else
-                Destrieux_label{ll} = str2double(Destrieux_label{ll});
+                Destrieux_label{iElec} = str2double(Destrieux_label{iElec});
             end
         end
     end
@@ -610,8 +538,8 @@ for iTr = 1:length(rois)
         [~, ~, trkLineIndices, trkNativeFibers] = ccep_retrieveInterROIDistance( ...
                                             rois(iTr).sub_tract(iSubTr).interHemi, ...
                                             trkFile, ...
-                                            fullfile(myDataPath.input, 'derivatives', 'coreg_ANTs', n1Latencies(iSubj).id), ...
-                                            fullfile(myDataPath.input, 'derivatives', 'freesurfer', n1Latencies(iSubj).id), ...
+                                            fullfile(myDataPath.input, 'derivatives', 'coreg_ANTs', ccepData(iSubj).id), ...
+                                            fullfile(myDataPath.input, 'derivatives', 'freesurfer', ccepData(iSubj).id), ...
                                             rois(iTr).sub_tract(iSubTr).roi1, ...
                                             rois(iTr).sub_tract(iSubTr).roi2);
 
