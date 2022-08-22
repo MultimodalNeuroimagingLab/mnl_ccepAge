@@ -12,56 +12,62 @@
 %
 function [rois] = ccep_categorizeAnatomicalRegions()
 
-    %  SLF tract-segments
-    rois(1).tract_name = 'SLF';
+    %  Superior Longitudinal Fasciculus tract-segments
+    rois(1).tract_name                  = 'SLF';
     
-    rois(1).sub_tract(1).name       = 'Frontal-Parietal';
-    rois(1).sub_tract(1).roi1       = [15, 53];               % Yeh: Fmid
-    rois(1).sub_tract(1).roi2       = [25, 26, 27];           % Yeh: Pinf, PSp, Ag
-    rois(1).sub_tract(1).interHemi  = 0;
+    rois(1).sub_tract(1).name           = 'Frontal-Parietal';
+    rois(1).sub_tract(1).roi1           = [15, 53];               % Yeh: Fmid
+    rois(1).sub_tract(1).roi2           = [25, 26, 27];           % Yeh: Pinf, PSp, Ag
+    rois(1).sub_tract(1).interHemi      = 0;
+    rois(1).sub_tract(1).allowIntraROI  = 0;
     
-    rois(1).sub_tract(2).name       = 'Frontal-Central';
-    rois(1).sub_tract(2).roi1       = [12, 13, 14, 15, 16, 52, 53, 54];     % Yeh: FSp, Finf, Fmid
-    rois(1).sub_tract(2).roi2       = [3, 4, 29, 68, 69];     % Yeh: PreC, ParaC
-    rois(1).sub_tract(2).interHemi  = 0;
+    rois(1).sub_tract(2).name           = 'Frontal-Central';
+    rois(1).sub_tract(2).roi1           = [12, 13, 14, 15, 16, 52, 53, 54];     % Yeh: FSp, Finf, Fmid
+    rois(1).sub_tract(2).roi2           = [3, 4, 29, 68, 69];     % Yeh: PreC, ParaC
+    rois(1).sub_tract(2).interHemi      = 0;
+    rois(1).sub_tract(2).allowIntraROI  = 0;
     
     % wang 2015
-    rois(1).sub_tract(3).name       = 'WFrontal-parietal';
-    rois(1).sub_tract(3).roi1       = [12, 13, 14, 15, 52, 53];
-    rois(1).sub_tract(3).roi2       = [25, 26];
-    rois(1).sub_tract(3).interHemi  = 0;
-    
+    rois(1).sub_tract(3).name           = 'WFrontal-Wparietal';
+    rois(1).sub_tract(3).roi1           = [12, 13, 14, 15, 52, 53];
+    rois(1).sub_tract(3).roi2           = [25, 26];
+    rois(1).sub_tract(3).interHemi      = 0;
+    rois(1).sub_tract(3).allowIntraROI  = 0;
     
     %  Arcuate Fasciculus tract-segments
+    rois(2).tract_name                  = 'AF';
     
-    rois(2).tract_name = 'AF';
+    rois(2).sub_tract(1).name           = 'Frontal-Temporal';
+    rois(2).sub_tract(1).roi1           = [12, 13, 14, 15, 52, 53];    % Yeh: Finf, Fmid
+    rois(2).sub_tract(1).roi2           = [34, 36, 37, 38, 72, 73];    % Yeh: Tinf, TMd, TSp
+    rois(2).sub_tract(1).interHemi      = 0;
+    rois(2).sub_tract(1).allowIntraROI  = 0;
+
     
-    rois(2).sub_tract(1).name       = 'Frontal-Temporal';
-    rois(2).sub_tract(1).roi1       = [12, 13, 14, 15, 52, 53];    % Yeh: Finf, Fmid
-    rois(2).sub_tract(1).roi2       = [34, 36, 37, 38, 72, 73];    % Yeh: Tinf, TMd, TSp
-    rois(2).sub_tract(1).interHemi  = 0;
-
-
-    rois(3).tract_name = 'U';
+    %  U tract-segments
+    rois(3).tract_name                  = 'U';
     
-    rois(3).sub_tract(1).name       = 'CentralPre-CentralPost';
-    rois(3).sub_tract(1).roi1       = [29];    % precentral
-    rois(3).sub_tract(1).roi2       = [28];    % postcentral
-    rois(3).sub_tract(1).interHemi  = 0;
-
-    rois(3).sub_tract(2).name       = 'Central-Central';
-    rois(3).sub_tract(2).roi1       = [28 ,29, 4, 45];
-    rois(3).sub_tract(2).roi2       = [28 ,29, 4, 45];
-    rois(3).sub_tract(2).interHemi  = 0;
-
-
-    rois(3).tract_name = 'VOF';
+    rois(3).sub_tract(1).name           = 'PreCentral-PostCentral';
+    rois(3).sub_tract(1).roi1           = [29];                 % Yeh: PreC
+    rois(3).sub_tract(1).roi2           = [28];                 % Yeh: PostC
+    rois(3).sub_tract(1).interHemi      = 0;
+    rois(3).sub_tract(1).allowIntraROI  = 0;
     
-    rois(3).sub_tract(1).name       = 'Temporal-Parietal';
-    rois(3).sub_tract(1).roi1       = [2, 21, 22, 59];      % Yeh: Tinf, Fu, Oinf, Lin
-    rois(3).sub_tract(1).roi2       = [19, 20, 56];         % Yeh: Omd, Osp
-    rois(3).sub_tract(1).interHemi  = 0;
-
+    rois(3).sub_tract(2).name           = 'Central-Central';
+    rois(3).sub_tract(2).roi1           = [28, 29, 4, 45];
+    rois(3).sub_tract(2).roi2           = [28, 29, 4, 45];
+    rois(3).sub_tract(2).interHemi      = 0;
+    rois(3).sub_tract(2).allowIntraROI  = 1;
+    
+    
+    %  Vertical Occipital Fasciculus tract-segments
+    rois(4).tract_name                  = 'VOF';
+    
+    rois(4).sub_tract(1).name           = 'Temporal-Parietal';
+    rois(4).sub_tract(1).roi1           = [2, 21, 22, 59];      % Yeh: Tinf, Fu, Oinf, Lin
+    rois(4).sub_tract(1).roi2           = [19, 20, 56];         % Yeh: Omd, Osp
+    rois(4).sub_tract(1).interHemi      = 0;
+    rois(4).sub_tract(1).allowIntraROI  = 0;
 
     
     %{
