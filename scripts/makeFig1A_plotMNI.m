@@ -105,7 +105,7 @@ allmni305_hemi          = [];
 
 for iSubj = 1:length(ccepData)
 
-    elecs = ccepData(iSubj).elecs;
+    elecs = ccepData(iSubj).electrodes;
     
     Destrieux_label = elecs.Destrieux_label;
     if iscell(Destrieux_label)                  % TODO: this is because bad BIDS store/loading (unnecessary)
