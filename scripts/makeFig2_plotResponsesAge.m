@@ -50,7 +50,6 @@ end
 
 %% 
 %  2. Load ccep responses and categorize into connections from stimulated region to responding regions
-%  skips automatically to 3. if you ran and saved output before (takes ~5 mins to run)
 %
 %  the CCEPs are averaged for each run, and then averaged CCEPs per patient
 %  are collected for all subjects. Multiple subjects with the same age are
@@ -62,8 +61,7 @@ if exist(filename_averageCCEP, 'file')
     
 else
     
-    % categorize anatomical regions 
-    %[roi_track,roi_name,roi] = ccep_categorizeAnatomicalRegions();
+    % load tracts and their corresponding end-point ROIs
     rois = ccep_categorizeAnatomicalRegions();
 
     % retrieve a time vector in ms (this patient has fs-2048)
@@ -118,7 +116,7 @@ else
                         
                         % find stimulation pairs within specific region
                         % Note: will include a stimulated electrodes also if only one of the pair is inside of the ROI. TODO: discuss with Dora
-                        stimPairs = find(sum(ismember(str2double(ccepData(iSubj).run(iRun).average_ccep_DestrieuxNr), stimRoi), 2) > 0);
+                        stimPairs = find(sum(ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr), stimRoi), 2) > 0);
                         
                         % find response electrodes within specific region
                         respChan = find(ismember(str2double(ccepData(iSubj).run(iRun).channel_DestrieuxNr), respRoi) > 0);
@@ -355,7 +353,6 @@ for iTr = 1:length(rois)
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            strSubTitle = rois(iTr).sub_tract(iSubTr).name;
             if iDir == false
                 strSubTitle = [subDir{1}, ' -> ', subDir{2}];
             else
@@ -404,7 +401,6 @@ for iTr = 1:length(rois)
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            strSubTitle = rois(iTr).sub_tract(iSubTr).name;
             if iDir == false
                 strSubTitle = [subDir{1}, ' -> ', subDir{2}];
             else
@@ -441,7 +437,7 @@ for iTr = 1:length(rois)
             subplot(3, length(rois(iTr).sub_tract) * 2, length(rois(iTr).sub_tract) * 2 + plotIndex);
             
             x = sortAge{iTr}{iSubTr}{iDir + 1}.age;
-            y = sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength;
+            y = mean([sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan');
             x(isnan(y)) = [];
             y(isnan(y)) = [];
             
@@ -463,7 +459,8 @@ for iTr = 1:length(rois)
             subplot(3, length(rois(iTr).sub_tract) * 2, 2 * length(rois(iTr).sub_tract) * 2 + plotIndex);
             
             x = sortAge{iTr}{iSubTr}{iDir + 1}.age;
-            y = sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength ./ (1000 * sortAge{iTr}{iSubTr}{iDir + 1}.averageN1);
+            y = mean([sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan') ./ ...
+                (1000 * sortAge{iTr}{iSubTr}{iDir + 1}.averageN1);
             x(isnan(y)) = [];
             y(isnan(y)) = [];
             
@@ -522,7 +519,6 @@ for iTr = 1:length(rois)
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            strSubTitle = rois(iTr).sub_tract(iSubTr).name;
             if iDir == false
                 strSubTitle = [subDir{1}, ' -> ', subDir{2}];
             else

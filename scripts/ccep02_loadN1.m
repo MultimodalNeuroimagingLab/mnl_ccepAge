@@ -116,8 +116,8 @@ for iSubj = 1:length(ccepData)
     for iRun = 1:length(ccepData(iSubj).run)
         
         % pre-allocation: Destrieux labels and numbers for average CCEP stimulated pairs
-        ccepData(iSubj).run(iRun).average_ccep_DestrieuxLabel    = cell(size(ccepData(iSubj).run(iRun).stimpair_names, 1), 2);
-        ccepData(iSubj).run(iRun).average_ccep_DestrieuxNr       = cell(size(ccepData(iSubj).run(iRun).stimpair_names, 1), 2);
+        ccepData(iSubj).run(iRun).stimpair_DestrieuxLabel       = cell(size(ccepData(iSubj).run(iRun).stimpair_names, 1), 2);
+        ccepData(iSubj).run(iRun).stimpair_DestrieuxNr          = cell(size(ccepData(iSubj).run(iRun).stimpair_names, 1), 2);
         
         % pre-allocation: Destrieux labels and numbers for measured channels
         ccepData(iSubj).run(iRun).channel_DestrieuxLabel         = cell(size(ccepData(iSubj).run(iRun).channel_names));
@@ -147,11 +147,11 @@ for iSubj = 1:length(ccepData)
                     
                 end
                 
-                ccepData(iSubj).run(iRun).average_ccep_DestrieuxLabel{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label_text{stim_el_nr};
+                ccepData(iSubj).run(iRun).stimpair_DestrieuxLabel{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label_text{stim_el_nr};
                 if isnumeric(ccepData(iSubj).electrodes.Destrieux_label)
-                    ccepData(iSubj).run(iRun).average_ccep_DestrieuxNr{chPair,ch} = int2str(ccepData(iSubj).electrodes.Destrieux_label(stim_el_nr));
+                    ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{chPair,ch} = int2str(ccepData(iSubj).electrodes.Destrieux_label(stim_el_nr));
                 else
-                    ccepData(iSubj).run(iRun).average_ccep_DestrieuxNr{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label{stim_el_nr};
+                    ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label{stim_el_nr};
                     
                 end
             end

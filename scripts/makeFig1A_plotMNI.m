@@ -426,8 +426,8 @@ end
 %        coordinates in native space cannot be made public due to privacy
 %        regulations
 
-% categorize anatomical regions
 % TODO: perhaps rename rois here for this section to prevent conflict?
+% load tracts and their corresponding end-point ROIs
 rois = ccep_categorizeAnatomicalRegions();
 
 elec_coords = [];
