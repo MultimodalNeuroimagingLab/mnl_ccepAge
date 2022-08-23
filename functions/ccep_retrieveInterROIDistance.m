@@ -16,6 +16,7 @@
 %       subjectFsFolder   = the subject-specific freesurfer folder, ...
 %       roi1              = ...
 %       roi2              = ...
+%       allowIntraROI     = Allow tracts to begin and end in the same ROI
 %       elecPositions     = ...
 %       elecHemi          = Indicates for the electrodes on which hemisphere they are
 %
@@ -34,7 +35,7 @@
 %
 %   Max van den Boom, Multimodal Neuroimaging Lab (MNL), Mayo Clinic, 2022
 %
-function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2, elecPositions, elecHemi)
+function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = ccep_retrieveInterROIDistance(interHemi, trkFile, subjectANTsFolder, subjectFsFolder, roi1, roi2, allowIntraROI, elecPositions, elecHemi)
     
     % check leadDBS availability and setup
     if exist('ea_getearoot') ~= 2 || exist('ea_prefs') ~= 2
@@ -59,6 +60,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             hemi = 'l';
             if iHemi == 2, hemi = 'r';  end
 
+            
             %%
             %  Load the tract file and transform the line vertices from MNI-152 space to native space
 
@@ -119,8 +121,21 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             [proxTrkLines1, gROIPial1] = retrieveROILines(roi1, annotColortable, annotVertexLabels, trcLineEnds, extLines, gPial);
             [proxTrkLines2, gROIPial2] = retrieveROILines(roi2, annotColortable, annotVertexLabels, trcLineEnds, extLines, gPial);
             
-            % determine which tract-lines that touch upon both ROIs 
-            roisTrkLines = find((proxTrkLines1(:, 1) & proxTrkLines2(:, 2)) | (proxTrkLines1(:, 2) & proxTrkLines2(:, 1)))';
+            
+            if allowIntraROI == 1
+
+                % determine which tract-lines that touch upon both ROIs (with each end in one ROI) or that touch upon the same ROI (with both ends)
+                roisTrkLines = find((proxTrkLines1(:, 1) & proxTrkLines2(:, 2)) | (proxTrkLines1(:, 2) & proxTrkLines2(:, 1)) | ...
+                                     all(proxTrkLines1, 2) | all(proxTrkLines2, 2))';
+                
+            else
+                
+                % determine which tract-lines that touch upon both ROIs (with each end in one ROI)
+                roisTrkLines = find((proxTrkLines1(:, 1) & proxTrkLines2(:, 2)) | (proxTrkLines1(:, 2) & proxTrkLines2(:, 1)))';
+            
+            end
+            
+            
             
             % calculate the length of each tract-line
             for iTrk = 1:length(roisTrkLines)
@@ -139,7 +154,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             trkIndices{iHemi} = roisTrkLines;
             
             
-
+            
             %%
             %  Determine which electrodes are at the end of the tract-lines
 
@@ -193,8 +208,8 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
                 excludedTrkElecs(roisTrkElecs) = [];
                 b = (roisTrkLines - 1) * 2 + 1;
                 %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), 'WireSpheres3');
-                %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres3');
-                viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge');
+                viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(roisTrkElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres3');
+                %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge');
                 hold on;
                 startV = 1;
                 for iLine = roisTrkLines
@@ -209,22 +224,25 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
                     camup([0.092386, 0.019813, 0.99553]);
                     camva(7.4861);
                 else
-                    campos([1291.6518, -5.5822, 365.3929]);
-                    camtarget([63.1831, -23.0754, 6.116]);
+                    campos([1284.2761, 19.1907, 389.4063]);
+                    camtarget([55.8074, 1.6975, 30.1294]);
                     camup([-0.28023, -0.027494, 0.95954]);
-                    camva(5.6837);
+                    camva(6.9761);
                 end
                 delete(findall(gcf, 'Type', 'light'));
                 camlight(gca, 'headlight');
+                
                 %
                 [~, trc] = fileparts(trkFile);
                 [~, sub] = fileparts(subjectFsFolder);
                 myDataPath = setLocalDataPath(1);
+                if ~exist(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'), 'dir')
+                    mkdir(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'));
+                end
                 figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [sub, '_', upper(hemi), '_', trc, '_',  strrep(num2str(roi1), ' ', ''), '_', strrep(num2str(roi2), ' ', ''), '.png']);
-                %set(gcf,'PaperPositionMode', 'auto')
-                %print('-dpng', '-r300', figureName);
-
-                %close(gcf)
+                set(gcf,'PaperPositionMode', 'auto')
+                print('-dpng', '-r300', figureName);
+                close(gcf)
                 
             end
             %}
