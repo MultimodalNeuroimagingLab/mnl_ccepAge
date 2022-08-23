@@ -1,14 +1,17 @@
 %
-% [roi_track, roi_name, roi] = ccep_categorizeAnatomicalRegions()
-% 
-% Here we define the areas (using one or more Destrieux labels from the _electrodes.tsv) that will be used as 
-% "end-point" areas given specific tract(-segments) and areas from the Yeh HCP YA842 tractography atlas.
-% Note: The areas defined here will - in some scripts - be compared all-to-all. Which does not always makes sense (inter-tract), but we will be selecting the required tract connections after
+%   Define the tracts, sub-tracts their end-point ROIs using (one or more Destrieux labels)
+%   [roi_track, roi_name, roi] = ccep_categorizeAnatomicalRegions()
 %
-% Also see: Yeh, F. C., Panesar, S., Fernandes, D., Meola, A., Yoshino, M., Fernandez-Miranda, J. C., ... & Verstynen, T. (2018). Population-averaged atlas of the macroscale human structural connectome and its network topology. Neuroimage, 178, 57-68.
+%   Returns: 
+%       roi_track    = 
+%       roi_name     = 
+%       roi          = 
 %
 %
-% Dora Hermes, Max van den Boom, Dorien van Blooijs, 2022
+%   Note:     Tracts are based on the Yeh HCP YA842 tractography atlas, while their end-point areas were matched based on the Destrieux atlas
+%   Also see: Yeh, F. C., Panesar, S., Fernandes, D., Meola, A., Yoshino, M., Fernandez-Miranda, J. C., ... & Verstynen, T. (2018). Population-averaged atlas of the macroscale human structural connectome and its network topology. Neuroimage, 178, 57-68.
+%
+%   Dora Hermes, Max van den Boom, Dorien van Blooijs, 2022
 %
 function [rois] = ccep_categorizeAnatomicalRegions()
 
