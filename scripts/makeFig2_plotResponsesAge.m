@@ -396,7 +396,7 @@ for iTr = 1:length(rois)
     %
     % each tract is one figure
     %
-    figure('Position',[0 0 1600 800])
+    figure('Position',[0 0 length(rois(iTr).sub_tract) * 600 800])
 
     % loop over the subtracts and direction
     for iSubTr = 1:length(rois(iTr).sub_tract)
