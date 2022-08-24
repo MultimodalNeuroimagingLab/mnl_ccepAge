@@ -1,4 +1,4 @@
-# mnl_ccepBids
+# mnl_ccepAge
 
 This repository contains the scripts and functions necessary to reproduce the analyses and figures in this manuscript:
 
