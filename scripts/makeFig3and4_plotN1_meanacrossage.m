@@ -50,12 +50,14 @@ clc
 % load tracts and their corresponding end-point ROIs
 rois = ccep_categorizeAnatomicalRegions();
 
-out = {};
+% out will get a cell array in tracts X subtracts X directions
+out = {}; 
 
 % loop over the (sub-)tracts and directions
 for iTr = 1:length(rois)
-    for iSubTr = 1:length(rois(iTr).sub_tract)
-        for iDir = [false true]
+    for iSubTr = 1:length(rois(iTr).sub_tract) 
+        % direction along tract
+        for iDir = [false true] 
             
             % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
             temp = ccep_connectRegions( ccepData, ...
@@ -89,7 +91,7 @@ end
 %  ...
 
 n1Type = 'Latency';
-%n1Type = 'Speed';
+n1Type = 'Speed';
 
 
 % loop over the (sub-)tracts and directions
@@ -123,15 +125,17 @@ for iTr = 1:length(rois)
                 clear numLatencies lrNativeDist
             end
 
-            % retrieve the unique ages and (mean) latencies
+            % retrieve the unique ages and calculate mean across same age latencies
             ages = unique(sort(subsValues(~isnan(subsValues(:, 2)), 1)));
             n1Means = zeros(size(ages));
-            for iSubj = 1:length(ages)
-                subjInclIndices = ismember(subsValues(:, 1), ages(iSubj));
+            for iAge = 1:length(ages)
+                subjInclIndices = ismember(subsValues(:, 1), ages(iAge));
                 if strcmpi(n1Type, 'speed')
-                    n1Means(iSubj) = mean(subsValues(subjInclIndices, 5) ./ (1000 * subsValues(subjInclIndices, 2)), 'omitnan');
+                    % divide each subject by it's own length, then average
+                    % across subjects of the same age in m/s
+                    n1Means(iAge) = mean(0.01*subsValues(subjInclIndices, 5) ./ subsValues(subjInclIndices, 2), 'omitnan');
                 elseif strcmpi(n1Type, 'latency')
-                    n1Means(iSubj) = 1000 * mean(subsValues(subjInclIndices, 2), 'omitnan');
+                    n1Means(iAge) = 1000 * mean(subsValues(subjInclIndices, 2), 'omitnan');
                 else
                     error('n1 type should either be set to ''latency'' or ''speed''');
                 end
@@ -147,18 +151,22 @@ for iTr = 1:length(rois)
             % y  =  w1*age + w2
             cross_val_linear = NaN(length(n1Means),4);
             % size latency (ms) X prediction (ms) X p1 (slope) X p2 (intercept) of left out
-            sub_counter = 0;
-            for iSubj = 1:length(n1Means)
-                sub_counter = sub_counter + 1;
-                % leave out iSubj
-                subsTrain = ~ismember(1:length(n1Means), iSubj)'; % leave out one age
+            age_counter = 0;
+            for iAge = 1:length(n1Means)
+                age_counter = age_counter + 1;
+                % leave out iAge
+                subsTrain = ~ismember(1:length(n1Means), iAge)'; % leave out one age
                 P = polyfit(ages(subsTrain), n1Means(subsTrain), 1);
-                cross_val_linear(sub_counter, 3:4) = P;
-                cross_val_linear(sub_counter, 1) = n1Means(iSubj);               % latency (left out) actual
-                cross_val_linear(sub_counter, 2) = P(1) * ages(iSubj) + P(2); % kk (left out) prediction
+                cross_val_linear(age_counter, 3:4) = P;                        % linear parameters
+                cross_val_linear(age_counter, 1) = n1Means(iAge);              % measured N1 for iAge
+                cross_val_linear(age_counter, 2) = P(1) * ages(iAge) + P(2);   % left out prediction for iAge
             end
+            % coefficient of determination between prediction and left out
+            % measurement
             out{iTr}{iSubTr}{iDir + 1}.cod_out(1) = calccod(cross_val_linear(:, 2), cross_val_linear(:, 1), 1);
+            % correlation just for fun
             out{iTr}{iSubTr}{iDir + 1}.sp_out(1) = corr(cross_val_linear(:, 2), cross_val_linear(:, 1), 'type', 'Spearman');
+            % average parameters for linear fit across ages
             out{iTr}{iSubTr}{iDir + 1}.linear_avparams = mean(cross_val_linear(:, 3:4));
             
             
@@ -169,69 +177,21 @@ for iTr = 1:length(rois)
             % Like Yeatman et al., for DTI fit a second order polynomial:
             cross_val_second = NaN(length(n1Means), 5);
             % size latency (ms) X prediction (ms) X p1 (age^2) X p2 (age) X p3 (intercept) of left out
-            sub_counter = 0;
-            for iSubj = 1:length(n1Means)
-                sub_counter = sub_counter + 1;
-                % leave out iSubj
-                subsTrain = ~ismember(1:length(n1Means), iSubj)';
+            age_counter = 0;
+            for iAge = 1:length(n1Means)
+                age_counter = age_counter + 1;
+                % leave out iAge
+                subsTrain = ~ismember(1:length(n1Means), iAge)';
                 P = polyfit(ages(subsTrain), n1Means(subsTrain), 2);
-                cross_val_second(sub_counter, 3:5) = P;
-                cross_val_second(sub_counter, 1) = n1Means(iSubj);
-                cross_val_second(sub_counter, 2) = P(1) * ages(iSubj) .^2 + P(2) * ages(iSubj) + P(3);
+                cross_val_second(age_counter, 3:5) = P;
+                cross_val_second(age_counter, 1) = n1Means(iAge);
+                cross_val_second(age_counter, 2) = P(1) * ages(iAge) .^2 + P(2) * ages(iAge) + P(3);
             end
             out{iTr}{iSubTr}{iDir + 1}.cod_out(2) = calccod(cross_val_second(:, 2), cross_val_second(:, 1), 1);
             out{iTr}{iSubTr}{iDir + 1}.sp_out(2) = corr(cross_val_second(:, 2),cross_val_second(:, 1), 'type', 'Spearman');
             out{iTr}{iSubTr}{iDir + 1}.second_avparams = mean(cross_val_second(:, 3:5));
 
-            
-            % 
-            % piecewise linear
-            %
-            
-            % Fit with a piecewise linear model:
-            cross_val_piecewiselin = NaN(length(n1Means), 6);
-            % size latency (ms) X prediction (ms) X p1 (age^2) X p2 (age) X p3 (intercept) of left out
-            sub_counter = 0;
-            my_options = optimoptions(@lsqnonlin, 'Display', 'off', 'Algorithm', 'trust-region-reflective');
-            for iSubj = 1:length(n1Means)
-                sub_counter = sub_counter + 1;
-                
-                % leave out iSubj
-                subsTrain = ~ismember(1:length(n1Means), iSubj)';
-                
-                % use our own function:
-                x = ages(subsTrain);
-                y = n1Means(subsTrain);
-                [pp] = lsqnonlin(@(pp) ccep_fitpiecewiselinear(pp, y, x), [60 -1 1 20], [20 -Inf -Inf 10], [40 0 Inf 30], my_options);
-
-                x_fit = ages(iSubj);
-                y_fit = (pp(1) + pp(2) * min(pp(4), x_fit) + pp(3) * max(x_fit - pp(4),0));
-                % --> intercept = pp(1)
-                % --> tipping point = pp(4)
-                % --> slope before tipping point = pp(2)
-                % --> slope after tipping point = pp(3)
-
-                cross_val_piecewiselin(sub_counter, 1) = n1Means(iSubj);
-                cross_val_piecewiselin(sub_counter, 2) = y_fit;
-                cross_val_piecewiselin(sub_counter, 3:6) = pp;
-            end
-
-            out{iTr}{iSubTr}{iDir + 1}.cod_out(3) = calccod(cross_val_piecewiselin(:, 2), cross_val_piecewiselin(:, 1), 1);
-            out{iTr}{iSubTr}{iDir + 1}.sp_out(3) = corr(cross_val_piecewiselin(:, 2), cross_val_piecewiselin(:, 1), 'type', 'Spearman');
-
-            out{iTr}{iSubTr}{iDir + 1}.cod_out(4) = length(n1Means); % number of subjects
-            out{iTr}{iSubTr}{iDir + 1}.piecewise_avparams(1:4) = mean(cross_val_piecewiselin(:,3:6));
-
-            if quantile(cross_val_piecewiselin(:, 4), .925) < 0 % 85% confidence interval entirely <0
-                out{iTr}{iSubTr}{iDir + 1}.piecewise_avparams(5) = 1;
-            else
-                out{iTr}{iSubTr}{iDir + 1}.piecewise_avparams(5) = 0;
-            end
-            if quantile(cross_val_piecewiselin(:, 5), .925) < 0 % 85% confidence interval entirely <0
-                out{iTr}{iSubTr}{iDir + 1}.piecewise_avparams(6) = 1;
-            else
-                out{iTr}{iSubTr}{iDir + 1}.piecewise_avparams(6) = 0;
-            end
+            out{iTr}{iSubTr}{iDir + 1}.cod_out(3) = length(n1Means); % number of ages
             
             
             %
@@ -247,7 +207,7 @@ for iTr = 1:length(rois)
                 
                 if ~isnan(subsValues(iSubj, 2))
                     if strcmpi(n1Type, 'speed')
-                        distributionPlot(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist ./ (1000 * out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies'), ...
+                        distributionPlot(.01*out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist ./ out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
                                         'xValues', out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age, ...
                                         'color', [.8 .8 .8], 'showMM', 0, 'histOpt', 2)
                     else
@@ -265,12 +225,6 @@ for iTr = 1:length(rois)
             
             % plot mean per subject in a dot
             %plot(my_output(:, 1), 1000 * my_output(:, 2), 'ko', 'MarkerSize', 6)
-
-            %
-            [r, p] = corr(subsValues(~isnan(subsValues(:, 2)), 1),subsValues(~isnan(subsValues(:, 2)), 2), 'Type', 'Pearson');
-            %title([out{iTr}{iSubTr}{iDir + 1}.name   ', r=' num2str(r, 3) ' p=' num2str(p, 3)])
-            
-            
             
             %
             % plot 1st or 2nd order polynomial
@@ -283,6 +237,7 @@ for iTr = 1:length(rois)
             if out{iTr}{iSubTr}{iDir + 1}.cod_out(1) > out{iTr}{iSubTr}{iDir + 1}.cod_out(2)
                 % better fit with linear polynomial
                 
+                % prediction for every left out fit
                 y_n1LatCross = cross_val_linear(:, 3) * x_age + cross_val_linear(:, 4);
                 cmap = [0.6 0.2 1];
 
@@ -293,6 +248,7 @@ for iTr = 1:length(rois)
             elseif out{iTr}{iSubTr}{iDir + 1}.cod_out(1) < out{iTr}{iSubTr}{iDir + 1}.cod_out(2) 
                 % better fit with second polynomial
                 
+                % prediction for every left out fit
                 y_n1LatCross = cross_val_second(:, 3) * x_age .^ 2 + cross_val_second(:, 4) * x_age + cross_val_second(:, 5);
                 cmap = [.2 0 1];
                 delta_ages = 0:10:50;
@@ -304,20 +260,20 @@ for iTr = 1:length(rois)
 
             
             %
-            % plot confidence intervals and subject
+            % plot confidence intervals and age
             %
             
             % get 95% confidence intervals
             low_ci = quantile(y_n1LatCross, .025, 1);
             up_ci = quantile(y_n1LatCross, .975, 1);
-            if out{iTr}{iSubTr}{iDir + 1}.cod_out(4) < 20 % less than 20 subjects
+            if out{iTr}{iSubTr}{iDir + 1}.cod_out(3) < 20 % if less than 20 ages, plot light blue
                 fill([x_age x_age(end:-1:1)], [low_ci up_ci(end:-1:1)], [.5 .7 1], 'EdgeColor', [.5 .7 1])
             else
                 fill([x_age x_age(end:-1:1)], [low_ci up_ci(end:-1:1)], cmap, 'EdgeColor', cmap)
             end
             
-            % check if more than 20 subject and 2nd order
-            if out{iTr}{iSubTr}{iDir + 1}.cod_out(4) >= 20 && out{iTr}{iSubTr}{iDir + 1}.cod_out(2) > out{iTr}{iSubTr}{iDir + 1}.cod_out(1)
+            % if more than 20 subject and 2nd order, plot minimum 
+            if out{iTr}{iSubTr}{iDir + 1}.cod_out(3) >= 20 && out{iTr}{iSubTr}{iDir + 1}.cod_out(2) > out{iTr}{iSubTr}{iDir + 1}.cod_out(1)
                 
                 % calculate minimum x
                 min_age = -cross_val_second(:, 4) ./ (2 * cross_val_second(:, 3));
@@ -339,8 +295,8 @@ for iTr = 1:length(rois)
             if strcmpi(n1Type, 'speed')
                 
             else
-                %xlim([0 60]), ylim([0 80]);
-                %set(gca, 'XTick', 10:10:50, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
+                xlim([0 60]), ylim([0 80]);
+                set(gca, 'XTick', 10:10:50, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
             end
             
             %
@@ -357,7 +313,7 @@ for iTr = 1:length(rois)
                 figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVs', n1Type, '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_'), '_8mA']);
             end
             set(gcf,'PaperPositionMode', 'auto');
-            print('-dpng', '-r300', figureName);
+%             print('-dpng', '-r300', figureName);
             %print('-depsc', '-r300', figureName);
             
 
