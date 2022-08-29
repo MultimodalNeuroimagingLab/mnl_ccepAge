@@ -289,7 +289,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
                 endV = startV + idx(trkIndices{iHemi}(iTrk)) - 1;
 
                 % calculate and store the length of the current tract line
-                trkLengths(iTrk) = sqrt(sum(sum(diff(fibers(startV:endV, 1:3), 1, 1) .^ 2, 2)));
+                trkLengths(iTrk) = sum(sqrt(sum(diff(fibers(startV:endV, 1:3), 1, 1) .^ 2, 2)));
 
             end
             
@@ -346,7 +346,7 @@ function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, 
     %viewGii(gROIPial, trcExtLines, reshape(extPoints, [], 3));
 
     % Check extPoints to roiVertices, this will allow for a "dilated" line piercing
-    % Note: because for some ROIs the sulci might not be included so an extended tract-line can pierce just between the gyri
+    % Note: some ROIs the sulci might not be included so an extended tract-line can pierce just between the gyri
     radius = 2;
     dist = (extPoints(:, 1)' - roiVertices(:, 1)) .^ 2 + ...
            (extPoints(:, 2)' - roiVertices(:, 2)) .^ 2 + ...
