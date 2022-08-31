@@ -64,7 +64,6 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             %%
             %  Load the tract file and transform the line vertices from MNI-152 space to native space
 
-            % load
             trkFiles{iHemi} = [trkFile, '_', upper(hemi), '.trk.gz'];
             [fibers, idx] = ea_trk2ftr(trkFiles{iHemi}, 1);
             fibers = fibers(:, 1:3);
@@ -73,44 +72,69 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             fibers(:, 1:2) = -fibers(:, 1:2);
 
             % Apply transform (input should be Nx3 = <points> x <X,Y,Z>)
+            tic
             fibers = ea_ants_apply_transforms_to_points(subjectANTsFolder, fibers, 0);
-
+            toc
+            
             % LPS to RAS, restore to RAS coords
             fibers(:, 1:2) = -fibers(:, 1:2);
 
             % get the fiber end-point coordinates
-            trcLineEndPoints = nan(length(idx) * 2, 3);
             trcLineEnds = nan(length(idx) * 2, 6);              % the last two points of each end of a line (order: inner x,y,z + outer x,y,z)
-            trcLineEndPointsIndices = nan(length(idx) * 2, 1);
             startV = 1;
             for iTrk = 1:length(idx)
 
                 % determine the start- and end-vertex indices
                 if iTrk > 1,   startV = sum(idx(1:iTrk - 1)) + 1;   end
                 endV = startV + idx(iTrk) - 1;
-
-                trcLineEndPointsIndices((iTrk - 1) * 2 + 1, :)  = startV;
-                trcLineEndPointsIndices((iTrk - 1) * 2 + 2, :)  = endV;
                 
-                trcLineEndPoints((iTrk - 1) * 2 + 1, :)         = fibers(startV, 1:3);
-                trcLineEndPoints((iTrk - 1) * 2 + 2, :)         = fibers(endV, 1:3);
+                %trcLineEnds((iTrk - 1) * 2 + 1, :)              = [fibers(startV + 3, 1:3), fibers(startV, 1:3)];
+                %trcLineEnds((iTrk - 1) * 2 + 2, :)              = [fibers(endV - 3, 1:3), fibers(endV, 1:3)];
                 
-                trcLineEnds((iTrk - 1) * 2 + 1, :)              = [fibers(startV + 3, 1:3), fibers(startV, 1:3)];
-                trcLineEnds((iTrk - 1) * 2 + 2, :)              = [fibers(endV - 3, 1:3), fibers(endV, 1:3)];
-
+                % start and extend from a part of the line further from the actual end of the line
+                trcLineEnds((iTrk - 1) * 2 + 1, :)              = [fibers(startV + 10, 1:3), fibers(startV + 4, 1:3)];
+                trcLineEnds((iTrk - 1) * 2 + 2, :)              = [fibers(endV - 10, 1:3), fibers(endV - 4, 1:3)];
+                
             end
+            
+            % extend the tract-lines only forward
+            %extLines = ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 25) + trcLineEnds(:, 1:3);
+            %extLines = [trcLineEnds(:, 1:3), extLines];
+            
+            % extend the tract-lines forward and backward
+            extLines = [((trcLineEnds(:, 1:3) - trcLineEnds(:, 4:6)) * 3) + trcLineEnds(:, 1:3), ...
+                        ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 14) + trcLineEnds(:, 1:3)];
+            
+            %{
+            % debug, check extended lines
+            gPial = gifti(fullfile(subjectFsFolder, ['/pial.', upper(hemi), '.surf.gii']));
+            viewGii([], extLines);
+            hold on;
+            startV = 1;
+            for i = 1:length(idx)    
+                if i > 1,   startV = sum(idx(1:i - 1)) + 1;   end
+                endV = startV + idx(i) - 1;
+                plot3(fibers(startV:endV, 1), fibers(startV:endV, 2), fibers(startV:endV, 3));
+            end
+            hold off;
+            
 
-            % extend the tract-lines by 20x (from the end)
-            extLines = ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 25) + trcLineEnds(:, 1:3);
-            extLines = [trcLineEnds(:, 1:3), extLines];
-            
-            
+            viewGii([]);
+            hold on;
+            startV = 1;
+            for i = 1:length(idx)    
+                if i > 1,   startV = sum(idx(1:i - 1)) + 1;   end
+                endV = startV + idx(i) - 1;
+                plot3(fibers(startV:endV, 1), fibers(startV:endV, 2), fibers(startV:endV, 3));
+            end
+            hold off;
+            %}
+                        
             
             %%
             %  Determine which tract-lines end in the ROIs
 
             % debug
-            %gPial = gifti(fullfile(subjectFsFolder, ['/surf/', hemi, 'h.pial.gii']));
             gPial = gifti(fullfile(subjectFsFolder, ['/pial.', upper(hemi), '.surf.gii']));
 
             % read the annotations for the pial brain (a2009s = Destrieux) and relabel 
@@ -180,6 +204,10 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             %}
 
             % check which electrodes are at the end of the extended tract-lines
+            
+            %pInter = collPoints(elecPositions, extPoints, 2);
+             
+            
             elecRadius = 1;
             dist = (elecPositions(:, 1)' - extPoints(:, 1)) .^ 2 + ...
                    (elecPositions(:, 2)' - extPoints(:, 2)) .^ 2 + ...
@@ -200,7 +228,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
             hold off;
             %}
 
-            %{
+            
             % debug, show ROI tracts in native with relevant electrodes
             if (iHemi == 1 && any(contains(elecHemi, 'L'))) || (iHemi == 2 && any(contains(elecHemi, 'R')))   % only on hemisphere that matters
 
@@ -245,7 +273,7 @@ function [trkDistance, trkFiles, trkIndices, trkNativeFibers, trkExtElecs] = cce
                 close(gcf)
                 
             end
-            %}
+            
             
             %{
             % debug, show excluded tracts in native
@@ -330,7 +358,7 @@ function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, 
     
     % build points along the extended lines
     % TODO: probably could optimize this
-    steps = 20;
+    steps = 30;
     extPoints = nan(size(trcLineEnds, 1), steps, 3);
     for iLine = 1:2:size(trcLineEnds, 1)
         
@@ -347,14 +375,45 @@ function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, 
 
     % Check extPoints to roiVertices, this will allow for a "dilated" line piercing
     % Note: some ROIs the sulci might not be included so an extended tract-line can pierce just between the gyri
-    radius = 2;
-    dist = (extPoints(:, 1)' - roiVertices(:, 1)) .^ 2 + ...
-           (extPoints(:, 2)' - roiVertices(:, 2)) .^ 2 + ...
-           (extPoints(:, 3)' - roiVertices(:, 3)) .^ 2;
-    dist = dist < (radius  .^ 2);
+    pInter = collPoints(extPoints, roiVertices, 2);
     
     % return which tract-lines touch ROI <1st dim = tract-line, 2nd dim = which end of the tract line>
-    proxTrkLines = any(reshape(any(dist, 1), [], steps, 1), 2);
+    proxTrkLines = any(reshape(pInter, [], steps, 1), 2);
     proxTrkLines = [proxTrkLines(1:2:end), proxTrkLines(2:2:end)];
     
 end
+
+function pInter = collPoints(extPoints, roiVertices, radius)
+
+    % 
+    pInter = false(1, size(extPoints, 1));
+
+    % split into part of 70000 points (requires about 3GB of memory)
+    maxPointPerLoop = 70000;
+    numLoops = ceil(size(extPoints, 1) / maxPointPerLoop);
+
+    % set the point ranges for each set
+    iCounter = 1;
+    for i = 1:numLoops
+        range = [];
+        if iCounter + maxPointPerLoop <= size(extPoints, 1)
+            range = [iCounter, iCounter + maxPointPerLoop - 1];
+        else
+            range = [iCounter, size(extPoints, 1)];
+        end
+        
+        % determine which points intersect with the ROI vertices
+        dist = (extPoints(range(1):range(2), 1)' - roiVertices(:, 1)) .^ 2 + ...
+               (extPoints(range(1):range(2), 2)' - roiVertices(:, 2)) .^ 2 + ...
+               (extPoints(range(1):range(2), 3)' - roiVertices(:, 3)) .^ 2;
+        dist = dist < (radius  .^ 2);
+        pInter(range(1):range(2)) = any(dist, 1);
+        clear dist;
+        
+        %
+        iCounter = iCounter + maxPointPerLoop;
+    end
+    
+
+end
+
