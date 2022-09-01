@@ -78,7 +78,22 @@ for iTr = 1:length(rois)
             
             % add the native tract length 
             for iSubj = 1:length(out{iTr}{iSubTr}{iDir + 1}.sub)
-                out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
+                
+                
+                if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L')) && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R'))
+                    % left and right
+                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
+                    
+                elseif any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))
+                    % left
+                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
+                    
+                else
+                    % right
+                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
+                    
+                end
+                
             end
             
         end
@@ -92,7 +107,6 @@ end
 
 n1Type = 'Latency';
 n1Type = 'Speed';
-
 
 % loop over the (sub-)tracts and directions
 for iTr = 1:length(rois)
@@ -299,6 +313,7 @@ for iTr = 1:length(rois)
                 set(gca, 'XTick', 10:10:50, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
             end
             
+            
             %
             % Save figure
             %
@@ -313,9 +328,9 @@ for iTr = 1:length(rois)
                 figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVs', n1Type, '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_'), '_8mA']);
             end
             set(gcf,'PaperPositionMode', 'auto');
-%             print('-dpng', '-r300', figureName);
+            print('-dpng', '-r300', figureName);
             %print('-depsc', '-r300', figureName);
-            
+            close(gcf)
 
         end
     end
@@ -348,6 +363,7 @@ for iTr = 1:length(rois)
         end
     end
 end
+
 
 %%
 %  Find average latencies

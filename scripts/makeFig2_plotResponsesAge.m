@@ -73,7 +73,7 @@ else
         for iSubTr = 1:length(rois(iTr).sub_tract)
             subjectResponses{iTr}{iSubTr}           = cell(max([ccepData.age]), 1);
             subjectResponses_nonnorm{iTr}{iSubTr}   = cell(max([ccepData.age]), 1);
-            subjectN1s{iTr}{iSubTr}             = cell(max([ccepData.age]), 1);
+            subjectN1s{iTr}{iSubTr}                 = cell(max([ccepData.age]), 1);
             average_L_trk_length{iTr}{iSubTr}       = cell(max([ccepData.age]), 1);
             average_R_trk_length{iTr}{iSubTr}       = cell(max([ccepData.age]), 1);
         end
@@ -81,15 +81,21 @@ else
     
     % loop over the subjects
     for iSubj = 1:size(ccepData, 2)
-        fprintf('Load subj %d of %d \n', iSubj, size(ccepData, 2))
+        
+        %
         age = ccepData(iSubj).age;
+        
+        %
+        disp('--------');
+        disp(['  subj ', num2str(iSubj), ' of ', num2str(size(ccepData, 2))]);
+        disp(['  id: ', ccepData(iSubj).id, ' - age: ', num2str(age), ' - ']);
         
         % create the cells and empty matrices to store CCEP traces and N1 quantifications in, and eventually contain the average
         for iTr = 1:length(rois)
             for iSubTr = 1:length(rois(iTr).sub_tract)
                 runResponses{iTr}{iSubTr}           = NaN(2, size(ccepData(iSubj).run, 2), 5 * 2048);    % [roiDir, run, tt]
                 runResponses_nonnorm{iTr}{iSubTr}   = NaN(2, size(ccepData(iSubj).run, 2), 5 * 2048);    % [roiDir, run, tt]
-                runN1s{iTr}{iSubTr}             = NaN(2, size(ccepData(iSubj).run, 2));              % [roiDir, run]
+                runN1s{iTr}{iSubTr}                 = NaN(2, size(ccepData(iSubj).run, 2));              % [roiDir, run]
             end
         end
         
@@ -208,8 +214,20 @@ else
                 subjectResponses_nonnorm{iTr}{iSubTr}{age}(:, n + 1, :) = subjectMeanResponse_nonnorm;  % [roiDir, subjects, samples]
                 subjectN1s{iTr}{iSubTr}{age}(:, n + 1)                  = subjectMeanN1;                % [roiDir, subjects]
                 
-                average_L_trk_length{iTr}{iSubTr}{age}(n + 1)           = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
-                average_R_trk_length{iTr}{iSubTr}{age}(n + 1)           = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
+                % add the distance (if there are electrodes on that side
+                disp(['     tract: ', rois(iTr).tract_name, ' - ', rois(iTr).sub_tract(iSubTr).name]);
+                if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))
+                    average_L_trk_length{iTr}{iSubTr}{age}(n + 1)           = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
+                    disp(['          left hemi - dist: ', num2str(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1})]);
+                else
+                    average_L_trk_length{iTr}{iSubTr}{age}(n + 1)           = nan;
+                end
+                if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R'))
+                    average_R_trk_length{iTr}{iSubTr}{age}(n + 1)           = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
+                    disp(['          right hemi - dist: ', num2str(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2})]);
+                else
+                    average_R_trk_length{iTr}{iSubTr}{age}(n + 1)           = nan;
+                end
                 
             end
         end
@@ -266,7 +284,7 @@ for iTr = 1:length(rois)
                         addThisNonnorm = addThisNonnorm';
                     end
                     
-                    % determine if there are nans (no ccep between a specific tract, sub-tract and direction)
+                    % determine if there are nans (meaning no cceps - for subjects - and between a specific tract, sub-tract and direction)
                     excludeCCEPs = find(isnan(addThis(:, 1)));
                     addThis(excludeCCEPs, :) = [];
                     addThisNonnorm(excludeCCEPs, :) = [];
@@ -282,10 +300,10 @@ for iTr = 1:length(rois)
                         sortAge{iTr}{iSubTr}{iDir + 1}.averageResp = [sortAge{iTr}{iSubTr}{iDir + 1}.averageResp; addThis];                               % [all subjects, samples]
                         sortAge{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [sortAge{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm; addThisNonnorm];        % [all subjects, samples]
                         sortAge{iTr}{iSubTr}{iDir + 1}.averageN1 = [sortAge{iTr}{iSubTr}{iDir + 1}.averageN1, addN1];                                     % [all subjects]
-                        sortAge{iTr}{iSubTr}{iDir + 1}.age = [sortAge{iTr}{iSubTr}{iDir + 1}.age, zeros(1, nr_subs) + age];                                 % [all subjects]
+                        sortAge{iTr}{iSubTr}{iDir + 1}.age = [sortAge{iTr}{iSubTr}{iDir + 1}.age, zeros(1, nr_subs) + age];                               % [all subjects]
                         
-                        sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength = [sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, LTrkLength];                              % [all subjects]
-                        sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength = [sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength, RTrkLength];                              % [all subjects]
+                        sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength = [sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, LTrkLength];                            % [all subjects]
+                        sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength = [sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength, RTrkLength];                            % [all subjects]
                         
                         clear addThis addThisNonnorm addN1 LTrkLength RTrkLength
                     end
@@ -376,6 +394,7 @@ for iTr = 1:length(rois)
 
             set(gcf,'PaperPositionMode','auto')
             print('-dpng','-r300',figureName)
+            close(gcf)
             
         end
     end
@@ -437,7 +456,7 @@ for iTr = 1:length(rois)
             subplot(3, length(rois(iTr).sub_tract) * 2, length(rois(iTr).sub_tract) * 2 + plotIndex);
             
             x = sortAge{iTr}{iSubTr}{iDir + 1}.age;
-            y = mean([sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan');
+            y = mean([sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength; sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan');
             x(isnan(y)) = [];
             y(isnan(y)) = [];
             
@@ -498,7 +517,8 @@ for iTr = 1:length(rois)
     set(gcf,'PaperPositionMode','auto')
     print('-dpng','-r300',figureName)
     %print('-depsc','-r300',figureName)
-
+    close(gcf)
+    
 end
 
 
@@ -563,6 +583,8 @@ for iTr = 1:length(rois)
                 set(gcf,'PaperPositionMode','auto')
                 print('-dpng','-r300',figureName)
                 %print('-depsc','-r300',figureName)
+                close(gcf)
+                
             end
         end
     end
