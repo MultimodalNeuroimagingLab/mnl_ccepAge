@@ -78,22 +78,29 @@ end
 [Lmniinfl_vert, Lmniinfl_face] = read_surf(fullfile(FSsubjectsdir, 'fsaverage', 'surf', 'lh.inflated'));
 [Rmniinfl_vert, Rmniinfl_face] = read_surf(fullfile(FSsubjectsdir, 'fsaverage', 'surf', 'rh.inflated'));
 
-% surface labels
-[Lvertices, Llabel, Lcolortable] = read_annotation(fullfile(FSsubjectsdir, 'fsaverage', 'label', 'lh.aparc.a2009s.annot'));
-Lvert_label = Llabel; % these labels are strange and do not go from 1:76, but need to be mapped to the colortable
-% mapping labels to colortable
-for iSubj = 1:size(Lcolortable.table, 1) % 76 are labels
-    Lvert_label(Llabel == Lcolortable.table(iSubj, 5)) = iSubj;
-end
-[Rvertices, Rlabel, Rcolortable] = read_annotation(fullfile(FSsubjectsdir, 'fsaverage', 'label', 'rh.aparc.a2009s.annot'));
-Rvert_label = Rlabel; % these labels are strange and do not go from 1:76, but need to be mapped to the colortable
-% mapping labels to colortable
-for iSubj = 1:size(Rcolortable.table, 1) % 76 are labels
-    Rvert_label(Rlabel == Rcolortable.table(iSubj, 5)) = iSubj;
+% read the annotations for the pial brain (a2009s = Destrieux) and relabel the vertices to the Destrieux atlas codes
+dstrxCodeToLabel = {'G_and_S_frontomargin';'G_and_S_occipital_inf';'G_and_S_paracentral';'G_and_S_subcentral';'G_and_S_transv_frontopol';'G_and_S_cingul-Ant';'G_and_S_cingul-Mid-Ant';'G_and_S_cingul-Mid-Post';'G_cingul-Post-dorsal';'G_cingul-Post-ventral';'G_cuneus';'G_front_inf-Opercular';'G_front_inf-Orbital';'G_front_inf-Triangul';'G_front_middle';'G_front_sup';'G_Ins_lg_and_S_cent_ins';'G_insular_short';'G_occipital_middle';'G_occipital_sup';'G_oc-temp_lat-fusifor';'G_oc-temp_med-Lingual';'G_oc-temp_med-Parahip';'G_orbital';'G_pariet_inf-Angular';'G_pariet_inf-Supramar';'G_parietal_sup';'G_postcentral';'G_precentral';'G_precuneus';'G_rectus';'G_subcallosal';'G_temp_sup-G_T_transv';'G_temp_sup-Lateral';'G_temp_sup-Plan_polar';'G_temp_sup-Plan_tempo';'G_temporal_inf';'G_temporal_middle';'Lat_Fis-ant-Horizont';'Lat_Fis-ant-Vertical';'Lat_Fis-post';'Pole_occipital';'Pole_temporal';'S_calcarine';'S_central';'S_cingul-Marginalis';'S_circular_insula_ant';'S_circular_insula_inf';'S_circular_insula_sup';'S_collat_transv_ant';'S_collat_transv_post';'S_front_inf';'S_front_middle';'S_front_sup';'S_interm_prim-Jensen';'S_intrapariet_and_P_trans';'S_oc_middle_and_Lunatus';'S_oc_sup_and_transversal';'S_occipital_ant';'S_oc-temp_lat';'S_oc-temp_med_and_Lingual';'S_orbital_lateral';'S_orbital_med-olfact';'S_orbital-H_Shaped';'S_parieto_occipital';'S_pericallosal';'S_postcentral';'S_precentral-inf-part';'S_precentral-sup-part';'S_suborbital';'S_subparietal';'S_temporal_inf';'S_temporal_sup';'S_temporal_transverse'};
+[~, Llabel, Lcolortable] = read_annotation(fullfile(FSsubjectsdir, 'fsaverage', 'label', 'lh.aparc.a2009s.annot'));
+Lvert_label = nan(1, size(Llabel, 1));
+for iLbl = 2:size(Lcolortable.table, 1)
+    a = find(ismember(dstrxCodeToLabel, Lcolortable.struct_names{iLbl}));
+    if ~isempty(a)
+        Lvert_label(Llabel == Lcolortable.table(iLbl, 5)) = a;
+    end
 end
 
+[~, Rlabel, Rcolortable] = read_annotation(fullfile(FSsubjectsdir, 'fsaverage', 'label', 'rh.aparc.a2009s.annot'));
+Rvert_label = nan(1, size(Rlabel, 1));
+for iLbl = 2:size(Rcolortable.table, 1)
+    a = find(ismember(dstrxCodeToLabel, Rcolortable.struct_names{iLbl}));
+    if ~isempty(a)
+        Rvert_label(Rlabel == Rcolortable.table(iLbl, 5)) = a;
+    end
+end
+clear Llabel Rlabel a iLbl;
 
 
+      
 %% 
 %  Add all electrodes labels and left or right hemisphere into variables: allmni305_coords and allmni305_coords_infl
 
@@ -156,12 +163,11 @@ clear elecs temp_inflated;
 for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         
-        lroi_label = Lvert_label;
-        lroi_label(ismember(lroi_label, rois(iTr).sub_tract(iSubTr).roi1 + 1)) = 200;
-        lroi_label(ismember(lroi_label, rois(iTr).sub_tract(iSubTr).roi2 + 1)) = 300;
-        lroi_label(lroi_label < 100) = 0;
-        lroi_label = lroi_label / 100;
-        rois(iTr).sub_tract(iSubTr).vert_labels = lroi_label;
+        % re-label the vertex labels (0 = no ROIs, 1 = ROI1, and 2 = ROI2)
+        lroi_label = nan(1, numel(Lvert_label));
+        lroi_label(ismember(Lvert_label, rois(iTr).sub_tract(iSubTr).roi1)) = 1;
+        lroi_label(ismember(Lvert_label, rois(iTr).sub_tract(iSubTr).roi2)) = 2;
+        rois(iTr).sub_tract(iSubTr).Lvert_labels = lroi_label;
         
     end
     
@@ -193,40 +199,38 @@ for iTr = 1:length(rois)
     %for iSubTr = 1:1
     for iSubTr = 1:length(rois(iTr).sub_tract)
         
+        
+        
         % load the (sub)tract file (is in MNI152 space)
         trkFile = fullfile(track_path, [rois(iTr).tract_name, '_L.trk.gz']);
         [fibers, idx] = ea_trk2ftr(trkFile, 1);
         
-        % convert the tract point from MNI152 to MNI305 space
-        %trMNI152to305 =  [ 0.9975, -0.0073,  0.0176, -0.0429; ...
-        %                   0.0146,  1.0009, -0.0024, 1.5496; ...
-        %                  -0.0130, -0.0093,  0.9971, 1.1840];
-        trMNI152to305 =  [ 1.0022, 0.0071, -0.0177,  0.0528; ...
-                          -0.0146, 0.9990,  0.0027, -1.5519; ...
-                           0.0129, 0.0094,  1.0027, -1.2012];
-        %fibers = (trMNI152to305 * fibers')';
-
+        %
         roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1);
         roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2);
         
         % open the MNI pial
         figure
         %tH = ieeg_RenderGifti(gl);
-        tH = ieeg_RenderGiftiLabels(gl, rois(iTr).sub_tract(iSubTr).vert_labels, 'jet');
+        vLabels = rois(iTr).sub_tract(iSubTr).Lvert_labels;
+        vLabels(isnan(vLabels)) = 0;
+        tH = ieeg_RenderGiftiLabels(gl, vLabels', 'jet');
         set(tH,'FaceAlpha', .2) % make transparent
+        
         %{
         toolConfig = {};
         toolConfig.hideToolWindow           = 1;
         toolConfig.yokeCam                  = 1;
-        toolConfig.('overlay1')             = rois(iTr).sub_tract(iSubTr).vert_labels;
+        
+        toolConfig.('overlay1')             = rois(iTr).sub_tract(iSubTr).Lvert_labels;
         toolConfig.('overlay1PosEnabled')   = 1;
         toolConfig.('overlay1PosColormap')  = 'green';
         toolConfig.('overlay1PosMin')       = 1;
-        toolConfig.('overlay1PosMax')       = max(rois(iTr).sub_tract(iSubTr).vert_labels);
+        toolConfig.('overlay1PosMax')       = max(rois(iTr).sub_tract(iSubTr).Lvert_labels);
         toolConfig.('overlay1NegEnabled')   = 0;
         %toolConfig.pointSet1                = els(roi2elecs, :);
         %toolConfig.pointSet1Text            = string(allmni305_Destrlabels(roi2elecs));
-        toolConfig.defaultBackgroundAlpha   = .8;
+        toolConfig.defaultBackgroundAlpha   = .6;
         mx.three_dimensional.giftiTools(gl, toolConfig);
         %}
         
@@ -253,10 +257,12 @@ for iTr = 1:length(rois)
         figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
         set(gcf, 'PaperPositionMode', 'auto')
         print('-dpng', '-r300', figureName)
-
+        close(gcf)
+        
     end
 end
 
+return;
 
 
 %% 
@@ -351,8 +357,8 @@ for iTr = 1:length(rois)
         % tH = ieeg_RenderGiftiLabels(gl, Lvert_label,cmap, Lcolortable.struct_names);
         tH = ieeg_RenderGiftiLabels(gl, Lsulcal_labels, [.5 .5 .5; .8 .8 .8]);
         % sulci_rois = Lsulcal_labels;
-        % sulci_rois(lroi_label == 2) = 3;
-        % sulci_rois(lroi_label == 3) = 4;
+        % sulci_rois(lroi_label == 1) = 3;
+        % sulci_rois(lroi_label == 2) = 4;
         % tH = ieeg_RenderGiftiLabels(gl, sulci_rois, [.5 .5 .5; .8 .8 .8; 1 0 0; 0 1 0; 0 0 1]);
 
         % plot electrodes not part of the end-point ROIs
