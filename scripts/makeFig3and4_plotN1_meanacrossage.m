@@ -82,15 +82,15 @@ for iTr = 1:length(rois)
                 
                 if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L')) && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R'))
                     % left and right
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
+                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
                     
                 elseif any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))
                     % left
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
+                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
                     
                 else
                     % right
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
+                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
                     
                 end
                 
@@ -134,9 +134,9 @@ for iTr = 1:length(rois)
                 subsValues(iSubj, 4) = numLatencies;
                 
                 % take the average distance of the tract in the left and right hemisphere
-                subsValues(iSubj, 5) = out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist;
+                subsValues(iSubj, 5) = out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist;
                 
-                clear numLatencies lrNativeDist
+                clear numLatencies nativeTractDist
             end
 
             % retrieve the unique ages and calculate mean across same age latencies
@@ -147,23 +147,24 @@ for iTr = 1:length(rois)
                 if strcmpi(n1Type, 'speed')
                     % divide each subject by it's own length, then average
                     % across subjects of the same age in m/s
-                    n1Means(iAge) = mean(0.01*subsValues(subjInclIndices, 5) ./ subsValues(subjInclIndices, 2), 'omitnan');
+                    n1Means(iAge) = mean(.001 * subsValues(subjInclIndices, 5) ./ subsValues(subjInclIndices, 2), 'omitnan');
+                    
                 elseif strcmpi(n1Type, 'latency')
                     n1Means(iAge) = 1000 * mean(subsValues(subjInclIndices, 2), 'omitnan');
+                    
                 else
                     error('n1 type should either be set to ''latency'' or ''speed''');
                 end
                 
             end
 
-            
             %
             % fit first order polynomial
             %
             
             % Test fitting a first order polynomial (leave 1 out cross validation)
             % y  =  w1*age + w2
-            cross_val_linear = NaN(length(n1Means),4);
+            cross_val_linear = NaN(length(n1Means), 4);
             % size latency (ms) X prediction (ms) X p1 (slope) X p2 (intercept) of left out
             age_counter = 0;
             for iAge = 1:length(n1Means)
@@ -183,6 +184,9 @@ for iTr = 1:length(rois)
             % average parameters for linear fit across ages
             out{iTr}{iSubTr}{iDir + 1}.linear_avparams = mean(cross_val_linear(:, 3:4));
             
+            if isnan(out{iTr}{iSubTr}{iDir + 1}.cod_out(1))
+                disp('nan for cod');
+            end
             
             %
             % fit second order polynomial
@@ -221,7 +225,7 @@ for iTr = 1:length(rois)
                 
                 if ~isnan(subsValues(iSubj, 2))
                     if strcmpi(n1Type, 'speed')
-                        distributionPlot(.01*out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).lrNativeDist ./ out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
+                        distributionPlot(.001 * out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist ./ out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
                                         'xValues', out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age, ...
                                         'color', [.8 .8 .8], 'showMM', 0, 'histOpt', 2)
                     else
@@ -243,11 +247,10 @@ for iTr = 1:length(rois)
             %
             % plot 1st or 2nd order polynomial
             %
-            
+
             x_age = 1:1:max([ccepData.age]);
-            % get my crossval y distribution
             
-            % check wether the first or the second polynomial is a better fit
+            % check whether the first or the second polynomial is a better fit
             if out{iTr}{iSubTr}{iDir + 1}.cod_out(1) > out{iTr}{iSubTr}{iDir + 1}.cod_out(2)
                 % better fit with linear polynomial
                 
