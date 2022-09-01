@@ -40,6 +40,7 @@ else
     % loop over the subjects
     for iSubj = 1:length(ccepData)
         fprintf('Load subj %d of %d (%s)\n', iSubj, length(ccepData), ccepData(iSubj).id);
+        tic
         
         subjFSDir   = fullfile(myDataPath.input, 'derivatives', 'freesurfer', ccepData(iSubj).id);
         subjElecDir = fullfile(myDataPath.input, 'derivatives', 'native_electrodes', ccepData(iSubj).id);
@@ -93,9 +94,7 @@ else
                 fibers(:, 1:2) = -fibers(:, 1:2);
 
                 % Apply transform (input should be Nx3 = <points> x <X,Y,Z>)
-                tic
                 fibers = ea_ants_apply_transforms_to_points(fullfile(myDataPath.input, 'derivatives', 'coreg_ANTs', ccepData(iSubj).id), fibers, 0);
-                toc
 
                 % LPS to RAS, restore to RAS coords
                 fibers(:, 1:2) = -fibers(:, 1:2);
@@ -192,7 +191,7 @@ else
                     hold off;
                     %}
 
-                    %{
+                    
                     % debug, show ROI tracts in native with relevant electrodes
                     if (iHemi == 1 && any(contains(electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
 
@@ -238,7 +237,7 @@ else
                         close(gcf)
 
                     end
-                    %}
+                    
 
                     %{
                     % debug, show excluded tracts in native
@@ -274,7 +273,8 @@ else
             end     % end hemisphere loop
             
         end     % end of tract loop
-
+        
+    toc
     end     % end subjects loop
     
 end
