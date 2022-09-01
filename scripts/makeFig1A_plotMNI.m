@@ -257,7 +257,8 @@ for iTr = 1:length(rois)
         figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
         set(gcf, 'PaperPositionMode', 'auto')
         print('-dpng', '-r300', figureName)
-
+        close(gcf)
+        
     end
 end
 
