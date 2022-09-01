@@ -154,7 +154,7 @@ else
                 %
                 % 
                 %
-
+                %{
                 % loop over the sub-tracts (frontal, central, parietal, etc...)
                 for iSubTr = 1:length(rois(iTr).sub_tract)
 
@@ -237,7 +237,7 @@ else
                         close(gcf)
 
                     end
-                    
+                    %}
 
                     %{
                     % debug, show excluded tracts in native
