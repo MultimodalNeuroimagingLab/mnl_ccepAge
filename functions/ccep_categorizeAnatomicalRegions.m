@@ -56,10 +56,10 @@ function [rois] = ccep_categorizeAnatomicalRegions()
     rois(4).sub_tract(1).roi2           = [25, 26, 27, 56];
     rois(4).sub_tract(1).allowIntraROI  = 0;
     
-    rois(4).sub_tract(3).name           = 'Frontal-Central';
-    rois(4).sub_tract(3).roi1           = [12, 14, 15, 52, 53, 54]; 
-    rois(4).sub_tract(3).roi2           = [3, 4, 28, 29, 45];
-    rois(4).sub_tract(3).allowIntraROI  = 0;
+    rois(4).sub_tract(2).name           = 'Frontal-Central';
+    rois(4).sub_tract(2).roi1           = [12, 14, 15, 52, 53, 54]; 
+    rois(4).sub_tract(2).roi2           = [3, 4, 28, 29, 45];
+    rois(4).sub_tract(2).allowIntraROI  = 0;
 
 
     %  Yeh 842 - U tract-segments
