@@ -38,7 +38,8 @@ else
     load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData');
     
     % loop over the subjects
-    for iSubj = 1:length(ccepData)
+    %for iSubj = 1:length(ccepData)
+    for iSubj = 2:2
         fprintf('Load subj %d of %d (%s)\n', iSubj, length(ccepData), ccepData(iSubj).id);
         tic
         
@@ -57,13 +58,24 @@ else
         good_channels = setdiff(1:size(channels, 1), bad_channels);
         clear jsonFiles;
         
-        % retrieve the electrodes and sort the electrodes so they match the channels
-        electrodes = ccepData(iSubj).electrodes;
-        electrodes = ccep_sortElectrodes(electrodes, channels, 0);
+
+        electrodes = [];
+        elecPositions = [];
+        if isfolder(subjElecDir)
+            
+            % load the electrodes
+            electrodes = readtable(fullfile(subjElecDir, [ccepData(iSubj).id, '_', ccepData(iSubj).ses, '_electrodes.tsv']), ...
+                                   'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
+            
+            % retrieve the electrodes and sort the electrodes so they match the channels
+            electrodes = ccep_sortElectrodes(electrodes, channels, 0);
+            elecPositions = [electrodes.x electrodes.y electrodes.z];
+            
+        end
 
         % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
-        for iTr = 1:length(rois)
-        %for iTr = 7:7
+        %for iTr = 1:length(rois)
+        for iTr = 4:4
 
             %
             if rois(iTr).interHemi == 1
@@ -77,7 +89,8 @@ else
 
                 % load the subject freesurfer hemisphere pial
                 gPial = gifti(fullfile(subjFSDir, ['/pial.', upper(hemi), '.surf.gii']));
-        
+                %viewGii(gPial, 'trans.7', elecPositions, 'WireSpheres1');
+                
                 % 
                 trkFile = fullfile(track_path, rois(iTr).tract_name);
                 disp('Retrieving tract distance');
@@ -123,7 +136,7 @@ else
 
                 % extend the tract-lines forward and backward
                 extLines = [((trcLineEnds(:, 1:3) - trcLineEnds(:, 4:6)) * 3) + trcLineEnds(:, 1:3), ...
-                            ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 14) + trcLineEnds(:, 1:3)];
+                            ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 10) + trcLineEnds(:, 1:3)];
 
                 %{
                 % debug, check extended lines
@@ -154,6 +167,7 @@ else
                 %
                 % 
                 %
+
                 %{
                 % loop over the sub-tracts (frontal, central, parietal, etc...)
                 for iSubTr = 1:length(rois(iTr).sub_tract)
@@ -168,14 +182,20 @@ else
                                                                                             rois(iTr).sub_tract(iSubTr).roi1, ...
                                                                                             rois(iTr).sub_tract(iSubTr).roi2, ...
                                                                                             rois(iTr).sub_tract(iSubTr).allowIntraROI, ...
-                                                                                            [electrodes.x electrodes.y electrodes.z], ...
+                                                                                            elecPositions, ...
                                                                                             trcLineEnds, ...
                                                                                             extLines);
 
+
+                                                                                        
                     % store the distances, included MNI files and tract-lines, and elec
                     rois(iTr).sub_tract(iSubTr).MNIlineIndices{iHemi} = trkLineIndices;
                     rois(iTr).sub_tract(iSubTr).nativeDistances{iHemi} = trkDist;
-                    rois(iTr).sub_tract(iSubTr).extElecNames{iHemi} = electrodes(trkExtElecs, :).name;
+                    if ~isempty(trkExtElecs)
+                        rois(iTr).sub_tract(iSubTr).extElecNames{iHemi} = electrodes(trkExtElecs, :).name;
+                    else
+                        rois(iTr).sub_tract(iSubTr).extElecNames{iHemi} = {};
+                    end
 
 
                     %{
@@ -195,13 +215,13 @@ else
                     % debug, show ROI tracts in native with relevant electrodes
                     if (iHemi == 1 && any(contains(electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
 
-                        elecPositions = [electrodes.x electrodes.y electrodes.z];
                         excludedTrkElecs = 1:size(elecPositions, 1);
                         excludedTrkElecs(trkExtElecs) = [];
                         b = (trkLineIndices - 1) * 2 + 1;
                         %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres3');
                         %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres1');
-                        viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres1');
+                        %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres1');
+                        viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', elecPositions(trkExtElecs, :), 'WireSpheres1');
                         hold on;
                         startV = 1;
                         for iLine = trkLineIndices
