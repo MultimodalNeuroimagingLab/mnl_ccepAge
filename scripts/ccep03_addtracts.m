@@ -38,8 +38,7 @@ else
     load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData');
     
     % loop over the subjects
-    %for iSubj = 1:length(ccepData)
-    for iSubj = 2:2
+    for iSubj = 1:length(ccepData)
         fprintf('Load subj %d of %d (%s)\n', iSubj, length(ccepData), ccepData(iSubj).id);
         tic
         
@@ -74,8 +73,7 @@ else
         end
 
         % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
-        %for iTr = 1:length(rois)
-        for iTr = 4:4
+        for iTr = 1:length(rois)
 
             %
             if rois(iTr).interHemi == 1
@@ -168,7 +166,7 @@ else
                 % 
                 %
 
-                %{
+                
                 % loop over the sub-tracts (frontal, central, parietal, etc...)
                 for iSubTr = 1:length(rois(iTr).sub_tract)
 
@@ -211,7 +209,7 @@ else
                     hold off;
                     %}
 
-                    
+                    %{
                     % debug, show ROI tracts in native with relevant electrodes
                     if (iHemi == 1 && any(contains(electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
 
