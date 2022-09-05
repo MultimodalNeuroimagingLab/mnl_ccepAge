@@ -170,7 +170,6 @@ else
                 % loop over the sub-tracts (frontal, central, parietal, etc...)
                 for iSubTr = 1:length(rois(iTr).sub_tract)
 
-
                     % retrieve the distance between the stimulation and response end-point ROIs
                     % for this particular patient given specific tracts
                     [trkDist, trkLineIndices, trkExtElecs, gROIPial1, gROIPial2] = ccep_retrieveInterROIDistance( ...
@@ -184,7 +183,13 @@ else
                                                                                             trcLineEnds, ...
                                                                                             extLines);
 
-
+                    % warn if the tract length could not be determined
+                    if isempty(trkDist) || isnan(trkDist)
+                        s = warning;
+                        warning('on');
+                        warning(['Could not determine tract-length: subject ', ccepData(iSubj).id, ' - hemisphere ', upper(hemi), ' - tract-roi', rois(iTr).tract_name, ' ', rois(iTr).sub_tract(iSubTr).name])
+                        warning(s);
+                    end
                                                                                         
                     % store the distances, included MNI files and tract-lines, and elec
                     rois(iTr).sub_tract(iSubTr).MNIlineIndices{iHemi} = trkLineIndices;
@@ -211,7 +216,7 @@ else
 
                     %{
                     % debug, show ROI tracts in native with relevant electrodes
-                    if (iHemi == 1 && any(contains(electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
+                    if (iHemi == 1 && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
 
                         excludedTrkElecs = 1:size(elecPositions, 1);
                         excludedTrkElecs(trkExtElecs) = [];
@@ -243,13 +248,10 @@ else
                         camlight(gca, 'headlight');
 
                         %
-                        [~, trc] = fileparts(trkFile);
-                        [~, sub] = fileparts(subjFSDir);
-                        myDataPath = setLocalDataPath(1);
                         if ~exist(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'), 'dir')
                             mkdir(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'));
                         end
-                        figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [sub, '_', upper(hemi), '_', trc, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', '_'), '.png']);
+                        figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [ccepData(iSubj).id, '_', upper(hemi), '_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', '_'), '.png']);
                         set(gcf,'PaperPositionMode', 'auto')
                         print('-dpng', '-r300', figureName);
                         close(gcf)
