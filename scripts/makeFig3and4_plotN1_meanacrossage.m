@@ -120,7 +120,7 @@ for iTr = 1:length(rois)
             else
                 strSubTitle = [subDir{2}, ' -> ', subDir{1}];
             end
-            
+            %%
             % initialize output: age, mean, variance in latency, and number of connections per subject
             nsubs = length(out{iTr}{iSubTr}{iDir + 1}.sub);
             subsValues = NaN(nsubs, 5);              % [subject, <age, mean latency, standard error, number of latency values, tract dist>]
@@ -157,6 +157,9 @@ for iTr = 1:length(rois)
                 end
                 
             end
+            ages(isnan(n1Means)) = [];
+            n1Means(isnan(n1Means)) = [];
+            
 
             %
             % fit first order polynomial
@@ -185,7 +188,7 @@ for iTr = 1:length(rois)
             out{iTr}{iSubTr}{iDir + 1}.linear_avparams = mean(cross_val_linear(:, 3:4));
             
             if isnan(out{iTr}{iSubTr}{iDir + 1}.cod_out(1))
-                disp('nan for cod');
+                error('nan for cod');
             end
             
             %
