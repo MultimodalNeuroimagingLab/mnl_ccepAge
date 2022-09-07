@@ -1,4 +1,4 @@
-function tH = ecog_RenderGifti(g,varargin)
+function tH = ieeg_RenderGifti(g,varargin)
 % function to render a gifti 
 % 
 % input:

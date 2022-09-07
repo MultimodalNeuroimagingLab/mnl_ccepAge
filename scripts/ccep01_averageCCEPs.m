@@ -1,269 +1,172 @@
 %
-% This script can be used as workflow script to create average CCEPs
-% for the CCEP data in the RESPect database.
+% This script collects the metadata, extracts the average CCEPs and detects N1s for all the subjects in the RESPect database
 %
-% Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, 2019
+% Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 %
 
-%% Set paths
+
+%% 
+%  Configure
+
 clc
 clear
 myDataPath = setLocalDataPath(1);
 
-%% Metadata: fill in yourself: run one run of one selected participant
+% check fieldtrip availability and setup
+if exist('ft_read_data') ~= 2 || exist('ft_read_header') ~= 2
+   error('Could not find FieldTrip functions. FieldTrip is an external dependency, make sure it installed and added as a MATLAB path.');
+end
 
-% add subject(s) information
-bids_sub = ['sub-RESP' input('Patient number: sub-RESP(XXXX): ','s')];
-bids_ses = ['ses-' input('Session number: ses- (X): ','s')];
-bids_task = 'task-SPESclin';
+% input whether to store output figures
+outputFigures = 0;
+s = input('Do you want to save the average CCEP figures? [y/n]: ', 's');
+if strcmp(s, 'y'),  outputFigures = 1;     end
 
-% choose between available runs
-files = dir(fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
-    [bids_sub '_' bids_ses '_' bids_task '_*'  '_events.tsv']));
-names = {files.name};
-strings = cellfun(@(x) x(strfind(names{1},'run-'):strfind(names{1},'run-')+9), names, 'UniformOutput', false);
-stringsz = [repmat('%s, ',1,size(strings,2)-1),'%s'];
 
-bids_runs = ['run-',input(sprintf(['Choose one of these runs: run-(XXXXXX): \n' stringsz '\n'],strings{:}),'s')];
 
-if exist(fullfile(files(1).folder,[bids_sub, '_' bids_ses,'_electrodes.tsv']),'file')
+%%
+%  Collect all electrodes, channels and event metadata for all subjects
+%  Extract the average CCEPS and detect the N1s
+
+% inventorize and loop over the subjects
+rootFiles = dir(fullfile(myDataPath.input, 'sub-ccepAge*'));
+for iFile = 1:size(rootFiles, 1)
+    bids_sub = rootFiles(iFile).name;
     
-    electrodes_tsv = read_tsv(fullfile(files(1).folder,[bids_sub, '_' bids_ses,'_electrodes.tsv']));
-    
-    if any(contains(electrodes_tsv.group,'strip')) || any(contains(electrodes_tsv.group,'grid'))
+    % inventorize and loop over the sessions
+    subjFiles = dir(fullfile(myDataPath.input, rootFiles(iFile).name, 'ses*'));
+    for iSess = 1:size(subjFiles, 1)
+        bids_ses = subjFiles(iSess).name;
         
-        if any(~isnan(str2double(electrodes_tsv.x)))
-            electrodes_tsv.x = str2double(electrodes_tsv.x);
-        end
-        
-        if  any(electrodes_tsv.x~=0) % only run the rest if electrode positions are available
+        % check if there is a ieeg modality
+        ieegSessPath = fullfile(myDataPath.input, rootFiles(iFile).name, subjFiles(iSess).name, 'ieeg');
+        if exist(ieegSessPath, 'dir')
+
+            % check if the electrodes file is missing
+            if ~exist(fullfile(ieegSessPath, [rootFiles(iFile).name, '_' subjFiles(iSess).name, '_electrodes.tsv']), 'file')
+               warning(['Could not find electrodes file for subject ', bids_sub, ', session ', bids_ses, '. Skipping subject/session']);
+               continue;
+            end
+
+            % load electrodes metadata
+            electrodes = readtable(fullfile(ieegSessPath, [rootFiles(iFile).name, '_' subjFiles(iSess).name, '_electrodes.tsv']), ...
+                                       'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
             
+            % check to make sure there are at least strips and grips
+            if ~any(contains(electrodes.group, 'strip')) && ~any(contains(electrodes.group, 'grid'))
+               warning(['No strip nor grid electrodes for subject ', bids_sub, ', session ', bids_ses, '. Skipping subject/session']);
+               continue;
+            end
+            
+            % check if there are no electrode positions available
+            if ~any(electrodes.x ~= 0)
+               warning(['No electrodes positions available for subject ', bids_sub, ', session ', bids_ses, '. Skipping subject/session']);
+               continue;
+            end
+
+            % define the task we want to include
             bids_task = 'task-SPESclin';
-            
-            fprintf('Run file %s!\n',[bids_sub ,'_', bids_ses,'_',bids_task,'_',bids_runs])
-            
-            %% load events
-            
-            % load the events.tsv
-            events_name = fullfile(files(1).folder,[bids_sub ,'_',...
-                bids_ses,'_',bids_task,'_',bids_runs,'_events.tsv']);
-            ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
-            
-            % generate vector for averaging across trials
-            % TODO: add an exclusion of trials with noise yet !
-            % TODO: add options to separate F1-F2 from F2-F1?
-            events_include = ismember(ccep_events.sub_type,{'SPES','SPESclin'});
-            params.mergeAmp = 1;
-            params.mergePlusMin = 1;
-            
-            [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include,params);
-            
-            %% load data and channels
-            
-            % load the data, as BrainVision BIDS format
-            ieeg_name = fullfile(files(1).folder,[bids_sub ,'_',...
-                bids_ses,'_',bids_task,'_',bids_runs,'_ieeg.eeg']);
-            data = ft_read_data(ieeg_name,'dataformat','brainvision_eeg');
-            data_hdr = ft_read_header(ieeg_name,'dataformat','brainvision_eeg');
-            
-            channels_tsv_name = replace(fullfile(ieeg_name),'ieeg.eeg', 'channels.tsv');
-            channels_table = readtable(channels_tsv_name,'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
-            
-            %% get necessary parameters from data
-            
-            % sampling frequency
-            srate = data_hdr.Fs;
-            
-            % list of channel names
-            channel_names = channels_table.name;
-            
-            % find good ECoG channels
-            good_channels = find(ismember(channels_table.type,{'ECOG'}) & ismember(channels_table.status,'good'));
-            
-            %% load data for each condition and save averages
-            
-            params.epoch_length = 5; % total epoch length in sec, default = 5
-            params.epoch_prestim_length = 2;%: prestimulus epoch length in sec, default = 2
-            params.baseline_subtract = 1; % subtract median baseline from each trial
-            
-            [average_ccep,average_ccep_names,ccep,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
-            
-            % % plotting without N1 peaks:
-            % params.save_fig = 0;
-            % ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,...
-            %     good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
-            
-            %% detect N1 in each averaged signal
-            
-            params.amplitude_thresh = 3.4;
-            params.n1_peak_range = 100;
-            params.srate = srate;
-            
-            % including no detection possible in bad channels
-            [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,good_channels,params);
-            
-            % save files
-            saveName = fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses,...
-                replace(filesrun(i).name,'events.tsv','averageCCEPs.mat'));
-            
-            if ~exist(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses),'dir')
-                mkdir(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses))
-                sprintf(['making dir:\n',...
-                    fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses)])
-            end
-            
-            save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels',...
-                'n1_peak_sample','n1_peak_amplitude')
-            
-            %% check detected N1 in each averaged signal
-            
-            % [n1_peak_amplitude_check, n1_peak_sample_check ] = ccep_visualcheck_n1peak_ECoG(average_ccep, ccep,average_ccep_names,channel_names,tt,n1_peak_amplitude,n1_peak_sample);
-            
-            %% plot and save averages per channel
-            params.save_fig = 1;%str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
-            
-            % plotting with N1 peak detection:
-            ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
-                channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
-            
-            
-            fprintf('File %s has run!\n',replace(filesrun(i).name,'_events.tsv',''))
-        end
-    end
-end
 
+            % inventorize and loop over the runs
+            runFiles = dir(fullfile(myDataPath.input, bids_sub, bids_ses, 'ieeg', [bids_sub '_' bids_ses '_' bids_task '_*'  '_events.tsv']));
+            for iRun = 1:size(runFiles, 1)
 
-clear files names strings stringsz
+                % extract the run name
+                bids_run = runFiles(iRun).name(strfind(runFiles(iRun).name, 'run-'):strfind(runFiles(iRun).name, 'run-') + 9);
+                fprintf('- Run file %s!\n', replace(runFiles(iRun).name, '_events.tsv', ''))
 
-%% Metadata: run all participants and all runs in a dataset
-% if ECoG and if electrode positions are determined.
+                
+                
+                %% 
+                %  Load events and channels metadata, and extract essential information
+                params = struct();
+                
+                % load the events.tsv
+                events_name = fullfile(runFiles(iRun).folder,runFiles(iRun).name);
+                ccep_events = readtable(events_name,'FileType', 'text', 'Delimiter', '\t');
 
-files = dir(fullfile(myDataPath.input));
+                % generate vector for averaging across trials
+                events_include = ismember(ccep_events.sub_type, {'SPES', 'SPESclin'});
+                params.mergeAmp = 1;
+                params.mergePlusMin = 1;
 
-for n = 1:size(files,1)
-    if contains(files(n).name,'sub-RESP')
-        
-        filessub = dir(fullfile(myDataPath.input, files(n).name));
-        bids_sub = files(n).name;
-        
-        for m = 1:size(filessub,1)
-            if contains(filessub(m).name,'ses')
-                if exist(fullfile(myDataPath.input, files(n).name, filessub(m).name, 'ieeg'),'dir')
-                    filesses = dir(fullfile(myDataPath.input, files(n).name, filessub(m).name, 'ieeg'));
-                    bids_ses = filessub(m).name;
-                    
-                    if exist(fullfile(filesses(1).folder,[files(n).name, '_' filessub(m).name,'_electrodes.tsv']),'file')
-                        
-                        electrodes_tsv = read_tsv(fullfile(filesses(1).folder,[files(n).name, '_' filessub(m).name,'_electrodes.tsv']));
-                        
-                        if any(contains(electrodes_tsv.group,'strip')) || any(contains(electrodes_tsv.group,'grid'))
-                            
-                            if any(~isnan(str2double(electrodes_tsv.x)))
-                                electrodes_tsv.x = str2double(electrodes_tsv.x);
-                            end
-                            
-                            if  any(electrodes_tsv.x~=0) % only run the rest if electrode positions are available
-                                
-                                bids_task = 'task-SPESclin';
-                                
-                                filesrun = dir(fullfile(myDataPath.input,bids_sub, bids_ses,'ieeg',...
-                                    [bids_sub '_' bids_ses '_' bids_task '_*'  '_events.tsv']));
-                                
-                                for i = 1:size(filesrun,1)
-                                    
-                                    bids_runs = filesrun(i).name(strfind(filesrun(i).name,'run-'):strfind(filesrun(i).name,'run-')+9);
-                                    fprintf('Run file %s!\n',replace(filesrun(i).name,'_events.tsv',''))
-                                    
-                                    %% load events
-                                    
-                                    % load the events.tsv
-                                    events_name = fullfile(filesrun(i).folder,filesrun(i).name);
-                                    ccep_events = readtable(events_name,'FileType','text','Delimiter','\t');
-                                    
-                                    % generate vector for averaging across trials
-                                    % TODO: add an exclusion of trials with noise yet !
-                                    % TODO: add options to separate F1-F2 from F2-F1?
-                                    events_include = ismember(ccep_events.sub_type,{'SPES','SPESclin'});
-                                    params.mergeAmp = 1;
-                                    params.mergePlusMin = 1;
-                                    
-                                    [stim_pair_nr,stim_pair_name] = ccep_bidsEvents2conditions(ccep_events,events_include,params);
-                                    
-                                    %% load data and channels
-                                    
-                                    % load the data, as BrainVision BIDS format
-                                    ieeg_name = replace(fullfile(filesrun(i).folder,filesrun(i).name),'events.tsv', 'ieeg.eeg');
-                                    data = ft_read_data(ieeg_name,'dataformat','brainvision_eeg');
-                                    data_hdr = ft_read_header(ieeg_name,'dataformat','brainvision_eeg');
-                                    
-                                    channels_tsv_name = replace(fullfile(filesrun(i).folder,filesrun(i).name),'events.tsv', 'channels.tsv');
-                                    channels_table = readtable(channels_tsv_name,'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
-                                    
-                                    %% get necessary parameters from data
-                                    
-                                    % sampling frequency
-                                    srate = data_hdr.Fs;
-                                    
-                                    % list of channel names
-                                    channel_names = channels_table.name;
-                                    
-                                    % find good ECoG channels
-                                    good_channels = find(ismember(channels_table.type,{'ECOG'}) & ismember(channels_table.status,'good'));
-                                    
-                                    %% load data for each condition and save averages
-                                    
-                                    params.epoch_length = 5; % total epoch length in sec, default = 5
-                                    params.epoch_prestim_length = 2;%: prestimulus epoch length in sec, default = 2
-                                    params.baseline_subtract = 1; % subtract median baseline from each trial
-                                    
-                                    [average_ccep,average_ccep_names,ccep,tt] = ccep_averageConditions(data,srate,ccep_events,channel_names,stim_pair_nr,stim_pair_name,params);
-                                    
-                                    % % plotting without N1 peaks:
-                                    % params.save_fig = 0;
-                                    % ccep_plot_av(average_ccep,tt,[],[],average_ccep_names,channel_names,...
-                                    %     good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
-                                    
-                                    %% detect N1 in each averaged signal
-                                    
-                                    params.amplitude_thresh = 3.4;
-                                    params.n1_peak_range = 100;
-                                    params.srate = srate;
-                                    
-                                    % including no detection possible in bad channels
-                                    [n1_peak_sample,n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep,good_channels,params);
-                                    
-                                    % save files
-                                    saveName = fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses,...
-                                        replace(filesrun(i).name,'events.tsv','averageCCEPs.mat'));
-                                    
-                                    if ~exist(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses),'dir')
-                                        mkdir(fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses))
-                                        sprintf(['making dir:\n',...
-                                            fullfile(myDataPath.output,'derivatives','av_ccep',bids_sub,bids_ses)])
-                                    end
-                                    
-                                    save(saveName,'average_ccep','average_ccep_names','tt','channel_names','good_channels',...
-                                        'n1_peak_sample','n1_peak_amplitude')
-                                    
-                                    %% check detected N1 in each averaged signal
-                                    
-                                    % [n1_peak_amplitude_check, n1_peak_sample_check ] = ccep_visualcheck_n1peak_ECoG(average_ccep, ccep,average_ccep_names,channel_names,tt,n1_peak_amplitude,n1_peak_sample);
-                                    
-                                    %% plot and save averages per channel
-                                    params.save_fig = 1;%str2double(input('Do you want to save the figures? [yes = 1, no = 0]: ','s'));
-                                    
-                                    % plotting with N1 peak detection:
-                                    ccep_plot_av(average_ccep,tt,n1_peak_sample, n1_peak_amplitude,average_ccep_names,...
-                                        channel_names,good_channels,myDataPath,bids_sub,bids_ses,bids_task,bids_runs,params)
-                                    
-                                    
-                                    fprintf('File %s has run!\n',replace(filesrun(i).name,'_events.tsv',''))
-                                end
-                            end
-                        end
-                    end
+                % 
+                [stim_pair_nr, stim_pair_name] = ccep_bidsEvents2conditions(ccep_events, events_include, params);
+
+                %
+                channels_tsv_name = replace(fullfile(runFiles(iRun).folder, runFiles(iRun).name), 'events.tsv', 'channels.tsv');
+                channels_table = readtable(channels_tsv_name, 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
+
+                % list of channel names
+                channel_names = channels_table.name;
+
+                % find good ECoG channels
+                good_channels = find(ismember(channels_table.type, {'ECOG'}) & ismember(channels_table.status, 'good'));
+
+                
+                
+                %%
+                %  Load the data (BrainVision BIDS format)
+                
+                ieeg_name = replace(fullfile(runFiles(iRun).folder, runFiles(iRun).name), 'events.tsv', 'ieeg.eeg');
+                data = ft_read_data(ieeg_name, 'dataformat', 'brainvision_eeg');
+                data_hdr = ft_read_header(ieeg_name, 'dataformat', 'brainvision_eeg');
+                srate = data_hdr.Fs;
+                
+                
+                
+                %%
+                %  Epoch and average each condition (stim pair)
+
+                params.epoch_length         = 5;    % total epoch length in sec, default = 5
+                params.epoch_prestim_length = 2;    %: prestimulus epoch length in sec, default = 2
+                params.baseline_subtract    = 1;    % subtract median baseline from each trial
+                
+                [average_ccep, stimpair_names, ccep, tt] = ccep_averageConditions(data, srate, ccep_events, channel_names, stim_pair_nr, stim_pair_name, params);
+
+                
+                
+                %% 
+                %  Detect N1 in the average CCEPs
+
+                params.amplitude_thresh = 3.4;
+                params.n1_peak_range    = 100;
+                params.srate            = srate;
+
+                % detect the N1s
+                % Note: passing the good channels will result in the non-good channels (i.e. indices in average_ccep that 
+                %       are not in the variable good_channels) to be excluded from N1 detection and NaN'ed in the output.
+                [n1_peak_sample, n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep, good_channels, params);
+
+                % save files the average CCEPs and N1 detection output (create folder if needed
+                saveName = fullfile(myDataPath.output,'derivatives','av_ccep', bids_sub, bids_ses, replace(runFiles(iRun).name, 'events.tsv', 'averageCCEPs.mat'));
+                if ~exist(fullfile(myDataPath.output,'derivatives', 'av_ccep', bids_sub,bids_ses), 'dir')
+                    mkdir(fullfile(myDataPath.output,'derivatives', 'av_ccep', bids_sub,bids_ses));
+                    disp(['making dir: ', fullfile(myDataPath.output, 'derivatives', 'av_ccep', bids_sub, bids_ses)]);
                 end
-            end
-        end
-    end
-end
+                save(saveName, 'average_ccep', 'stimpair_names', 'tt', 'channel_names', 'good_channels', 'n1_peak_sample', 'n1_peak_amplitude')
+
+                
+                
+                %% 
+                %  Visually inspect detected N1 in each averaged signal
+
+                % [n1_peak_amplitude_check, n1_peak_sample_check ] = ccep_visualcheck_n1peak_ECoG(average_ccep, ccep,average_ccep_names,channel_names,tt,n1_peak_amplitude,n1_peak_sample);
+
+                
+                
+                %% 
+                %  Plot and save averages per channel (optionally)
+                
+                if outputFigures == 1
+                    params.save_fig = 1;
+                    ccep_plot_av(average_ccep, tt, n1_peak_sample, n1_peak_amplitude, stimpair_names, ...
+                                 channel_names, good_channels, myDataPath, bids_sub, bids_ses, bids_task, bids_run, params)
+                end
+                
+                
+            end     % end run loop
+        end     % end if ieeg modality
+    end     % end sessions loop
+end     % end subjects loop
+

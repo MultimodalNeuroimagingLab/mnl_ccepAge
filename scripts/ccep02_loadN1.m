@@ -1,251 +1,302 @@
 %
-% Script to load detected N1 responses, combine all in 1 file and assign
-% the Destrieux labels
+% Script that aggregates data into one output file, containing:
+%      - participants details (name, session, runs, age)
+%      - electrode information with destrieux labels
+%      - detected N1 responses
+%      - Freesurfer labels for stimulation and recording pair
+%
+% Note: the subjects and runs that will be included in the output file are determined
+%       by the dir/file structure that is the result of the 'ccep01_averageCCEPs.m' script.
 % 
-% Dora Hermes, Dorien van Blooijs, 2020
+%
+% Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 %
 
-%% Set paths
+
+
+%% 
+%  Set paths
 clc
 clear
 myDataPath = setLocalDataPath(1);
 
-%% get a list of datasets
 
-theseSubs = ccep_getSubFilenameInfo(myDataPath);
+%%
+%  Get a list of datasets (output of the 'ccep01_averageCCEPs.m' script)
 
-%% initialize N1latencies and get subject label and age
+subjects = ccep_getSubFilenameInfo(myDataPath);
 
-if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'file')
-    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+
+%% 
+%  Initialize ccepData in ccepData_init.mat and add subject name, session, runs and age
+
+if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_init.mat'), 'file')
+    load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_init.mat'), 'ccepData')
 else
     
-    n1Latencies = [];
+    ccepData = [];
     
     % load participants.tsv
-    sub_info = readtable(fullfile(myDataPath.input,'participants.tsv'),'FileType','text','Delimiter','\t','TreatAsEmpty',{'N/A','n/a'});
+    subjectsTsv = readtable(fullfile(myDataPath.input, 'participants.tsv'), 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'});
     
-    for kk = 1:length(theseSubs)
-        disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
+    for iSubj = 1:length(subjects)
+        disp(['subj ' num2str(iSubj) ' of ' num2str(length(subjects)), ' (', subjects(iSubj).name, ')']);
         
-        % add subject age
-        thisSubName = theseSubs(kk).name;
-        [thisSubInd] = find(ismember(sub_info.participant_id,thisSubName),1); % first session age
-        n1Latencies(kk).id = thisSubName; %#ok<*SAGROW>
-        n1Latencies(kk).ses = theseSubs(kk).ses;
-        n1Latencies(kk).age = sub_info.age(thisSubInd);
+        % retrieve subject name based on dir/file structure
+        subjName = subjects(iSubj).name;
+        
+        % find the subject (index) in the tsv (at first session, if there are multiple)
+        [subjTsvIndex] = find(ismember(subjectsTsv.participant_id, subjName), 1);
+        assert(~isempty(subjTsvIndex));
+        
+        % Store the name, session and age
+        ccepData(iSubj).id = subjName;
+        ccepData(iSubj).ses = subjects(iSubj).ses;
+        ccepData(iSubj).age = subjectsTsv.age(subjTsvIndex);
         
         % get number of runs and electrodes info
-        n1Latencies(kk).nrRuns = length(theseSubs(kk).run);
-        n1Latencies(kk).elecs_tsv = read_tsv(fullfile(myDataPath.input,theseSubs(kk).name,theseSubs(kk).ses,'ieeg',...
-            [theseSubs(kk).name,'_',theseSubs(kk).ses,'_electrodes.tsv']));
+        ccepData(iSubj).nrRuns = length(subjects(iSubj).run);
+        ccepData(iSubj).electrodes = readtable(fullfile(myDataPath.input, subjects(iSubj).name, subjects(iSubj).ses, 'ieeg', [subjects(iSubj).name, '_', subjects(iSubj).ses, '_electrodes.tsv']), ...
+                                                 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
+        
+        % get hemisphere for each electrode and store in the structure
+        hemi = ccep_retrieveElecsHemisphere(fullfile(myDataPath.input, subjects(iSubj).name, subjects(iSubj).ses, 'ieeg', [subjects(iSubj).name, '_', subjects(iSubj).ses, '_task-SPESclin*_ieeg.json']), ...
+                                            ccepData(iSubj).electrodes);
+        ccepData(iSubj).electrodes.jsonHemi = hemi;
+        
+        % check/assert if hemi or hemisphere field in electrodes.tsv reflects jsonHemi
+        % Note: only check the electrodes that have a value in the hemisphere field
+        if any(~strcmp(ccepData(iSubj).electrodes.hemisphere, '') & ~strcmp(ccepData(iSubj).electrodes.hemisphere, hemi))
+            warning(['The hemisphere column in the electrodes table and the out of the ccep_retrieveElecsHemisphere differ, the output of the latter will be leading']);
+        end
+        
         
     end
     
-    % optional save the n1Latencies structure, add more fields later as neccesary
-    s = input('Do you want to save the n1Latencies structure? [y/n]: ','s');
-    if strcmp(s,'y')
-        save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_init.mat'),'n1Latencies')
+    % optional save the ccepData structure, add more fields later as neccesary
+    s = input('Do you want to save the ccepData structure? [y/n]: ', 's');
+    if strcmp(s, 'y')
+        save(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_init.mat'), 'ccepData')
     end
     
 end
 
-%% load all N1 data
-for kk = 1:length(theseSubs)
-    disp(['subj ' int2str(kk) ' of ' int2str(length(theseSubs))])
+
+%%
+%  Load all N1 data and add to initialized ccepData_init, then save as ccepData_V1
+
+for iSubj = 1:length(subjects)
+    disp(['subj ' num2str(iSubj) ' of ' num2str(length(subjects)), ' (', subjects(iSubj).name, ')']);
+    
+    for iRun = 1:length(subjects(iSubj).run)
         
-    for ll = 1:length(theseSubs(kk).run)
+        runData = load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', subjects(iSubj).name ,subjects(iSubj).ses, subjects(iSubj).run{iRun}));
+        ccepData(iSubj).run(iRun).runName            = subjects(iSubj).run{iRun};
+        ccepData(iSubj).run(iRun).allLatencies       = runData.tt(runData.n1_peak_sample(~isnan(runData.n1_peak_sample)));
+        ccepData(iSubj).run(iRun).n1_peak_sample     = runData.n1_peak_sample;
+        ccepData(iSubj).run(iRun).channel_names      = runData.channel_names;
+        ccepData(iSubj).run(iRun).stimpair_names     = runData.stimpair_names;
+        ccepData(iSubj).run(iRun).good_channels      = runData.good_channels;
+        % loading all average cceps here makes it very heavy on the memory, do this later
+        %ccepData(kk).run(ll).average_ccep            = runData.average_ccep;
+        ccepData(iSubj).run(iRun).tt                 = runData.tt;
+        clear runData
         
-        clear thisData
-        thisRun = fullfile(myDataPath.output,'derivatives','av_ccep',theseSubs(kk).name,theseSubs(kk).ses,...
-            theseSubs(kk).run{ll});
-        thisData = load(thisRun);
-        n1Latencies(kk).run(ll).runName = theseSubs(kk).run{ll};
-        n1Latencies(kk).run(ll).allLatencies = thisData.tt(thisData.n1_peak_sample(~isnan(thisData.n1_peak_sample)));
-        n1Latencies(kk).run(ll).n1_peak_sample = thisData.n1_peak_sample;
-        n1Latencies(kk).run(ll).channel_names = thisData.channel_names;
-        n1Latencies(kk).run(ll).average_ccep_names = thisData.average_ccep_names;
-        n1Latencies(kk).run(ll).good_channels = thisData.good_channels;
-        % loading all average cceps here makes it very heavy on the memory,
-        %   do this later
-        % n1Latencies(kk).run(ll).average_ccep = thisData.average_ccep;
-        n1Latencies(kk).run(ll).tt = thisData.tt;
     end
 end
 
-%% get Freesurfer labels for stimulation and recording pair
 
-for kk = 1:length(n1Latencies) % loop subjects
+%% 
+%   Add Freesurfer labels for stimulation and recording pair to output struct
+
+% loop over subjects
+for iSubj = 1:length(ccepData)
    
-    for ll = 1:length(n1Latencies(kk).run) % loop runs
+    % loop over runs
+    for iRun = 1:length(ccepData(iSubj).run)
         
         % pre-allocation: Destrieux labels and numbers for average CCEP stimulated pairs
-        n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel = cell(size(n1Latencies(kk).run(ll).average_ccep_names,1),2);
-        n1Latencies(kk).run(ll).average_ccep_DestrieuxNr = cell(size(n1Latencies(kk).run(ll).average_ccep_names,1),2);
+        ccepData(iSubj).run(iRun).stimpair_DestrieuxLabel       = cell(size(ccepData(iSubj).run(iRun).stimpair_names, 1), 2);
+        ccepData(iSubj).run(iRun).stimpair_DestrieuxNr          = cell(size(ccepData(iSubj).run(iRun).stimpair_names, 1), 2);
         
         % pre-allocation: Destrieux labels and numbers for measured channels
-        n1Latencies(kk).run(ll).channel_DestrieuxLabel = cell(size(n1Latencies(kk).run(ll).channel_names));
-        n1Latencies(kk).run(ll).channel_DestrieuxNr = cell(size(n1Latencies(kk).run(ll).channel_names));
+        ccepData(iSubj).run(iRun).channel_DestrieuxLabel         = cell(size(ccepData(iSubj).run(iRun).channel_names));
+        ccepData(iSubj).run(iRun).channel_DestrieuxNr            = cell(size(ccepData(iSubj).run(iRun).channel_names));
         
         % loop through CCEP stimulated pairs
-        for chPair = 1:length(n1Latencies(kk).run(ll).average_ccep_names)
+        for chPair = 1:length(ccepData(iSubj).run(iRun).stimpair_names)
+            
             % get stimulated channels
-            stimpchans = strsplit(n1Latencies(kk).run(ll).average_ccep_names{chPair},'-');
+            stimpchans = strsplit(ccepData(iSubj).run(iRun).stimpair_names{chPair}, '-');
             
             for ch = 1:2
+                
                 % get first stimulated channel number in_electrodes.tsv
-                stim_el_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,stimpchans{ch})==1);
+                stim_el_nr = find(strcmpi(ccepData(iSubj).electrodes.name, stimpchans{ch}) == 1);
                 
                 % sometimes the stim pair is called TP1 and the channel name is
                 % TP01, we need to check for this
                 if isempty(stim_el_nr)
+                    
                     % insert a zero and check
-                    newName = insertBefore(stimpchans{1},length(stimpchans{1}),'0');
-                    stim_el_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,newName)==1);
+                    newName = insertBefore(stimpchans{1},length(stimpchans{1}), '0');
+                    stim_el_nr = find(strcmpi(ccepData(iSubj).electrodes.name, newName) == 1);
                     if isempty(stim_el_nr)
                         disp(['no match for ' stimpchans{1}])
                     end
+                    
                 end
                 
-                n1Latencies(kk).run(ll).average_ccep_DestrieuxLabel{chPair,ch} = ...
-                    n1Latencies(kk).elecs_tsv.Destrieux_label_text{stim_el_nr};
-                if isnumeric(n1Latencies(kk).elecs_tsv.Destrieux_label)
-                    n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{chPair,ch} = ...
-                        int2str(n1Latencies(kk).elecs_tsv.Destrieux_label(stim_el_nr));
+                ccepData(iSubj).run(iRun).stimpair_DestrieuxLabel{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label_text{stim_el_nr};
+                if isnumeric(ccepData(iSubj).electrodes.Destrieux_label)
+                    ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{chPair,ch} = int2str(ccepData(iSubj).electrodes.Destrieux_label(stim_el_nr));
                 else
-                    n1Latencies(kk).run(ll).average_ccep_DestrieuxNr{chPair,ch} = ...
-                        n1Latencies(kk).elecs_tsv.Destrieux_label{stim_el_nr};
+                    ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label{stim_el_nr};
                     
                 end
             end
-            clear stim_el_nr stimpchans % housekeeping
+            clear stim_el_nr stimpchans
         end
         
-        % loop through channels
-        for chSig = 1:length(n1Latencies(kk).run(ll).channel_names)            
+        % loop through the channels
+        for iChan = 1:length(ccepData(iSubj).run(iRun).channel_names)      
+            
             % get channel number in_electrodes.tsv
-            el1_nr = find(strcmpi(n1Latencies(kk).elecs_tsv.name,n1Latencies(kk).run(ll).channel_names{chSig})==1);
+            el1_nr = find(strcmpi(ccepData(iSubj).electrodes.name,ccepData(iSubj).run(iRun).channel_names{iChan}) == 1);
             if ~isempty(el1_nr)
-                n1Latencies(kk).run(ll).channel_DestrieuxLabel{chSig} = ...
-                    n1Latencies(kk).elecs_tsv.Destrieux_label_text{el1_nr};
-                if isnumeric(n1Latencies(kk).elecs_tsv.Destrieux_label)
-                    n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = ...
-                        int2str(n1Latencies(kk).elecs_tsv.Destrieux_label(el1_nr));
+                ccepData(iSubj).run(iRun).channel_DestrieuxLabel{iChan} = ccepData(iSubj).electrodes.Destrieux_label_text{el1_nr};
+                
+                if isnumeric(ccepData(iSubj).electrodes.Destrieux_label)
+                    ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = int2str(ccepData(iSubj).electrodes.Destrieux_label(el1_nr));
                 else
-                    n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = ...
-                        n1Latencies(kk).elecs_tsv.Destrieux_label{el1_nr};
+                    ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = ccepData(iSubj).electrodes.Destrieux_label{el1_nr};
                 end
+                
                 clear el1_nr
             else
-                n1Latencies(kk).run(ll).channel_DestrieuxLabel{chSig} = NaN;
-                n1Latencies(kk).run(ll).channel_DestrieuxNr{chSig} = NaN;
-            end            
+                ccepData(iSubj).run(iRun).channel_DestrieuxLabel{iChan} = NaN;
+                ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = NaN;
+            end 
+            
         end
     end    
 end
 
 
-%% some plots to check:
-%%
-%% plot means, var etc
+% optional save the ccepData structure, add more fields later as neccesary
+s = input('Do you want to save the ccepData structure? [y/n]: ', 's');
+if strcmp(s, 'y')
+    save(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData')
+end
 
-% initialize output: age, mean and variance in latency per subject
-my_output = NaN(length(n1Latencies)-1,3);
+
+
+%% 
+%  Some plots to check Age vs Latency
+%
+
+% allocate an output matrix: age, mean and variance in latency per subject
+plotOutput = NaN(length(ccepData), 3);
 
 % get variable per subject
-for kk = 1:length(n1Latencies)
-    my_output(kk,1) = n1Latencies(kk).age;
+for iSubj = 1:length(ccepData)
+    plotOutput(iSubj,1) = ccepData(iSubj).age;
     allLatencies = [];
-    for ll = 1:length(n1Latencies(kk).run)
-        allLatencies = [allLatencies n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
+    for iRun = 1:length(ccepData(iSubj).run)
+        allLatencies = [allLatencies ccepData(iSubj).run(iRun).allLatencies];
     end
-    my_output(kk,2) = mean(allLatencies);
-    my_output(kk,3) = var(allLatencies);
+    plotOutput(iSubj, 2) = mean(allLatencies);
+    plotOutput(iSubj, 3) = var(allLatencies);
     clear allLatencies
 end
 
-figure
-subplot(2,1,1),
-plot(my_output(:,1),1000*my_output(:,2),'.')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(:,1),my_output(:,2),'Type','Pearson');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+%
+% mean (top)
+%
+subplot(2, 1, 1),
+plot(plotOutput(:, 1), 1000 * plotOutput(:, 2), '.')
+xlabel('age (years)'), ylabel('mean latency (ms)')
+[r, p] = corr(plotOutput(:, 1), plotOutput(:, 2), 'Type', 'Pearson');
+title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
 
-[P,S] = polyfit(my_output(:,1),1000*my_output(:,2),1);
-[y_fit, ~] = polyval(P,my_output(:,1),S);
-            
+% plot polyfit throught data points
+[P, S] = polyfit(plotOutput(:, 1), 1000 * plotOutput(:, 2), 1);
+[y_fit, ~] = polyval(P, plotOutput(:, 1), S);
 hold on
-% Plot polyfit throught data points
-plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+plot(plotOutput(:,1), y_fit, 'Color', [0.7,0.7,0.7], 'LineWidth', 2)
 hold off
 
-subplot(2,1,2),
-plot(my_output(:,1),my_output(:,3),'.')
-xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(:,1),my_output(:,3),'Type','Pearson');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+%
+% variance (bottom)
+%
+subplot(2, 1, 2),
+plot(plotOutput(:, 1),plotOutput(:, 3), '.')
+xlabel('age (years)'), ylabel('variance in latency')
+[r, p] = corr(plotOutput(:, 1), plotOutput(:, 3), 'Type', 'Pearson');
+title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
 
-[P,S] = polyfit(my_output(:,1),my_output(:,3),1);
-[y_fit, ~] = polyval(P,my_output(:,1),S);
-            
+% plot polyfit throught data points
+[P, S] = polyfit(plotOutput(:, 1),plotOutput(:, 3), 1);
+[y_fit, ~] = polyval(P, plotOutput(:, 1), S);
 hold on
-% Plot polyfit throught data points
-plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+plot(plotOutput(:, 1), y_fit, 'Color', [0.7, 0.7, 0.7], 'LineWidth', 2)
 hold off
+
 sgtitle('Pearson correlation between age and N1-latency')
 
-figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsN1latency');
+%
+% save
+%
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'corrAgeVsN1latency');
+set(gcf,'PaperPositionMode', 'auto')
+print('-dpng', '-r300', figureName)
+print('-depsc', '-r300', figureName)
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
 
 
-%% plot all under 40
+%%
+%  Plot all under 40
 
+%
+% mean (top)
+%
 figure
-subplot(2,1,1),
-plot(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),'.')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,2),'Type','Pearson');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+subplot(2, 1, 1),
+plot(plotOutput(plotOutput(:, 1) < 40, 1),1000 * plotOutput(plotOutput(:, 1) < 40, 2),'.')
+xlabel('age (years)'), ylabel('mean latency (ms)')
+[r, p] = corr(plotOutput(plotOutput(:, 1) < 40, 1), plotOutput(plotOutput(:, 1) < 40, 2), 'Type', 'Pearson');
+title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
 
-[P,S] = polyfit(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),1);
-[y_fit, ~] = polyval(P,my_output(my_output(:,1)<40,1),S);
-            
+% plot polyfit throught data points
+[P, S] = polyfit(plotOutput(plotOutput(:, 1) < 40, 1), 1000 * plotOutput(plotOutput(:,1) < 40, 2), 1);
+[y_fit, ~] = polyval(P, plotOutput(plotOutput(:, 1) < 40, 1), S);
 hold on
-% Plot polyfit throught data points
-plot(my_output(my_output(:,1)<40,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+plot(plotOutput(plotOutput(:, 1) < 40, 1), y_fit, 'Color', [0.7, 0.7, 0.7], 'LineWidth', 2)
 hold off
 
+%
+% variance (bottom)
+%
 subplot(2,1,2),
-plot(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'.')
+plot(plotOutput(plotOutput(:, 1) < 40, 1),plotOutput(plotOutput(:,1) < 40,3),'.')
 xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Pearson');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
+[r,p] = corr(plotOutput(plotOutput(:, 1) < 40, 1), plotOutput(plotOutput(:, 1) < 40, 3),'Type','Pearson');
+title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
 
-[P,S] = polyfit(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),1);
-[y_fit, ~] = polyval(P,my_output(my_output(:,1)<40,1),S);
-            
+% plot polyfit throught data points
+[P,S] = polyfit(plotOutput(plotOutput(:, 1) < 40, 1),plotOutput(plotOutput(:, 1) < 40, 3), 1);
+[y_fit, ~] = polyval(P, plotOutput(plotOutput(:, 1) < 40, 1), S);
 hold on
-% Plot polyfit throught data points
-plot(my_output(my_output(:,1)<40,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
+plot(plotOutput(plotOutput(:, 1) < 40, 1), y_fit, 'Color', [0.7, 0.7, 0.7], 'LineWidth', 2)
 hold on
 
 sgtitle('Pearson correlation between age(<40 years) and N1-latency')
 
-figureName = fullfile(myDataPath.output,'derivatives','age','corrAgeVsN1latency_40yrs');
-
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
-
-%%
-
-% optional save the n1Latencies structure, add more fields later as neccesary
-s = input('Do you want to save the n1Latencies structure? [y/n]: ','s');
-if strcmp(s,'y')
-    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
-end
-
+%
+% save
+%
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'corrAgeVsN1latency_40yrs');
+set(gcf,'PaperPositionMode', 'auto')
+print('-dpng', '-r300', figureName)
+print('-depsc', '-r300', figureName)
 
