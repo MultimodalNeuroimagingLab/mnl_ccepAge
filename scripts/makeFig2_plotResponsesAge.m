@@ -507,16 +507,17 @@ for iTr = 1:length(rois)
         mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
     end
     if select_amplitude==0
+        ['correlations_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]
         figureName = fullfile(myDataPath.output,'derivatives', 'age', ...
-                              ['correlations_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+                              ['correlations_', rois(iTr).tract_name]);
     elseif select_amplitude==8
         figureName = fullfile(myDataPath.output,'derivatives','age',...
-                              ['correlations_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_'), '_8mA']);
+                              ['correlations_', rois(iTr).tract_name, '_8mA']);
     end
     
     set(gcf,'PaperPositionMode','auto')
     print('-dpng','-r300',figureName)
-    %print('-depsc','-r300',figureName)
+    print('-depsc','-r300',figureName)
     close(gcf)
     
 end
@@ -582,7 +583,7 @@ for iTr = 1:length(rois)
 
                 set(gcf,'PaperPositionMode','auto')
                 print('-dpng','-r300',figureName)
-                %print('-depsc','-r300',figureName)
+                print('-depsc','-r300',figureName)
                 close(gcf)
                 
             end
