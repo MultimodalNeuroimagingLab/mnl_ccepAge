@@ -219,7 +219,7 @@ for iTr = 1:length(rois)
             % make output figure
             %
             
-            figure('position',[0 0 600 600])
+            figure('position',[0 0 600 300])
             hold on;
 
             % plot vertical histogram per subject in background
@@ -313,7 +313,7 @@ for iTr = 1:length(rois)
             
             % 
             if strcmpi(n1Type, 'speed')
-                
+                xlim([0 60]), ylim([0 12]);
             else
                 xlim([0 60]), ylim([0 80]);
                 set(gca, 'XTick', 10:10:50, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
@@ -335,7 +335,7 @@ for iTr = 1:length(rois)
             end
             set(gcf,'PaperPositionMode', 'auto');
             print('-dpng', '-r300', figureName);
-            %print('-depsc', '-r300', figureName);
+            print('-depsc', '-r300', figureName);
             close(gcf)
 
         end
