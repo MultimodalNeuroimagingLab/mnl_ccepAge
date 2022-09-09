@@ -19,8 +19,8 @@ end
 
 % input whether to store output figures
 outputFigures = 0;
-s = input('Do you want to save the average CCEP figures? [y/n]: ', 's');
-if strcmp(s, 'y'),  outputFigures = 1;     end
+%s = input('Do you want to save the average CCEP figures? [y/n]: ', 's');
+%if strcmp(s, 'y'),  outputFigures = 1;     end
 
 
 
@@ -73,7 +73,7 @@ for iFile = 1:size(rootFiles, 1)
 
                 % extract the run name
                 bids_run = runFiles(iRun).name(strfind(runFiles(iRun).name, 'run-'):strfind(runFiles(iRun).name, 'run-') + 9);
-                fprintf('- Run file %s!\n', replace(runFiles(iRun).name, '_events.tsv', ''))
+                fprintf('- Run file %s\n', replace(runFiles(iRun).name, '_events.tsv', ''))
 
                 
                 
