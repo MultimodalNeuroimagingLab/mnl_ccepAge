@@ -62,7 +62,7 @@ else
         elecPositions = [];
         if isfolder(subjElecDir)
             
-            % load the electrodes
+            % load the electrodes (in native space)
             electrodes = readtable(fullfile(subjElecDir, [ccepData(iSubj).id, '_', ccepData(iSubj).ses, '_electrodes.tsv']), ...
                                    'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
             
@@ -225,6 +225,7 @@ else
                         %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres1');
                         %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres1');
                         viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', elecPositions(trkExtElecs, :), 'WireSpheres1');
+                        set(gcf, 'Visible', 'off');
                         hold on;
                         startV = 1;
                         for iLine = trkLineIndices
@@ -252,7 +253,8 @@ else
                             mkdir(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'));
                         end
                         figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [ccepData(iSubj).id, '_', upper(hemi), '_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', '_'), '.png']);
-                        set(gcf,'PaperPositionMode', 'auto')
+                        set(gcf,'PaperPositionMode', 'auto');
+                        set(gcf, 'Visible', 'on');
                         print('-dpng', '-r300', figureName);
                         close(gcf)
 
