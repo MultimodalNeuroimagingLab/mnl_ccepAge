@@ -13,37 +13,14 @@ close all
 
 selectPat = input('Would you like to include all patients, or only the ones for whom it is certain that 8mA was applied (supplemental material)? [all/8] ','s');
 
-if strcmp(selectPat, 'all')
-    select_amplitude = 0; % make this 8 for only 8mA
-elseif strcmp(selectPat, '8')
-    select_amplitude = 8;
-else
-    error('Answer to previous question is not recognized.')
-end
-
-
 myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
-if select_amplitude == 0 
-    if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'file')
-        % if the ccepData_V1.mat was saved after ccep02_loadN1, load the ccepData structure here
-        load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData')
-
-        filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepAverageResponses.mat');
-    else
-        disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
-    end
-elseif select_amplitude == 8 % only 8 mA
-    if exist(fullfile(myDataPath.output,'derivatives','av_ccep','ccepData_8ma.mat'),'file')
-        % if the ccepData_8ma.mat was saved after ccep02_loadN1?, load the ccepData structure here
-        load(fullfile(myDataPath.output,'derivatives','av_ccep','ccepData_8ma.mat'),'ccepData8ma')
-
-        ccepData = ccepData8ma;
-        filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepAverageResponses_8ma.mat');
-    else
-        disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
-    end
+if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'file')
+    load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData')
+    filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepAverageResponses.mat');
+else
+    disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
 end
 
 
@@ -384,13 +361,7 @@ for iTr = 1:length(rois)
             if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
                 mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
             end
-            if select_amplitude==0
-                figureName = fullfile(myDataPath.output,'derivatives', 'age', ...
-                                      ['AllSortAge_descr_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
-            elseif select_amplitude==8
-                figureName = fullfile(myDataPath.output,'derivatives','age',...
-                                      ['AllSortAge_descr_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_'), '_8mA']);
-            end
+            figureName = fullfile(myDataPath.output,'derivatives', 'age', ['AllSortAge_descr_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
 
             set(gcf,'PaperPositionMode','auto')
             print('-dpng','-r300',figureName)
@@ -506,14 +477,7 @@ for iTr = 1:length(rois)
     if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
         mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
     end
-    if select_amplitude==0
-        ['correlations_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]
-        figureName = fullfile(myDataPath.output,'derivatives', 'age', ...
-                              ['correlations_', rois(iTr).tract_name]);
-    elseif select_amplitude==8
-        figureName = fullfile(myDataPath.output,'derivatives','age',...
-                              ['correlations_', rois(iTr).tract_name, '_8mA']);
-    end
+    figureName = fullfile(myDataPath.output,'derivatives', 'age', ['correlations_', rois(iTr).tract_name]);
     
     set(gcf,'PaperPositionMode','auto')
     print('-dpng','-r300',figureName)
@@ -573,13 +537,7 @@ for iTr = 1:length(rois)
                 if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
                     mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
                 end
-                if select_amplitude==0
-                    figureName = fullfile(myDataPath.output,'derivatives', 'age', ...
-                                          ['sortedAge_tmax' int2str(ttmax*1000), '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
-                elseif select_amplitude==8
-                    figureName = fullfile(myDataPath.output,'derivatives','age',...
-                                          ['sortedAge_tmax' int2str(ttmax*1000), '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_'), '_8mA']);
-                end
+                figureName = fullfile(myDataPath.output,'derivatives', 'age', ['sortedAge_tmax' int2str(ttmax * 1000), '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
 
                 set(gcf,'PaperPositionMode','auto')
                 print('-dpng','-r300',figureName)
