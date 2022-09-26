@@ -83,17 +83,20 @@ for iFile = 1:size(rootFiles, 1)
                 
                 % load the events.tsv
                 events_name = fullfile(runFiles(iRun).folder,runFiles(iRun).name);
-                ccep_events = readtable(events_name,'FileType', 'text', 'Delimiter', '\t');
+                ccep_events = readtable(events_name, 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
 
-                % generate vector for averaging across trials
+                % extract the conditions from the events
                 events_include = ismember(ccep_events.sub_type, {'SPES', 'SPESclin'});
                 params.mergeAmp = 1;
                 params.mergePlusMin = 1;
-
-                % 
-                [stim_pair_nr, stim_pair_name] = ccep_bidsEvents2conditions(ccep_events, events_include, params);
-
-                %
+                [stim_pair_nr, stim_pair_name, stim_pair_current] = ccep_bidsEvents2conditions(ccep_events, events_include, params);
+                
+                % extract the unique currents
+                unique_currents = stim_pair_current;
+                unique_currents(isnan(unique_currents)) = [];
+                unique_currents = unique(unique_currents);
+                
+                % read the channel 
                 channels_tsv_name = replace(fullfile(runFiles(iRun).folder, runFiles(iRun).name), 'events.tsv', 'channels.tsv');
                 channels_table = readtable(channels_tsv_name, 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
 
@@ -122,7 +125,7 @@ for iFile = 1:size(rootFiles, 1)
                 params.epoch_prestim_length = 2;    %: prestimulus epoch length in sec, default = 2
                 params.baseline_subtract    = 1;    % subtract median baseline from each trial
                 
-                [average_ccep, stimpair_names, ccep, tt] = ccep_averageConditions(data, srate, ccep_events, channel_names, stim_pair_nr, stim_pair_name, params);
+                [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, ccep_events, channel_names, stim_pair_nr, stim_pair_name, params);
 
                 
                 
@@ -144,7 +147,7 @@ for iFile = 1:size(rootFiles, 1)
                     mkdir(fullfile(myDataPath.output,'derivatives', 'av_ccep', bids_sub,bids_ses));
                     disp(['making dir: ', fullfile(myDataPath.output, 'derivatives', 'av_ccep', bids_sub, bids_ses)]);
                 end
-                save(saveName, 'average_ccep', 'stimpair_names', 'tt', 'channel_names', 'good_channels', 'n1_peak_sample', 'n1_peak_amplitude')
+                save(saveName, 'average_ccep', 'stimpair_names', 'stimpair_currents', 'tt', 'channel_names', 'good_channels', 'n1_peak_sample', 'n1_peak_amplitude', 'unique_currents')
 
                 
                 
@@ -169,4 +172,3 @@ for iFile = 1:size(rootFiles, 1)
         end     % end if ieeg modality
     end     % end sessions loop
 end     % end subjects loop
-

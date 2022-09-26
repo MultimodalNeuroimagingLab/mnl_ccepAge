@@ -97,6 +97,8 @@ for iSubj = 1:length(subjects)
         ccepData(iSubj).run(iRun).channel_names      = runData.channel_names;
         ccepData(iSubj).run(iRun).stimpair_names     = runData.stimpair_names;
         ccepData(iSubj).run(iRun).good_channels      = runData.good_channels;
+        ccepData(iSubj).run(iRun).stimpair_currents  = runData.stimpair_currents;
+        ccepData(iSubj).run(iRun).unique_currents    = runData.unique_currents;
         % loading all average cceps here makes it very heavy on the memory, do this later
         %ccepData(kk).run(ll).average_ccep            = runData.average_ccep;
         ccepData(iSubj).run(iRun).tt                 = runData.tt;
@@ -189,6 +191,15 @@ if strcmp(s, 'y')
     save(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData')
 end
 
+
+%%
+% Display unqiue currents per subject and run
+
+for i = 1:length(ccepData)
+    for j = 1:length(ccepData(i).run)
+        disp(['subj ', num2str(i), ', run ', num2str(j), ', currents = ', char(strjoin(string(ccepData(i).run(j).unique_currents), '-'))]);
+    end
+end
 
 
 %% 
