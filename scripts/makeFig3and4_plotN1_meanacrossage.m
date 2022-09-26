@@ -219,7 +219,11 @@ for iTr = 1:length(rois)
             % make output figure
             %
             
-            figure('position',[0 0 600 300])
+            if strfind(rois(iTr).tract_name, '_U')
+                figure('position',[0 0 600 400])
+            else
+                figure('position',[0 0 600 300])
+            end
             hold on;
 
             % plot vertical histogram per subject in background
@@ -313,11 +317,19 @@ for iTr = 1:length(rois)
             
             % 
             if strcmpi(n1Type, 'speed')
-                xlim([0 60]), ylim([0 12]);
+                if strfind(rois(iTr).tract_name, '_U')
+                    xlim([0 60]), ylim([0 4]);
+                    set(gca, 'YTick', 0:1:4, 'FontName', 'Arial', 'FontSize', 12);
+                else
+                    xlim([0 60]), ylim([0 12]);
+                    set(gca, 'YTick', 0:4:12, 'FontName', 'Arial', 'FontSize', 12);
+                end
+                %set(gca, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
             else
                 xlim([0 60]), ylim([0 80]);
-                set(gca, 'XTick', 10:10:50, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
+                set(gca, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
             end
+            set(gca, 'XTick', 10:10:50, 'FontName', 'Arial', 'FontSize', 12);
             
             
             %
