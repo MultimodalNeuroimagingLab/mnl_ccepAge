@@ -1,15 +1,29 @@
 %   
-%   Extract the latencies and number of N1s/CCEPs between one stimulated ROI and a response ROI
+%   Extract the latencies and number of N1s between one stimulated ROI and a response ROI
 %   [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
 %
-%       ccepData        = ...
-%       roiStim         = An array of Destrieux codes that defines the ROI in which stimulation channels/electrodes will be included
-%       roiResp         = An array of Destrieux codes that defines the ROI in which response channels/electrodes will be included
+%       ccepData            = ...
+%       roiStim             = An array of Destrieux codes that defines the ROI in which stimulation channels/electrodes will be included
+%       roiResp             = An array of Destrieux codes that defines the ROI in which response channels/electrodes will be included
 % 
 %
 %   Returns: 
-%       out             = ...
+%       out                 = A struct with N1 metrics for all subjects, each row represents one subject
+%
+%       out(x).samples      = A vector that holds all the sample-indices of N1s that occured in the response electrodes (found to be on the response ROI). 
+%                             This vector concatenates values from all of the subject's runs and stim-pairs (of which one electrode is on the stimulus ROI)
+%
+%       out(x).latencies    = A vector that holds all the latencies of N1s that occured in the response electrodes (found to be on the response ROI). 
+%                             This vector concatenates values from all of the subject's runs and stim-pairs (of which one electrode is on the stimulus ROI)
+%
+%       out(x).numCCEPs     = A vector that - for each stim-pair - holds the number of N1s that occur in the response electrodes (found to be on the response ROI). 
+%                             This vector concatenates values from all of the subject's runs
 %   
+%       out(x).relCCEPs     = A vector that - for each stim-pair and within the set of response electrodes that are on the response ROI - holds the ratio
+%                             between the number of N1s and response electrodes. This vector concatenates values from all of the subject's runs
+%   
+
+% divide the number of N1s for this stim-pair by the number of response channels that are on the response ROI
 %
 %   Dora Hermes, Max van den Boom, Dorien van Blooijs, 2022
 %
@@ -18,16 +32,16 @@ function [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
     
     % loop over subjects
     for iSubj = 1:length(ccepData) 
-        out.sub(iSubj).age = ccepData(iSubj).age;
+        out(iSubj).age = ccepData(iSubj).age;
         
         % count the number of response electodes that are in the response ROI
-        out.sub(iSubj).numElecRespROI = sum(ismember(str2double(ccepData(iSubj).run(1).channel_DestrieuxNr), roiResp));
+        out(iSubj).numElecRespROI = sum(ismember(str2double(ccepData(iSubj).run(1).channel_DestrieuxNr), roiResp));
 
         % initialize connections as empty
-        out.sub(iSubj).samples      = [];
-        out.sub(iSubj).latencies    = [];
-        out.sub(iSubj).numCCEPs     = [];
-        out.sub(iSubj).relCCEPs     = [];
+        out(iSubj).samples      = [];
+        out(iSubj).latencies    = [];
+        out(iSubj).numCCEPs     = [];
+        out(iSubj).relCCEPs     = [];
 
         % loop over runs
         for iRun = 1:length(ccepData(iSubj).run)
@@ -45,29 +59,34 @@ function [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
                     % retrieve the region label for the channels with a N1 response
                     respChanDestrieux = str2double(ccepData(iSubj).run(iRun).channel_DestrieuxNr(respChans));
 
-                    % check if any of the electrodes with a N1 response is on the reponse ROI
+                    % check if any of the electrodes with a N1 response is on the response ROI
                     if any(ismember(respChanDestrieux, roiResp))
+                        % at least one electrode of the current stim-pair is on the stim-ROI and
+                        % at least one electrodes with a N1 response is on the response ROI
                         
                         % pick the N1 sample-indices of the channels that have an N1 response which are on the response ROI
                         n1SampleIndices = ccepData(iSubj).run(iRun).n1_peak_sample(respChans(ismember(respChanDestrieux, roiResp)), iStimpair);
 
-                        % store the N1 sample-indices in the output structure, as index and and as latency (in ms)
-                        out.sub(iSubj).samples = [out.sub(iSubj).samples; n1SampleIndices];
-                        out.sub(iSubj).latencies = [out.sub(iSubj).latencies ccepData(iSubj).run(iRun).tt(n1SampleIndices(~isnan(n1SampleIndices)))];
+                        % store the N1 sample-indices and latency (in ms) in the output structure
+                        out(iSubj).samples = [out(iSubj).samples; n1SampleIndices];
+                        out(iSubj).latencies = [out(iSubj).latencies ccepData(iSubj).run(iRun).tt(n1SampleIndices(~isnan(n1SampleIndices)))];
 
-                        % store the number of N1s/CCEPs per stimulus                   
-                        out.sub(iSubj).numCCEPs = [out.sub(iSubj).numCCEPs, size(n1SampleIndices, 1)];
+                        % store the number of N1s for this stim-pair
+                        out(iSubj).numCCEPs = [out(iSubj).numCCEPs, size(n1SampleIndices, 1)];
 
-                        % TODO: check if metric is used...
-                        % total number of electrodes on roi_end minus stimulated
-                        % electrodes on roi_end, because in stimulated
-                        % electrodes, no CCEP can be detected.
-                        % <number of response channels that are on the response ROI> / <number of the current stim-pair channels are on the response ROI>
-                        totCh_roi_end = sum(ismember(str2double(ccepData(iSubj).run(iRun).channel_DestrieuxNr), roiResp)) - ...
+                        
+                        %
+                        % relative number of CCEPs for this stim-pair
+                        %
+                        
+                        % get number of electrodes in the response ROI minus the number of stimulated electrodes 
+                        % on the response ROI (because in stimulated electrodes no CCEP can be detected)
+                        numRespCh = sum(ismember(str2double(ccepData(iSubj).run(iRun).channel_DestrieuxNr), roiResp)) - ...
                                         sum(ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr(iStimpair, :)), roiResp));
-
-                        % relative number of CCEPs per stimulus
-                        out.sub(iSubj).relCCEPs = [out.sub(iSubj).relCCEPs, size(n1SampleIndices, 1) / totCh_roi_end];
+                        
+                        % divide the number of N1s for this stim-pair by the number of response channels that are on the response ROI
+                        out(iSubj).relCCEPs = [out(iSubj).relCCEPs, size(n1SampleIndices, 1) / numRespCh];
+                        
                     end
                 end
             end

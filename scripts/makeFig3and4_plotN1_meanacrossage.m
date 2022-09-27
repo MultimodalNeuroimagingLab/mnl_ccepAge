@@ -37,41 +37,31 @@ for iTr = 1:length(rois)
         % direction along tract
         for iDir = [false true] 
             
-            % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
-            temp = ccep_connectRegions( ccepData, ...
-                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]), ...
-                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]));
-            out{iTr}{iSubTr}{iDir + 1} = temp;
-            
-            % construct sub-tract string
+            % construct sub-tract string (that includes the stim-resp direction) and store
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
-            
-            % store the tract and ROIs designations
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
             out{iTr}{iSubTr}{iDir + 1}.name = [rois(iTr).tract_name, ' - ', strSubTitle];
             
+            % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
+            out{iTr}{iSubTr}{iDir + 1}.metrics = ccep_connectRegions(   ccepData, ...
+                                                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]), ...
+                                                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]));
+            
             % add the native tract length 
-            for iSubj = 1:length(out{iTr}{iSubTr}{iDir + 1}.sub)
-                
-                
+            for iSubj = 1:length(out{iTr}{iSubTr}{iDir + 1}.metrics)
                 if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L')) && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R'))
                     % left and right
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
+                    out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
                     
                 elseif any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))
-                    % left
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
+                    % only left
+                    out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
                     
                 else
-                    % right
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
+                    % only right
+                    out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
                     
                 end
-                
             end
             
         end
@@ -84,35 +74,32 @@ end
 %  ...
 
 n1Type = 'Latency';
-n1Type = 'Speed';
+%n1Type = 'Speed';
 
 % loop over the (sub-)tracts and directions
 for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         for iDir = [false true]
 
-            % construct sub-tract string
+            % construct sub-tract string (that includes the stim-resp direction)
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
+
             %%
             % initialize output: age, mean, variance in latency, and number of connections per subject
-            nsubs = length(out{iTr}{iSubTr}{iDir + 1}.sub);
+            nsubs = length(out{iTr}{iSubTr}{iDir + 1}.metrics);
             subsValues = NaN(nsubs, 5);              % [subject, <age, mean latency, standard error, number of latency values, tract dist>]
 
             % retrieve the age, mean latency, standard error and number of latency values per subject
             for iSubj = 1:nsubs
-                subsValues(iSubj, 1) = out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age;
-                subsValues(iSubj, 2) = mean(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies, 'omitnan');
-                numLatencies = sum(~isnan(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies));
-                subsValues(iSubj, 3) = std(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies, 'omitnan') ./ sqrt(numLatencies);
+                subsValues(iSubj, 1) = out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).age;
+                subsValues(iSubj, 2) = mean(out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies, 'omitnan');
+                numLatencies = sum(~isnan(out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies));
+                subsValues(iSubj, 3) = std(out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies, 'omitnan') ./ sqrt(numLatencies);
                 subsValues(iSubj, 4) = numLatencies;
                 
                 % take the average distance of the tract in the left and right hemisphere
-                subsValues(iSubj, 5) = out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist;
+                subsValues(iSubj, 5) = out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist;
                 
                 clear numLatencies nativeTractDist
             end
@@ -210,13 +197,13 @@ for iTr = 1:length(rois)
                 
                 if ~isnan(subsValues(iSubj, 2))
                     if strcmpi(n1Type, 'speed')
-                        distributionPlot(.001 * out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist ./ out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
-                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age, ...
+                        distributionPlot(.001 * out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist ./ out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies', ...
+                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).age, ...
                                         'color', [.8 .8 .8], 'showMM', 0, 'histOpt', 2)
                     else
 
-                        distributionPlot(1000 * out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
-                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age, ...
+                        distributionPlot(1000 * out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies', ...
+                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).age, ...
                                         'color', [.8 .8 .8], 'showMM', 0, 'histOpt', 2)
                     end
                 end
@@ -258,6 +245,7 @@ for iTr = 1:length(rois)
                 out{iTr}{iSubTr}{iDir + 1}.fit = 'second';
                 out{iTr}{iSubTr}{iDir + 1}.delta = diff(out{iTr}{iSubTr}{iDir + 1}.second_avparams(1) * delta_ages .^ 2 + out{iTr}{iSubTr}{iDir + 1}.second_avparams(2) * delta_ages + out{iTr}{iSubTr}{iDir + 1}.second_avparams(3)) / 10;
                 out{iTr}{iSubTr}{iDir + 1}.cod = out{iTr}{iSubTr}{iDir + 1}.cod_out(2);
+                
             end
 
             
