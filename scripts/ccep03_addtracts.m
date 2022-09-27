@@ -40,7 +40,6 @@ else
     % loop over the subjects
     for iSubj = 1:length(ccepData)
         fprintf('Load subj %d of %d (%s)\n', iSubj, length(ccepData), ccepData(iSubj).id);
-        tic
         
         subjFSDir   = fullfile(myDataPath.input, 'derivatives', 'freesurfer', ccepData(iSubj).id);
         subjElecDir = fullfile(myDataPath.input, 'derivatives', 'native_electrodes', ccepData(iSubj).id);
@@ -296,7 +295,6 @@ else
             
         end     % end of tract loop
         
-    toc
     end     % end subjects loop
     
 end
