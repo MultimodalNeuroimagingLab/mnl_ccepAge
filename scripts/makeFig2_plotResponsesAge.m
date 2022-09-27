@@ -348,11 +348,7 @@ for iTr = 1:length(rois)
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
             
             figure('Position',[0 0 600 300]);
             s = histogram(numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1});
@@ -391,11 +387,8 @@ for iTr = 1:length(rois)
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
+            
             
             %
             % each sub-tract/direction is one column (3 plots per column)
@@ -504,11 +497,7 @@ for iTr = 1:length(rois)
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
             
             if length(sortAge{iTr}{iSubTr}{iDir + 1}.age) > 0
                 
