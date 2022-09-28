@@ -2,9 +2,13 @@
 %  Script to add the (sub-)tracts lines and distance between the end-point ROIs
 %
 %
-%   Note: For Linux and Mac, execute permissions might need to be set for
-%         the leadDBS binary files ('/leadDBS/ext_libs/ANTs').
-%         Navigate to that folder in the terminal and run 'chmod u+x antsApplyTransformsToPoints.*'
+%   Note:   This script requires the freesurfer output of the individual subjects to run. Unfortunately, for privacy
+%           reasons, we are not allowed to share the freesurfer output files. Instead, the file that this script would
+%           produce, ccepData_V2.mat, is shared and can be used directly in the subsequent scripts
+%
+%   Note 2: For Linux and Mac, execute permissions might need to be set for
+%           the leadDBS binary files ('/leadDBS/ext_libs/ANTs').
+%           Navigate to that folder in the terminal and run 'chmod u+x antsApplyTransformsToPoints.*'
 %
 %   Max van den Boom, MultimodalNeuroimaging Lab (MNL), 2022
 %
