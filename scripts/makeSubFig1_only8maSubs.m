@@ -1,7 +1,9 @@
 % ccep06_only8mASubs
 % this is an extra analysis to make sure that the variable pulse current
-% (4mA/8mA or not known) does not have a great impact on the results. 
+% (1-8mA or not known) does not have a great impact on the results. 
 % We only include data of subjects of which we are certain that 8mA was applied.
+
+%   Dorien van Blooijs, UMCU 2021
 
 %% load all N1 latencies
 clear 
@@ -12,17 +14,18 @@ myDataPath = setLocalDataPath(1);
 % get a list of datasets
 theseSubs = ccep_getSubFilenameInfo(myDataPath);
 
-if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
+if exist(fullfile(myDataPath.output,'derivatives','av_ccep','ccepData_V1.mat'),'file')
     
-    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+    % if the ccepData_V1.mat was saved after running ccep02_loadN1, load
+    % the ccepData structure here
+    load(fullfile(myDataPath.output,'derivatives','av_ccep','ccepData_V1.mat'))
 else
     disp('Run first ccep02_loadN1.mat')
 end
 
 %% include only the runs in which we are certain that 8mA was applied.
 
-n1Latencies8ma = struct;
+ccepData8ma = struct;
 
 CountSub = 1;
 for n=1:size(theseSubs,2)
@@ -51,11 +54,11 @@ for n=1:size(theseSubs,2)
         if all(~contains(events_tsv.notes(idx),'Stimulation intensity is suggested to be 0.008 A but may differ when applied in eloquent tissue')) && ...
                 all(stimcur == 0.008)
             
-            n1Latencies8ma(CountSub).id        = n1Latencies(n).id;
-            n1Latencies8ma(CountSub).ses       = n1Latencies(n).ses;
-            n1Latencies8ma(CountSub).age       = n1Latencies(n).age;
-            n1Latencies8ma(CountSub).elecs_tsv = n1Latencies(n).elecs_tsv;
-            n1Latencies8ma(CountSub).run(CountRun) = n1Latencies(n).run(m);  
+            ccepData8ma(CountSub).id        = ccepData(n).id;
+            ccepData8ma(CountSub).ses       = ccepData(n).ses;
+            ccepData8ma(CountSub).age       = ccepData(n).age;
+            ccepData8ma(CountSub).electrodes = ccepData(n).electrodes;
+            ccepData8ma(CountSub).run(CountRun) = ccepData(n).run(m);  
             
             CountRun = CountRun +1;
             if m == size(theseSubs(n).run,2)
@@ -69,15 +72,15 @@ end
 %% plot means for all subjects and the ones with only 8mA
 
 % initialize output: age, mean and variance in latency per subject
-my_output_all = NaN(length(n1Latencies)-1,3);
-my_output_8ma = NaN(length(n1Latencies8ma)-1,3);
+my_output_all = NaN(length(ccepData)-1,3);
+my_output_8ma = NaN(length(ccepData8ma)-1,3);
 
 % get variable per subject --> all subjects
-for kk = 1:length(n1Latencies)
-    my_output_all(kk,1) = n1Latencies(kk).age;
+for kk = 1:length(ccepData)
+    my_output_all(kk,1) = ccepData(kk).age;
     allLatenciesall = [];
-    for ll = 1:length(n1Latencies(kk).run)
-        allLatenciesall = [allLatenciesall n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
+    for ll = 1:length(ccepData(kk).run)
+        allLatenciesall = [allLatenciesall ccepData(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output_all(kk,2) = mean(allLatenciesall);
     my_output_all(kk,3) = var(allLatenciesall);
@@ -85,11 +88,11 @@ for kk = 1:length(n1Latencies)
 end
 
 % get variable per subject --> only 8mA
-for kk = 1:length(n1Latencies8ma)
-    my_output_8ma(kk,1) = n1Latencies8ma(kk).age;
+for kk = 1:length(ccepData8ma)
+    my_output_8ma(kk,1) = ccepData8ma(kk).age;
     allLatencies8ma = [];
-    for ll = 1:length(n1Latencies8ma(kk).run)
-        allLatencies8ma = [allLatencies8ma n1Latencies8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
+    for ll = 1:length(ccepData8ma(kk).run)
+        allLatencies8ma = [allLatencies8ma ccepData8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output_8ma(kk,2) = mean(allLatencies8ma);
     my_output_8ma(kk,3) = var(allLatencies8ma);
@@ -137,14 +140,14 @@ print('-depsc','-r300',figureName)
 %% plot means, var etc
 
 % initialize output: age, mean and variance in latency per subject
-my_output = NaN(length(n1Latencies8ma)-1,3);
+my_output = NaN(length(ccepData8ma)-1,3);
 
 % get variable per subject
-for kk = 1:length(n1Latencies8ma)
-    my_output(kk,1) = n1Latencies8ma(kk).age;
+for kk = 1:length(ccepData8ma)
+    my_output(kk,1) = ccepData8ma(kk).age;
     allLatencies = [];
-    for ll = 1:length(n1Latencies8ma(kk).run)
-        allLatencies = [allLatencies n1Latencies8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
+    for ll = 1:length(ccepData8ma(kk).run)
+        allLatencies = [allLatencies ccepData8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
     end
     my_output(kk,2) = mean(allLatencies);
     my_output(kk,3) = var(allLatencies);
@@ -198,7 +201,7 @@ title(['r=' num2str(r,3) ' p=' num2str(p,3)])
 % optional save the n1Latencies structure, add more fields later as neccesary
 s = input('Do you want to save the n1Latencies structure with subjects in whom only 8mA stimulation is applied? [y/n]: ','s');
 if strcmp(s,'y')
-    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
+    save(fullfile(myDataPath.output,'derivatives','av_ccep','ccepData_V1_8ma.mat'),'ccepData8ma')
 end
 
 % run makeFig2_plotResponsesAge
