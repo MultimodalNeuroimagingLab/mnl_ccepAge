@@ -71,7 +71,7 @@ end
 
 
 %%
-%  ...
+%   Generate the images for figure 2 and 3
 
 n1Type = 'Latency';
 %n1Type = 'Speed';
@@ -181,7 +181,7 @@ for iTr = 1:length(rois)
             
             
             %
-            % make output figure
+            % make output figures
             %
             
             if strfind(rois(iTr).tract_name, '_U')

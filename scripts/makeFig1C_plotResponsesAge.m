@@ -26,12 +26,10 @@ end
 
 
 %% 
-%  2. Load ccep responses and categorize into connections from stimulated region to responding regions
+%  2. Load CCEP responses and categorize into connections from stimulated region to responding regions
 %
-%  the CCEPs are averaged for each run, and then averaged CCEPs per patient
-%  are collected for all subjects. Multiple subjects with the same age are
-%  collected for each age (subjectResponses_nonnorm) and normalized
-%  (subjectResponses)
+%  the N1s are averaged for each run, and then averaged N1s per patient are collected for all subjects. 
+%  Multiple subjects with the same age are collected for each age (subjectResponses_nonnorm) and normalized (subjectResponses)
 
 if exist(filename_averageCCEP, 'file')
     load(filename_averageCCEP);
@@ -218,22 +216,22 @@ end
 
 
 %%
-%  3. sort all cceps for each region to another region according to age
+%  3. Sort CCEPs and their properties according to age (for each connection)
 %
-%  Note: this does not average any cceps when there are multiple subjects at the same age.
+%  Note: this does not average anything over multiple subjects at the same age.
 %
 
-sortAge = {};
+sortedCCEPs = {};
 numSubjectsWithROICoverage = {};
 for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         for iDir = [false true]
-            sortAge{iTr}{iSubTr}{iDir + 1}.averageResp = [];
-            sortAge{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [];
-            sortAge{iTr}{iSubTr}{iDir + 1}.age = [];
-            sortAge{iTr}{iSubTr}{iDir + 1}.averageN1 = [];
-            sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength = [];
-            sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1 = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength = [];
             numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1} = [];
         end
     end
@@ -249,38 +247,38 @@ for iTr = 1:length(rois)
                 for iDir = [false true]
                     
                     % 
-                    addThis = squeeze(subjectResponses{iTr}{iSubTr}{age}(iDir + 1, :, :));                 % [subjects, samples]
-                    addThisNonnorm = squeeze(subjectResponses_nonnorm{iTr}{iSubTr}{age}(iDir + 1, :, :));  % [subjects, samples]
-                    addN1 = squeeze(subjectN1s{iTr}{iSubTr}{age}(iDir + 1, :));                            % [subjects]
-                    LTrkLength = average_L_trk_length{iTr}{iSubTr}{age};                                   % [subjects]         (note, no direction in average_L_trk_length, since same length)
-                    RTrkLength = average_R_trk_length{iTr}{iSubTr}{age};                                   % [subjects]         (note, no direction in average_R_trk_length, since same length)
+                    ageResponse = squeeze(subjectResponses{iTr}{iSubTr}{age}(iDir + 1, :, :));                 % [subjects, samples]
+                    ageResponseNonnorm = squeeze(subjectResponses_nonnorm{iTr}{iSubTr}{age}(iDir + 1, :, :));  % [subjects, samples]
+                    ageN1 = squeeze(subjectN1s{iTr}{iSubTr}{age}(iDir + 1, :));                                % [subjects]
+                    ageLTrkLength = average_L_trk_length{iTr}{iSubTr}{age};                                    % [subjects]         (note, no direction in average_L_trk_length, since same length)
+                    ageRTrkLength = average_R_trk_length{iTr}{iSubTr}{age};                                    % [subjects]         (note, no direction in average_R_trk_length, since same length)
                     
                     % if squeeze changed the orientation of the matrix, undo
-                    if size(addThis, 1) > size(addThis, 2)
-                        addThis = addThis';
-                        addThisNonnorm = addThisNonnorm';
+                    if size(ageResponse, 1) > size(ageResponse, 2)
+                        ageResponse = ageResponse';
+                        ageResponseNonnorm = ageResponseNonnorm';
                     end
                     
-                    % determine if there are nans (meaning no cceps - for subjects - and between a specific tract, sub-tract and direction)
-                    excludeCCEPs = find(isnan(addThis(:, 1)));
-                    addThis(excludeCCEPs, :) = [];
-                    addThisNonnorm(excludeCCEPs, :) = [];
-                    addN1(excludeCCEPs) = [];
-                    LTrkLength(excludeCCEPs) = [];
-                    RTrkLength(excludeCCEPs) = [];
+                    % determine if there are nans (meaning no N1s - for subjects - and between a specific tract, sub-tract and direction)
+                    excludeN1s = find(isnan(ageResponse(:, 1)));
+                    ageResponse(excludeN1s, :) = [];
+                    ageResponseNonnorm(excludeN1s, :) = [];
+                    ageN1(excludeN1s) = [];
+                    ageLTrkLength(excludeN1s) = [];
+                    ageRTrkLength(excludeN1s) = [];
                     
-                    if ~isempty(addThis) % there are subjects with electrodes on ROI
-                        nr_subs = size(addThis, 1);
+                    if ~isempty(ageResponse) % there are subjects with electrodes on ROI
+                        nr_subs = size(ageResponse, 1);
                         
                         numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1} = [numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1}, (zeros(1, nr_subs) + age)];
 
-                        sortAge{iTr}{iSubTr}{iDir + 1}.averageResp = [sortAge{iTr}{iSubTr}{iDir + 1}.averageResp; addThis];                               % [all subjects, samples]
-                        sortAge{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [sortAge{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm; addThisNonnorm];        % [all subjects, samples]
-                        sortAge{iTr}{iSubTr}{iDir + 1}.averageN1 = [sortAge{iTr}{iSubTr}{iDir + 1}.averageN1, addN1];                                     % [all subjects]
-                        sortAge{iTr}{iSubTr}{iDir + 1}.age = [sortAge{iTr}{iSubTr}{iDir + 1}.age, zeros(1, nr_subs) + age];                               % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp; ageResponse];                               % [all subjects, samples]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm; ageResponseNonnorm];        % [all subjects, samples]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1 = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1, ageN1];                                         % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age, zeros(1, nr_subs) + age];                                   % [all subjects]
                         
-                        sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength = [sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, LTrkLength];                            % [all subjects]
-                        sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength = [sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength, RTrkLength];                            % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength, ageLTrkLength];                            % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength, ageRTrkLength];                            % [all subjects]
                         
                         clear addThis addThisNonnorm addN1 LTrkLength RTrkLength
                     end
@@ -316,8 +314,8 @@ for iTr = 1:length(rois)
         
         for iDir = [false true]
             
-            n1Latencies = 1000 * sortAge{iTr}{iSubTr}{iDir + 1}.averageN1;
-            age = sortAge{iTr}{iSubTr}{iDir + 1}.age;
+            n1Latencies = 1000 * sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1;
+            age = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
             
             % check if there are at least two subjects to correlate age and latency
             if numel(age) < 2
@@ -374,7 +372,6 @@ end
 
 % loop over the tracts
 for iTr = 1:length(rois)
-%for iTr = 1:1
 
     %
     % each tract is one figure
@@ -399,8 +396,8 @@ for iTr = 1:length(rois)
             
             % age vs mean latency
             subplot(3, length(rois(iTr).sub_tract) * 2, plotIndex);
-            x = sortAge{iTr}{iSubTr}{iDir + 1}.age;
-            y = 1000 * sortAge{iTr}{iSubTr}{iDir + 1}.averageN1;
+            x = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
+            y = 1000 * sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1;
             plot(x, y, '.')
             if iSubTr == 1 && iDir == 0
                 ylabel('latency (ms)');
@@ -419,8 +416,8 @@ for iTr = 1:length(rois)
             % age vs tract length
             subplot(3, length(rois(iTr).sub_tract) * 2, length(rois(iTr).sub_tract) * 2 + plotIndex);
             
-            x = sortAge{iTr}{iSubTr}{iDir + 1}.age;
-            y = mean([sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength; sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan');
+            x = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
+            y = mean([sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength; sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan');
             x(isnan(y)) = [];
             y(isnan(y)) = [];
             
@@ -441,9 +438,9 @@ for iTr = 1:length(rois)
             % age vs speed
             subplot(3, length(rois(iTr).sub_tract) * 2, 2 * length(rois(iTr).sub_tract) * 2 + plotIndex);
             
-            x = sortAge{iTr}{iSubTr}{iDir + 1}.age;
-            y = mean([sortAge{iTr}{iSubTr}{iDir + 1}.L_trkLength, sortAge{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan') ./ ...
-                (1000 * sortAge{iTr}{iSubTr}{iDir + 1}.averageN1);
+            x = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
+            y = mean([sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength, sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan') ./ ...
+                (1000 * sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1);
             x(isnan(y)) = [];
             y(isnan(y)) = [];
             
@@ -489,28 +486,25 @@ ttmin = 0.010;
 ttmax = .100;
 
 for iTr = 1:length(rois)
-%for iTr = 1:1
     for iSubTr = 1:length(rois(iTr).sub_tract)
-    %for iSubTr = 1:1
         for iDir = [false true]
-        %for iDir = [false]
             
             % construct sub-tract string
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
             strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
             
-            if length(sortAge{iTr}{iSubTr}{iDir + 1}.age) > 0
+            if ~isempty(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age)
                 
                 %
                 figure('Position',[0 0 600 300])
                 hold on;
 
                 imagesc(1000 * tt(tt > ttmin & tt < ttmax), ...
-                        1:length(sortAge{iTr}{iSubTr}{iDir + 1}.age), ...
-                        -sortAge{iTr}{iSubTr}{iDir + 1}.averageResp(:, tt > ttmin & tt < ttmax), ...
+                        1:length(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age), ...
+                        -sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp(:, tt > ttmin & tt < ttmax), ...
                         [-0.1 0.1]);
 
-                plot(1000 * sortAge{iTr}{iSubTr}{iDir + 1}.averageN1, 1:length(sortAge{iTr}{iSubTr}{iDir + 1}.age), 'k.')
+                plot(1000 * sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1, 1:length(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age), 'k.')
                 colormap(parula)
                 hold on
                 set(gca,'XTick',20:20:80,'YTick',[])

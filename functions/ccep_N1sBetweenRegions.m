@@ -19,7 +19,7 @@
 %       out(x).numN1s       = A vector that - for each stim-pair - holds the number of N1s that occur in the response electrodes (found to be on the response ROI). 
 %                             This vector concatenates values from all of the subject's runs
 %   
-%       out(x).relNumN1s     = A vector that - for each stim-pair and within the set of response electrodes that are on the response ROI - holds the ratio
+%       out(x).ratioN1s     = A vector that - for each stim-pair and within the set of response electrodes that are on the response ROI - holds the ratio
 %                             between the number of N1s and response electrodes. This vector concatenates values from all of the subject's runs
 %  
 %
@@ -39,7 +39,7 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp)
         out(iSubj).samples      = [];
         out(iSubj).latencies    = [];
         out(iSubj).numN1s       = [];
-        out(iSubj).relNumN1s    = [];
+        out(iSubj).ratioN1s    = [];
 
         % loop over runs
         for iRun = 1:length(ccepData(iSubj).run)
@@ -83,7 +83,7 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp)
                                         sum(ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr(iStimpair, :)), roiResp));
                         
                         % divide the number of N1s for this stim-pair by the number of response channels that are on the response ROI
-                        out(iSubj).relNumN1s = [out(iSubj).relNumN1s, size(n1SampleIndices, 1) / numRespCh];
+                        out(iSubj).ratioN1s = [out(iSubj).ratioN1s, size(n1SampleIndices, 1) / numRespCh];
                         
                     end
                 end
