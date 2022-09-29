@@ -1,6 +1,6 @@
 %   
 %   Extract the latencies and (relative) number of N1s between one stimulated ROI and a response ROI
-%   [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
+%   [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp)
 %
 %       ccepData            = ...
 %       roiStim             = An array of Destrieux codes that defines the ROI in which stimulation channels/electrodes will be included
@@ -21,13 +21,11 @@
 %   
 %       out(x).relNumN1s     = A vector that - for each stim-pair and within the set of response electrodes that are on the response ROI - holds the ratio
 %                             between the number of N1s and response electrodes. This vector concatenates values from all of the subject's runs
-%   
-
-% divide the number of N1s for this stim-pair by the number of response channels that are on the response ROI
+%  
 %
 %   Dora Hermes, Max van den Boom, Dorien van Blooijs, 2022
 %
-function [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
+function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp)
     out = struct;
     
     % loop over subjects
@@ -40,8 +38,8 @@ function [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
         % initialize connections as empty
         out(iSubj).samples      = [];
         out(iSubj).latencies    = [];
-        out(iSubj).numN1s     = [];
-        out(iSubj).relNumN1s     = [];
+        out(iSubj).numN1s       = [];
+        out(iSubj).relNumN1s    = [];
 
         % loop over runs
         for iRun = 1:length(ccepData(iSubj).run)
