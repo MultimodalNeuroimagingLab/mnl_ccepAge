@@ -1,5 +1,5 @@
 %   
-%   Extract the latencies and number of N1s between one stimulated ROI and a response ROI
+%   Extract the latencies and (relative) number of N1s between one stimulated ROI and a response ROI
 %   [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
 %
 %       ccepData            = ...
@@ -16,10 +16,10 @@
 %       out(x).latencies    = A vector that holds all the latencies of N1s that occured in the response electrodes (found to be on the response ROI). 
 %                             This vector concatenates values from all of the subject's runs and stim-pairs (of which one electrode is on the stimulus ROI)
 %
-%       out(x).numCCEPs     = A vector that - for each stim-pair - holds the number of N1s that occur in the response electrodes (found to be on the response ROI). 
+%       out(x).numN1s       = A vector that - for each stim-pair - holds the number of N1s that occur in the response electrodes (found to be on the response ROI). 
 %                             This vector concatenates values from all of the subject's runs
 %   
-%       out(x).relCCEPs     = A vector that - for each stim-pair and within the set of response electrodes that are on the response ROI - holds the ratio
+%       out(x).relNumN1s     = A vector that - for each stim-pair and within the set of response electrodes that are on the response ROI - holds the ratio
 %                             between the number of N1s and response electrodes. This vector concatenates values from all of the subject's runs
 %   
 
@@ -40,8 +40,8 @@ function [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
         % initialize connections as empty
         out(iSubj).samples      = [];
         out(iSubj).latencies    = [];
-        out(iSubj).numCCEPs     = [];
-        out(iSubj).relCCEPs     = [];
+        out(iSubj).numN1s     = [];
+        out(iSubj).relNumN1s     = [];
 
         % loop over runs
         for iRun = 1:length(ccepData(iSubj).run)
@@ -72,20 +72,20 @@ function [out] = ccep_connectRegions(ccepData, roiStim, roiResp)
                         out(iSubj).latencies = [out(iSubj).latencies ccepData(iSubj).run(iRun).tt(n1SampleIndices(~isnan(n1SampleIndices)))];
 
                         % store the number of N1s for this stim-pair
-                        out(iSubj).numCCEPs = [out(iSubj).numCCEPs, size(n1SampleIndices, 1)];
+                        out(iSubj).numN1s = [out(iSubj).numN1s, size(n1SampleIndices, 1)];
 
                         
                         %
-                        % relative number of CCEPs for this stim-pair
+                        % relative number of N1s for this stim-pair
                         %
                         
                         % get number of electrodes in the response ROI minus the number of stimulated electrodes 
-                        % on the response ROI (because in stimulated electrodes no CCEP can be detected)
+                        % on the response ROI (because in stimulated electrodes no N1 can be detected)
                         numRespCh = sum(ismember(str2double(ccepData(iSubj).run(iRun).channel_DestrieuxNr), roiResp)) - ...
                                         sum(ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr(iStimpair, :)), roiResp));
                         
                         % divide the number of N1s for this stim-pair by the number of response channels that are on the response ROI
-                        out(iSubj).relCCEPs = [out(iSubj).relCCEPs, size(n1SampleIndices, 1) / numRespCh];
+                        out(iSubj).relNumN1s = [out(iSubj).relNumN1s, size(n1SampleIndices, 1) / numRespCh];
                         
                     end
                 end
