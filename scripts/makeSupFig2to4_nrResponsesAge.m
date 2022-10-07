@@ -1,7 +1,6 @@
-% This script determines the number of N1s per age, and divides them into different regions. A figure is made
-% showing the (non-)existing correlation between age and number of N1s for each stimulated and responding
-% region (temporal, parietal, frontal and central)
-
+%
+% This script produces supplementary figures 2-5
+%
 % Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 
 clear
@@ -21,54 +20,6 @@ end
 
 % load tracts and their corresponding end-point ROIs
 rois = ccep_categorizeAnatomicalRegions();
-
-
-%{
-%% 
-%  Figure number of N1s per stimulus pair
-
-% initialize output: age, mean and variance in latency per subject
-output = NaN(length(ccepData), 3);
-
-% get variable per subject
-for iSubj = 1:length(ccepData)
-    output(iSubj, 1) = ccepData(iSubj).age;
-    allN1s = [];
-    for iRun = 1:length(ccepData(iSubj).run)
-        goodchan = length(ccepData(iSubj).run(iRun).good_channels);
-        
-        % calculate for each stim-pair the ratio of #N1s per #channels
-        allN1s = [allN1s sum(~isnan(ccepData(iSubj).run(iRun).n1_peak_sample(ccepData(iSubj).run(iRun).good_channels, :))) / goodchan];
-    end
-    output(iSubj, 2) = mean(allN1s);
-    output(iSubj, 3) = var(allN1s);
-    clear allN1s
-end
-
-% generate the figure
-figure
-subplot(2, 1, 1),
-plot(output(:, 1),output(:, 2), '.')
-xlabel('age (years)'), ylabel('relative mean #N1s')
-[r, p] = corr(output(:, 1),output(:, 2), 'Type', 'Spearman');
-title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
-
-subplot(2, 1, 2),
-plot(output(:, 1), output(:, 3), '.')
-xlabel('age (years)'), ylabel('relative variance in #N1s')
-[r, p] = corr(output(:, 1),output(:, 3), 'Type', 'Spearman');
-title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
-
-sgtitle('Spearman correlation between age and #N1s')
-
-% store the figure
-%{
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'corrAgeVsNumber_N1');
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
-%}
-%}
 
 
 
@@ -265,6 +216,6 @@ end
 set(gca, 'XTick', 20:20:100)
 
 figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS4_MeanVsVariance_N1');
-set(gcf,'PaperPositionMode', 'auto')
-print('-dpng', '-r300', figureName)
-print('-depsc', '-r300', figureName)
+set(gcf,'PaperPositionMode', 'auto');
+print('-dpng', '-r300', figureName);
+print('-depsc', '-r300', figureName);

@@ -496,7 +496,7 @@ for iTr = 1:length(rois)
             if ~isempty(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age)
                 
                 %
-                figure('Position',[0 0 600 300])
+                figure('Position', [0 0 600 300])
                 hold on;
 
                 imagesc(1000 * tt(tt > ttmin & tt < ttmax), ...

@@ -247,7 +247,6 @@ for iTr = 1:length(rois)
         roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2);
         
         % open the MNI pial
-        tic
         hFig = figure;
         set(hFig, 'Visible', 'off');
         %tH = ieeg_RenderGifti(gl);
@@ -311,7 +310,6 @@ for iTr = 1:length(rois)
         set(hFig, 'Visible', 'on');
         print('-dpng', '-r300', figureName)
         close(hFig)
-        toc
         
     end
 end
