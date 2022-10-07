@@ -1,205 +1,203 @@
-% ccep06_only8mASubs
-% this is an extra analysis to make sure that the variable pulse current
-% (4mA/8mA or not known) does not have a great impact on the results. 
-% We only include data of subjects of which we are certain that 8mA was applied.
+%
+% This script outputs supplementary figure 1, ...
+%
+% Dorien van Blooijs, Max van den Boom, 2022
 
-%% load all N1 latencies
-clear 
+clear
 close all
+clc
+
+minDataPoints = 10;     % minimum data-points to correlate and linear-fit
+
+%% 
+%  Load the CCEP data from the derivatives
 
 myDataPath = setLocalDataPath(1);
-
-% get a list of datasets
-theseSubs = ccep_getSubFilenameInfo(myDataPath);
-
-if exist(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'file')
-    
-    % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-    load(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_V1.mat'),'n1Latencies')
+if exist(fullfile(myDataPath.output,'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'file')
+    load(fullfile(myDataPath.output,'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData')
 else
-    disp('Run first ccep02_loadN1.mat')
+    disp('Run scripts ccep02_loadN1.m first')
 end
 
-%% include only the runs in which we are certain that 8mA was applied.
 
-n1Latencies8ma = struct;
 
-CountSub = 1;
-for n=1:size(theseSubs,2)
-    CountRun = 1;
-    
-    for m = 1:size(theseSubs(n).run,2)
+%% 
+%  ...
+
+all_unique_currents =[];
+all_currents = struct();
+
+for iSubj = 1:length(ccepData)
+    subject_unique_currents = [];
+    subject_currents = struct();
+
+    for iRun = 1:length(ccepData(iSubj).run)
         
-        % load events.tsv
-        events_tsv = read_tsv(fullfile(myDataPath.input, theseSubs(n).name, theseSubs(n).ses,'ieeg',...
-            replace(theseSubs(n).run{m},'_averageCCEPs.mat','_events.tsv')));
+        % variables to store the currents and latencies for each run
+        run_unique_currents = [];
+        run_currents = struct();
+        
+        % loop over the stim-pairs
+        for iStimpair = 1:length(ccepData(iSubj).run(iRun).stimpair_currents)
+            current = ccepData(iSubj).run(iRun).stimpair_currents{iStimpair} * 1000;
+            
+            if length(current) > 1
+                warning('backtrace', 'off')
+                warning(['Multiple currents on single stim-pair (subj ', ccepData(iSubj).id, ', run ', num2str(iRun), ', stimpair ', num2str(iStimpair), ' - ' , ccepData(iSubj).run(iRun).stimpair_names{iStimpair}, '), skipping']);
+                continue;
+            else
                 
-        % find events of stimulation
-        idx =  ismember(events_tsv.sub_type,{'SPES','SPESclin'}) & ismember(events_tsv.trial_type,{'electrical_stimulation'});
-        
-        if sum(idx) == 0
-           warning('%s does not have any stimulation events',replace(theseSubs(n).run{m},'_averageCCEPs.mat','_events.tsv'))
-        end
-        
-        if iscell(events_tsv.electrical_stimulation_current)
-            stimcur = str2double(events_tsv.electrical_stimulation_current(idx));
-        else
-            stimcur = events_tsv.electrical_stimulation_current(idx);
-        end
-        
-        % include only the runs with 8mA that are certain
-        if all(~contains(events_tsv.notes(idx),'Stimulation intensity is suggested to be 0.008 A but may differ when applied in eloquent tissue')) && ...
-                all(stimcur == 0.008)
-            
-            n1Latencies8ma(CountSub).id        = n1Latencies(n).id;
-            n1Latencies8ma(CountSub).ses       = n1Latencies(n).ses;
-            n1Latencies8ma(CountSub).age       = n1Latencies(n).age;
-            n1Latencies8ma(CountSub).elecs_tsv = n1Latencies(n).elecs_tsv;
-            n1Latencies8ma(CountSub).run(CountRun) = n1Latencies(n).run(m);  
-            
-            CountRun = CountRun +1;
-            if m == size(theseSubs(n).run,2)
-                    CountSub = CountSub +1;
+                % ensurure the existence of a field for the this current in this run
+                run_unique_currents = [run_unique_currents; current];
+                if ~isfield(run_currents, ['mA', num2str(current)])
+                    run_currents.(['mA', num2str(current)]) = [];
+                end
+                
+                % retrieve the (non-NaN) latencies for this pair (in samples) and convert them to seconds (from stim onset)
+                lat = ccepData(iSubj).run(iRun).n1_peak_sample(~isnan(ccepData(iSubj).run(iRun).n1_peak_sample(:, iStimpair)), iStimpair);
+                lat = ccepData(iSubj).run(iRun).tt(lat);
+                
+                % store the latencies for this stim-pair
+                run_currents.(['mA', num2str(current)]) = [run_currents.(['mA', num2str(current)]), lat];
+                %run_currents.(['mA', num2str(current)]) = [run_currents.(['mA', num2str(current)]), mean(lat)];
+                
+                clear lat
             end
         end
+        run_unique_currents = unique(run_unique_currents);
+        
+        % add the run to the subject
+        for iCurrent = 1:length(run_unique_currents)
+            
+            % ensure the existence of a field for this current for this subject
+            subject_unique_currents = [subject_unique_currents; run_unique_currents(iCurrent)];
+            if ~isfield(subject_currents, ['mA', num2str(run_unique_currents(iCurrent))])
+                subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]) = [];
+            end
+            
+            % store the latencies for this subject
+            %subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]) = [subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]), ...
+            %                                                run_currents.(['mA', num2str(run_unique_currents(iCurrent))])];
+            subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]) = [subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]), ...
+                                                            mean(run_currents.(['mA', num2str(run_unique_currents(iCurrent))]))];
+            
+        end
+        
+        clear run_unique_currents run_currents;   
         
     end
-end
+    subject_unique_currents = unique(subject_unique_currents);
+    
 
-%% plot means for all subjects and the ones with only 8mA
-
-% initialize output: age, mean and variance in latency per subject
-my_output_all = NaN(length(n1Latencies)-1,3);
-my_output_8ma = NaN(length(n1Latencies8ma)-1,3);
-
-% get variable per subject --> all subjects
-for kk = 1:length(n1Latencies)
-    my_output_all(kk,1) = n1Latencies(kk).age;
-    allLatenciesall = [];
-    for ll = 1:length(n1Latencies(kk).run)
-        allLatenciesall = [allLatenciesall n1Latencies(kk).run(ll).allLatencies]; %#ok<AGROW>
+    % take the mean latency over each current
+    for iCurrent = 1:length(subject_unique_currents)
+        subject_currents.(['mA', num2str(subject_unique_currents(iCurrent))]) = mean(subject_currents.(['mA', num2str(subject_unique_currents(iCurrent))]));
     end
-    my_output_all(kk,2) = mean(allLatenciesall);
-    my_output_all(kk,3) = var(allLatenciesall);
-    clear allLatenciesall
-end
-
-% get variable per subject --> only 8mA
-for kk = 1:length(n1Latencies8ma)
-    my_output_8ma(kk,1) = n1Latencies8ma(kk).age;
-    allLatencies8ma = [];
-    for ll = 1:length(n1Latencies8ma(kk).run)
-        allLatencies8ma = [allLatencies8ma n1Latencies8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
+    
+    % add the subject to the global collection
+    for iCurrent = 1:length(subject_unique_currents)
+        %disp(['subj ', num2str(iSubj), ' - current ', num2str(subject_unique_currents(iCurrent)), ' - lat ', num2str(subject_currents.(['mA', num2str(subject_unique_currents(iCurrent))]), 2)]);
+        
+        % ensurure the existence of a field for the this current in this run
+        all_unique_currents = [all_unique_currents; subject_unique_currents(iCurrent)];
+        if ~isfield(all_currents, ['mA', num2str(subject_unique_currents(iCurrent))])
+            all_currents.(['mA', num2str(subject_unique_currents(iCurrent))]) = [];
+        end
+        
+        % for this sbuject and current, add the age and latency
+        ind = length(all_currents.(['mA', num2str(subject_unique_currents(iCurrent))]));
+        all_currents.(['mA', num2str(subject_unique_currents(iCurrent))])(ind + 1).age = ccepData(iSubj).age;
+        all_currents.(['mA', num2str(subject_unique_currents(iCurrent))])(ind + 1).latency = subject_currents.(['mA', num2str(subject_unique_currents(iCurrent))]);
+        
     end
-    my_output_8ma(kk,2) = mean(allLatencies8ma);
-    my_output_8ma(kk,3) = var(allLatencies8ma);
-    clear allLatencies8ma
+    
+    clear subject_unique_currents subject_currents;   
 end
+all_unique_currents = unique(all_unique_currents);
 
-figure
-subplot(1,2,1),hold on
-plot(my_output_all(:,1),1000*my_output_all(:,2),'.k')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output_all(:,1),my_output_all(:,2),'Type','Spearman');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
-[P,S] = polyfit(my_output_all(:,1),1000*my_output_all(:,2),1);
-[y_fit, ~] = polyval(P,my_output_all(:,1),S);
-hold on
-% Plot polyfit throught data points
-plot(my_output_all(:,1),y_fit,'Color','r','LineWidth',1)
-hold off
-xlim([0 50]), ylim([10 50])
 
-subplot(1,2,2),hold on
-plot(my_output_8ma(:,1),1000*my_output_8ma(:,2),'.k')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output_8ma(:,1),my_output_8ma(:,2),'Type','Spearman');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
-[P,S] = polyfit(my_output_8ma(:,1),1000*my_output_8ma(:,2),1);
-[y_fit, ~] = polyval(P,my_output_8ma(:,1),S);
-hold on
-% Plot polyfit throught data points
-plot(my_output_8ma(:,1),y_fit,'Color','r','LineWidth',1)
-hold off
-xlim([0 50]), ylim([10 50])
+%%
+% Calculate the correlation values, p-values (if over 10 data-points) and FDR corrected p-values
 
-if ~exist(fullfile(myDataPath.output,'derivatives','age'),'dir')
-    mkdir(fullfile(myDataPath.output,'derivatives','age'));
-end
+all_unique_currents_r = nan(1, length(all_unique_currents));
+all_unique_currents_p = nan(1, length(all_unique_currents));
 
-figureName = fullfile(myDataPath.output,'derivatives','age',...
-    'corrAgeVsN1latency_allSub_8mA');
-
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-depsc','-r300',figureName)
-
-%% plot means, var etc
-
-% initialize output: age, mean and variance in latency per subject
-my_output = NaN(length(n1Latencies8ma)-1,3);
-
-% get variable per subject
-for kk = 1:length(n1Latencies8ma)
-    my_output(kk,1) = n1Latencies8ma(kk).age;
-    allLatencies = [];
-    for ll = 1:length(n1Latencies8ma(kk).run)
-        allLatencies = [allLatencies n1Latencies8ma(kk).run(ll).allLatencies]; %#ok<AGROW>
+% for each unique current
+for iCurrent = 1:length(all_unique_currents)
+    ages = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).age]';
+    latencies = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).latency]';
+    
+    if length(latencies) >= minDataPoints
+        [r, p] = corr(ages, latencies * 1000, 'Type', 'Spearman');
+        all_unique_currents_r(iCurrent) = r;
+        all_unique_currents_p(iCurrent) = p;
+        
     end
-    my_output(kk,2) = mean(allLatencies);
-    my_output(kk,3) = var(allLatencies);
-    clear allLatencies
+    
 end
 
-figure
-subplot(1,2,1),hold on
-plot(my_output(:,1),1000*my_output(:,2),'.')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(:,1),my_output(:,2),'Type','Spearman');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
-[P,S] = polyfit(my_output(:,1),1000*my_output(:,2),1);
-[y_fit, ~] = polyval(P,my_output(:,1),S);
-hold on
-% Plot polyfit throught data points
-plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
-hold off
-
-subplot(1,2,2),hold on
-plot(my_output(:,1),my_output(:,3),'.')
-xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(:,1),my_output(:,3),'Type','Spearman');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
-[P,S] = polyfit(my_output(:,1),my_output(:,3),1);
-[y_fit, ~] = polyval(P,my_output(:,1),S);
-            
-hold on
-% Plot polyfit throught data points
-plot(my_output(:,1),y_fit,'Color',[0.7,0.7,0.7],'LineWidth',2)
-hold off
-sgtitle('Pearson correlation between age and N1-latency')
-
-% plot all under 40
-figure
-subplot(2,1,1),hold on
-plot(my_output(my_output(:,1)<40,1),1000*my_output(my_output(:,1)<40,2),'.')
-xlabel('age (years)'),ylabel('mean latency (ms)')
-[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,2),'Type','Spearman');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)])
-
-subplot(2,1,2),hold on
-plot(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'.')
-xlabel('age (years)'),ylabel('variance in latency')
-[r,p] = corr(my_output(my_output(:,1)<40,1),my_output(my_output(:,1)<40,3),'Type','Spearman');
-title(['r=' num2str(r,3) ' p=' num2str(p,3)]) 
+% FDR correct
+pvals = all_unique_currents_p(~isnan(all_unique_currents_p));
+[~, ~, ~, pvals_fdr]  = fdr_bh(pvals, 0.05, 'pdep');
+all_unique_currents_p_fdr = all_unique_currents_p;
+all_unique_currents_p_fdr(~isnan(all_unique_currents_p_fdr)) = pvals_fdr;
+clear pvals pvals_fdr;
 
 
-%% run other scripts with only patients with 8mA stimulation
+%%
+%  Plot the figure
 
-% optional save the n1Latencies structure, add more fields later as neccesary
-s = input('Do you want to save the n1Latencies structure with subjects in whom only 8mA stimulation is applied? [y/n]: ','s');
-if strcmp(s,'y')
-    save(fullfile(myDataPath.output,'derivatives','av_ccep','n1Latencies_8ma.mat'),'n1Latencies8ma')
+defaultColors = get(0, 'DefaultAxesColorOrder');
+
+
+figure('Position', [0 0 800 800]);
+hold on;
+
+% for each unique current
+for iCurrent = 1:length(all_unique_currents)
+    ages = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).age]';
+    latencies = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).latency]';
+    
+    % determine the color
+    curColor = [0 0 0];
+    if all_unique_currents(iCurrent) == 2
+        curColor = defaultColors(1, :);
+    elseif all_unique_currents(iCurrent) == 4
+        curColor = defaultColors(2, :);
+    elseif all_unique_currents(iCurrent) == 6
+        curColor = defaultColors(3, :);
+    elseif all_unique_currents(iCurrent) == 7
+        curColor = defaultColors(4, :);
+    end
+    
+    % plot the points
+    plot(ages, latencies * 1000, '.', 'Color', curColor, 'MarkerSize', 12, 'DisplayName', [num2str(all_unique_currents(iCurrent)) ' mA (n=', num2str(length(latencies)), ')']);
+
+    if length(latencies) >= minDataPoints
+        
+        [P, S] = polyfit(ages, latencies * 1000, 1);
+        [y_fit, ~] = polyval(P, ages, S);
+
+        % Plot polyfit throught data points
+        plot(ages, y_fit, 'Color', curColor, 'LineWidth', 2, 'DisplayName', ...
+             ['r=' num2str(all_unique_currents_r(iCurrent), 3) ' p=' num2str(all_unique_currents_p_fdr(iCurrent), 3)]);
+    end
+    
+end
+hold off;
+
+xlabel('age (years)');
+ylabel('mean latency (ms)');
+xlim([0 50]), ylim([10 55]);
+legend()
+
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'age'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
 end
 
-% run makeFig2_plotResponsesAge
-% run makeFig3_plotN1_meanacrossage
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS1_corrAgeVslatency_8mA');
+set(gcf, 'PaperPositionMode', 'auto')
+print('-dpng', '-r300', figureName)
+print('-depsc', '-r300', figureName)
+
