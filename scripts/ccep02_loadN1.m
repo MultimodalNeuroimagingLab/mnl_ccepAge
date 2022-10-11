@@ -92,13 +92,11 @@ for iSubj = 1:length(subjects)
         
         runData = load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', subjects(iSubj).name ,subjects(iSubj).ses, subjects(iSubj).run{iRun}));
         ccepData(iSubj).run(iRun).runName            = subjects(iSubj).run{iRun};
-        ccepData(iSubj).run(iRun).allLatencies       = runData.tt(runData.n1_peak_sample(~isnan(runData.n1_peak_sample)));
         ccepData(iSubj).run(iRun).n1_peak_sample     = runData.n1_peak_sample;
         ccepData(iSubj).run(iRun).channel_names      = runData.channel_names;
         ccepData(iSubj).run(iRun).stimpair_names     = runData.stimpair_names;
         ccepData(iSubj).run(iRun).good_channels      = runData.good_channels;
         ccepData(iSubj).run(iRun).stimpair_currents  = runData.stimpair_currents;
-        ccepData(iSubj).run(iRun).unique_currents    = runData.unique_currents;
         % loading all average cceps here makes it very heavy on the memory, do this later
         %ccepData(kk).run(ll).average_ccep            = runData.average_ccep;
         ccepData(iSubj).run(iRun).tt                 = runData.tt;
@@ -136,26 +134,19 @@ for iSubj = 1:length(ccepData)
                 % get first stimulated channel number in_electrodes.tsv
                 stim_el_nr = find(strcmpi(ccepData(iSubj).electrodes.name, stimpchans{ch}) == 1);
                 
-                % sometimes the stim pair is called TP1 and the channel name is
-                % TP01, we need to check for this
+                % check whether the stimulated channel is found in the electrode tsv
                 if isempty(stim_el_nr)
-                    
-                    % insert a zero and check
-                    newName = insertBefore(stimpchans{1},length(stimpchans{1}), '0');
-                    stim_el_nr = find(strcmpi(ccepData(iSubj).electrodes.name, newName) == 1);
-                    if isempty(stim_el_nr)
-                        disp(['no match for ' stimpchans{1}])
-                    end
-                    
+                    error(['Could not find stim channel ', stimpchans{ch}, ' in the eletrodes.tsv'])
                 end
                 
+                % transfer the Destrieux codes and labels for the stimulated electrodes
                 ccepData(iSubj).run(iRun).stimpair_DestrieuxLabel{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label_text{stim_el_nr};
                 if isnumeric(ccepData(iSubj).electrodes.Destrieux_label)
                     ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{chPair,ch} = int2str(ccepData(iSubj).electrodes.Destrieux_label(stim_el_nr));
                 else
                     ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{chPair,ch} = ccepData(iSubj).electrodes.Destrieux_label{stim_el_nr};
-                    
                 end
+                
             end
             clear stim_el_nr stimpchans
         end
@@ -164,18 +155,25 @@ for iSubj = 1:length(ccepData)
         for iChan = 1:length(ccepData(iSubj).run(iRun).channel_names)      
             
             % get channel number in_electrodes.tsv
-            el1_nr = find(strcmpi(ccepData(iSubj).electrodes.name,ccepData(iSubj).run(iRun).channel_names{iChan}) == 1);
-            if ~isempty(el1_nr)
-                ccepData(iSubj).run(iRun).channel_DestrieuxLabel{iChan} = ccepData(iSubj).electrodes.Destrieux_label_text{el1_nr};
+            resp_ElecIndex = find(strcmpi(ccepData(iSubj).electrodes.name, ccepData(iSubj).run(iRun).channel_names{iChan}) == 1);
+            
+            if ~isempty(resp_ElecIndex)
                 
+                % transfer the Destrieux code and label for the response electrode
+                ccepData(iSubj).run(iRun).channel_DestrieuxLabel{iChan} = ccepData(iSubj).electrodes.Destrieux_label_text{resp_ElecIndex};
                 if isnumeric(ccepData(iSubj).electrodes.Destrieux_label)
-                    ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = int2str(ccepData(iSubj).electrodes.Destrieux_label(el1_nr));
+                    ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = int2str(ccepData(iSubj).electrodes.Destrieux_label(resp_ElecIndex));
                 else
-                    ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = ccepData(iSubj).electrodes.Destrieux_label{el1_nr};
+                    ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = ccepData(iSubj).electrodes.Destrieux_label{resp_ElecIndex};
                 end
                 
                 clear el1_nr
             else
+                
+                % warn
+                warning(['Could not find response channel ', ccepData(iSubj).run(iRun).channel_names{iChan}, ' in the electrodes.tsv'])
+                
+                % leave empty
                 ccepData(iSubj).run(iRun).channel_DestrieuxLabel{iChan} = NaN;
                 ccepData(iSubj).run(iRun).channel_DestrieuxNr{iChan} = NaN;
             end 
