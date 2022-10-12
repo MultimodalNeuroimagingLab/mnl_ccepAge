@@ -38,9 +38,9 @@ end
 %%
 %  
 
-%if ~exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'file')
-%    error('Could not find/load _V1 file');
-%else
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'file')
+    error('Could not find/load _V1 file');
+else
     
     load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData');
     
@@ -314,7 +314,7 @@ end
         %}
     end     % end subjects loop
     
-%end
+end
 
 
 %%
