@@ -145,7 +145,7 @@ for iFile = 1:size(rootFiles, 1)
                 
                 % check if either of the stimulation electrodes is not included as good
                 if isempty(find(ismember(good_channel_names, upper(stimPiarElecs{1})), 1)) || isempty(find(ismember(good_channel_names, upper(stimPiarElecs{2})), 1))
-                    disp(['s', stimPiarElecs{1}, '  ', stimPiarElecs{2}]);
+                    
                     % NaN the N1s for this stim-pair
                     n1_peak_sample(:, iStimPair)    = nan;
                     n1_peak_amplitude(:, iStimPair) = nan;
