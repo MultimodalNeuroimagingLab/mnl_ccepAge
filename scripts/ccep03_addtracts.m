@@ -18,6 +18,9 @@
 %  Set paths
 clc
 clear
+warning('on');
+warning('backtrace', 'off')
+
 myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
@@ -35,9 +38,9 @@ end
 %%
 %  
 
-if ~exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'file')
-    error('Could not find/load _V1 file');
-else
+%if ~exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'file')
+%    error('Could not find/load _V1 file');
+%else
     
     load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData');
     
@@ -68,13 +71,26 @@ else
             % load the electrodes (in native space)
             electrodes = readtable(fullfile(subjElecDir, [ccepData(iSubj).id, '_', ccepData(iSubj).ses, '_electrodes.tsv']), ...
                                    'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
+
+            % check if the native electrode order matches the MNI electrodes by name
+            if length(electrodes.name) ~= length(ccepData(iSubj).electrodes.name) || sum(~strcmp(electrodes.name, ccepData(iSubj).electrodes.name)) > 0
+                error('The native electrodes files does not match the MNI electrodes file');
+            end
             
+            % calculate and store the distances (in native space) between the electrodes
+            dist = (electrodes.x' - electrodes.x) .^ 2 + ...
+                   (electrodes.y' - electrodes.y) .^ 2 + ...
+                   (electrodes.z' - electrodes.z) .^ 2;
+            dist = sqrt(dist);
+            ccepData(iSubj).nativeElecDistances = dist;
+
             % retrieve the electrodes and sort the electrodes so they match the channels
+            % Note: this might remove electrode rows (if they are not in channels), so only do this after calculating the distance
             electrodes = ccep_sortElectrodes(electrodes, channels, 0);
             elecPositions = [electrodes.x electrodes.y electrodes.z];
             
         end
-
+%{
         % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
         for iTr = 1:length(rois)
 
@@ -188,10 +204,7 @@ else
 
                     % warn if the tract length could not be determined
                     if isempty(trkDist) || isnan(trkDist)
-                        s = warning;
-                        warning('on');
                         warning(['Could not determine tract-length: subject ', ccepData(iSubj).id, ' - hemisphere ', upper(hemi), ' - tract-roi', rois(iTr).tract_name, ' ', rois(iTr).sub_tract(iSubTr).name])
-                        warning(s);
                     end
                                                                                         
                     % store the distances, included MNI files and tract-lines, and elec
@@ -298,10 +311,10 @@ else
             end     % end hemisphere loop
             
         end     % end of tract loop
-        
+        %}
     end     % end subjects loop
     
-end
+%end
 
 
 %%

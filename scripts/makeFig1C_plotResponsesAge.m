@@ -1,28 +1,28 @@
 % 
+% 
 %  Load the ccepData from the derivatives
 %  This code is used to plot the normalized ccep of all patients in order of age. 
-%  This figure is displayed as Figure 2 in the article.
 %
-
 
 %% 
 %  1. Load the ccepData from the derivatives
 
 clear
 close all
-
-selectPat = input('Would you like to include all patients, or only the ones for whom it is certain that 8mA was applied (supplemental material)? [all/8] ','s');
+warning('on');
+warning('backtrace', 'off')
 
 myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
 if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'file')
     load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData')
-    filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepAverageResponses.mat');
 else
     disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
 end
 
+respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which electrodes are excluded, 0 = not excluding
+stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which electrodes are excluded, 0 = not excluding
 
 
 %% 
@@ -31,6 +31,7 @@ end
 %  the N1s are averaged for each run, and then averaged N1s per patient are collected for all subjects. 
 %  Multiple subjects with the same age are collected for each age (subjectResponses_nonnorm) and normalized (subjectResponses)
 
+filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepAverages.mat');
 if exist(filename_averageCCEP, 'file')
     load(filename_averageCCEP);
     
@@ -95,30 +96,91 @@ else
                         stimRoi = rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]);
                         respRoi = rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]);
                         
-                        % find stimulation pairs within specific region
-                        % Note: will include a stimulated electrodes also if only one of the pair is inside of the ROI. TODO: discuss with Dora
+                        % find which stimulation pairs have at least one electrode on top of the stimulated ROI
                         stimPairs = find(sum(ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr), stimRoi), 2) > 0);
                         
-                        % find response electrodes within specific region
+                        % find which response electrodes are on top of the response ROI
                         respChan = find(ismember(str2double(ccepData(iSubj).run(iRun).channel_DestrieuxNr), respRoi) > 0);
-                        
 
                         
                         %
-                        % collect all signals with stimulation pair and response electrode within specific region
+                        % collect all responses for the stimulation pair and response electrode combination that have a N1 response
+                        % Note: that stim-pair and response channels that are bad will remain NaN in the matrix and skipped later
                         %
                         
-                        average_ccep_select  = NaN(size(stimPairs, 1), size(respChan, 1), size(runData.average_ccep, 3));
-                        average_N1_select    = NaN(size(stimPairs, 1), size(respChan, 1)); % N1latency
-                        for cp = 1:size(stimPairs, 1)
-                            for cs = 1:size(respChan, 1)
-                                if ~isnan(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(cs),stimPairs(cp)))
-                                    if runData.tt(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(cs), stimPairs(cp))) == 0, disp('what???'), end
-                                    tempResp = squeeze(runData.average_ccep(respChan(cs),stimPairs(cp), :));
-                                    average_ccep_select(cp, cs, :) = tempResp;
-                                    average_N1_select(cp, cs) = runData.tt(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(cs), stimPairs(cp)));
-                                    clear tempResp
+                        average_ccep_select  = NaN(size(stimPairs, 1), size(respChan, 1), size(runData.average_ccep, 3));       % stores evoked signal (in epoch)
+                        average_N1_select    = NaN(size(stimPairs, 1), size(respChan, 1));                                      % stores the N1 peak latency
+                        
+                        % loop over the stim-pair and response combinations
+                        for iStimPair = 1:size(stimPairs, 1)
+                            for iRespChan = 1:size(respChan, 1)
+                                
+                                % check if there was no N1 response between this stim-pair and the response electrode, goto next if no N1
+                                % Note: that stim-pair and response channels that are bad should have a NaN in the matrix and should be skipped here
+                                if isnan(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(iRespChan), stimPairs(iStimPair)))
+                                    continue;
                                 end
+                                
+                                % should we check the electrode distance
+                                if respStimElec_excludeDist ~= 0 || stimStimElec_excludeDist ~= 0
+                                    
+                                    % retrieve the stimulated and response electrode
+                                    stimPiarElecs = split(ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, '-');
+                                    respElec = ccepData(iSubj).run(iRun).channel_names{respChan(iRespChan)};
+                                    
+                                    % find their respective indices in the electrodes table
+                                    resp_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(respElec)));
+                                    stim1_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(stimPiarElecs{1})));
+                                    stim2_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(stimPiarElecs{2})));
+                                    
+
+                                    % check whether electrode was found to calculate distance
+                                    if isempty(resp_elecIndex)
+                                        error(['Response electrode channel name (' , respElec, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
+                                    end
+                                    if isempty(stim1_elecIndex)
+                                        error(['Stim electrode 1 name (' , stimPiarElecs{1}, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
+                                        
+                                    end
+                                    if isempty(stim2_elecIndex)
+                                        error(['Stim electrode 2 name (' , stimPiarElecs{2}, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
+                                    end
+                                    
+                                    
+                                    % retrieve the distances
+                                    resp_stim1_dist = ccepData(iSubj).nativeElecDistances(stim1_elecIndex, resp_elecIndex);
+                                    resp_stim2_dist = ccepData(iSubj).nativeElecDistances(stim2_elecIndex, resp_elecIndex);
+                                    stim_stim_dist = ccepData(iSubj).nativeElecDistances(stim1_elecIndex, stim2_elecIndex);
+
+                                    % check the distance between the stimulated electrodes, skip if larger than 18
+                                    if stimStimElec_excludeDist ~= 0 && stim_stim_dist > stimStimElec_excludeDist
+                                        warning(['Distance between two stimulated electrodes (', ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, ') is larger than 18 (', num2str(stim_stim_dist), ')']);
+                                        continue;
+                                    end
+                                    
+                                    % check whether either of the electrodes of the stimulus pair is within x mm of the response channel/electrode, skip if so
+                                    if respStimElec_excludeDist ~= 0 && resp_stim1_dist < respStimElec_excludeDist
+                                        %warning(['Distance between stim1 electrode (', stimPiarElecs{1}, ') and response electrode (', respElec, ') is smaller than ', num2str(electrode_excludeDist), ' (', num2str(resp_stim1_dist), '), skipping']);
+                                        continue;
+                                    end
+                                    if respStimElec_excludeDist ~= 0 && resp_stim2_dist < respStimElec_excludeDist
+                                        %warning(['Distance between stim2 electrode (', stimPiarElecs{2}, ') and response electrode (', respElec, ') is smaller than ', num2str(electrode_excludeDist), ' (', num2str(resp_stim2_dist), '), skipping']);
+                                        continue;
+                                    end                            
+ 
+                                    clear stimPiarElecs respElec resp_elecIndex stim1_elecIndex stim2_elecIndex;
+                                    
+                                end
+                                
+
+                                % add response
+                                tempResp = squeeze(runData.average_ccep(respChan(iRespChan), stimPairs(iStimPair), :));
+                                average_ccep_select(iStimPair, iRespChan, :) = tempResp;
+                                
+                                % add N1 latency (in ms)
+                                average_N1_select(iStimPair, iRespChan) = runData.tt(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(iRespChan), stimPairs(iStimPair)));
+
+                                clear tempResp
                             end
                         end
 
@@ -190,16 +252,16 @@ else
                 subjectN1s{iTr}{iSubTr}{age}(:, n + 1)                  = subjectMeanN1;                % [roiDir, subjects]
                 
                 % add the distance (if there are electrodes on that side
-                disp(['     tract: ', rois(iTr).tract_name, ' - ', rois(iTr).sub_tract(iSubTr).name]);
+                %disp(['     tract: ', rois(iTr).tract_name, ' - ', rois(iTr).sub_tract(iSubTr).name]);
                 if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))
                     average_L_trk_length{iTr}{iSubTr}{age}(n + 1)           = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
-                    disp(['          left hemi - dist: ', num2str(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1})]);
+                    %disp(['          left hemi - dist: ', num2str(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1})]);
                 else
                     average_L_trk_length{iTr}{iSubTr}{age}(n + 1)           = nan;
                 end
                 if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R'))
                     average_R_trk_length{iTr}{iSubTr}{age}(n + 1)           = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
-                    disp(['          right hemi - dist: ', num2str(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2})]);
+                    %disp(['          right hemi - dist: ', num2str(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2})]);
                 else
                     average_R_trk_length{iTr}{iSubTr}{age}(n + 1)           = nan;
                 end
@@ -209,8 +271,13 @@ else
         clear runResponses runResponses_nonnorm runN1s
         clear subjectMeanResponse subjectMeanResponse_nonnorm subjectMeanN1 ROIsDist ROIsTrcs;
     end
-
-    save(filename_averageCCEP, 'subjectResponses', 'subjectResponses_nonnorm', 'subjectN1s', 'tt', 'rois', 'average_L_trk_length', 'average_R_trk_length');
+    
+    % save
+    s = input('Do you want to save the ccepAverages structure? [y/n]: ', 's');
+    if strcmp(s, 'y')
+        save(filename_averageCCEP, 'subjectResponses', 'subjectResponses_nonnorm', 'subjectN1s', 'tt', 'rois', 'average_L_trk_length', 'average_R_trk_length');
+    end
+    
 end
 
 
