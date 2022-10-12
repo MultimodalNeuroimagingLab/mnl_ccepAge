@@ -76,8 +76,6 @@ for iSubj = 1:length(ccepData)
             end
             
             % store the latencies for this subject
-            %subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]) = [subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]), ...
-            %                                                run_currents.(['mA', num2str(run_unique_currents(iCurrent))])];
             subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]) = [subject_currents.(['mA', num2str(run_unique_currents(iCurrent))]), ...
                                                             mean(run_currents.(['mA', num2str(run_unique_currents(iCurrent))]))];
             
