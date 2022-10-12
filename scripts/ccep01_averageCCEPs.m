@@ -10,6 +10,8 @@
 
 clc
 clear
+warning('on');
+warning('backtrace', 'off')
 myDataPath = setLocalDataPath(1);
 
 % check fieldtrip availability and setup
@@ -19,8 +21,6 @@ end
 
 % input whether to store output figures
 outputFigures = 0;
-%s = input('Do you want to save the average CCEP figures? [y/n]: ', 's');
-%if strcmp(s, 'y'),  outputFigures = 1;     end
 
 
 
@@ -137,7 +137,23 @@ for iFile = 1:size(rootFiles, 1)
             % Note: passing the good channels will result in the non-good channels (i.e. indices in average_ccep that 
             %       are not in the variable good_channels) to be excluded from N1 detection and NaN'ed in the output.
             [n1_peak_sample, n1_peak_amplitude] = ccep_detect_n1peak_ECoG(average_ccep, good_channels, params);
-
+            
+            % clear the N1s where either of the stim-pair channels is marked as bad
+            good_channel_names = upper(channel_names(good_channels));
+            for iStimPair = 1:length(stimpair_names)
+                stimPiarElecs = split(stimpair_names{iStimPair}, '-');
+                
+                % check if either of the stimulation electrodes is not included as good
+                if isempty(find(ismember(good_channel_names, upper(stimPiarElecs{1})), 1)) || isempty(find(ismember(good_channel_names, upper(stimPiarElecs{2})), 1))
+                    disp(['s', stimPiarElecs{1}, '  ', stimPiarElecs{2}]);
+                    % NaN the N1s for this stim-pair
+                    n1_peak_sample(:, iStimPair)    = nan;
+                    n1_peak_amplitude(:, iStimPair) = nan;
+                    
+                end
+                
+            end
+            
             % save files the average CCEPs and N1 detection output (create folder if needed
             saveName = fullfile(myDataPath.output,'derivatives','av_ccep', bids_sub, bids_ses, replace(runFiles(iRun).name, 'events.tsv', 'averageCCEPs.mat'));
             if ~exist(fullfile(myDataPath.output,'derivatives', 'av_ccep', bids_sub,bids_ses), 'dir')
