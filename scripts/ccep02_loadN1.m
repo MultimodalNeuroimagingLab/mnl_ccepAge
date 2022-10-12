@@ -18,6 +18,8 @@
 %  Set paths
 clc
 clear
+warning('on');
+warning('backtrace', 'off')
 myDataPath = setLocalDataPath(1);
 
 
@@ -67,7 +69,7 @@ else
         % check/assert if hemi or hemisphere field in electrodes.tsv reflects jsonHemi
         % Note: only check the electrodes that have a value in the hemisphere field
         if any(~strcmp(ccepData(iSubj).electrodes.hemisphere, '') & ~strcmp(ccepData(iSubj).electrodes.hemisphere, hemi))
-            warning(['The hemisphere column in the electrodes table and the out of the ccep_retrieveElecsHemisphere differ, the output of the latter will be leading']);
+            warning('The hemisphere column in the electrodes table and the out of the ccep_retrieveElecsHemisphere differ, the output of the latter will be leading');
         end
         
         
@@ -111,6 +113,7 @@ end
 
 % loop over subjects
 for iSubj = 1:length(ccepData)
+    disp(['subj ' num2str(iSubj) ' of ' num2str(length(subjects)), ' (', subjects(iSubj).name, ')']);
    
     % loop over runs
     for iRun = 1:length(ccepData(iSubj).run)
@@ -136,7 +139,7 @@ for iSubj = 1:length(ccepData)
                 
                 % check whether the stimulated channel is found in the electrode tsv
                 if isempty(stim_el_nr)
-                    error(['Could not find stim channel ', stimpchans{ch}, ' in the eletrodes.tsv'])
+                    error(['Could not find stim channel ', stimpchans{ch}, ' in the electrodes.tsv for ', ccepData(iSubj).id, ' run ', num2str(iRun)]);
                 end
                 
                 % transfer the Destrieux codes and labels for the stimulated electrodes

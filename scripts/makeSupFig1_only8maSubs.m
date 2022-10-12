@@ -6,6 +6,8 @@
 clear
 close all
 clc
+warning('on');
+warning('backtrace', 'off')
 
 minDataPoints = 10;     % minimum data-points to correlate and linear-fit
 
@@ -42,7 +44,6 @@ for iSubj = 1:length(ccepData)
             current = ccepData(iSubj).run(iRun).stimpair_currents{iStimpair} * 1000;
             
             if length(current) > 1
-                warning('backtrace', 'off')
                 warning(['Multiple currents on single stim-pair (subj ', ccepData(iSubj).id, ', run ', num2str(iRun), ', stimpair ', num2str(iStimpair), ' - ' , ccepData(iSubj).run(iRun).stimpair_names{iStimpair}, '), skipping']);
                 continue;
             else
