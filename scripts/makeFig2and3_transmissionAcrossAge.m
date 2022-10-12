@@ -130,31 +130,41 @@ for iTr = 1:length(rois)
             % fit first order polynomial
             %
             
-            % Test fitting a first order polynomial (leave 1 out cross validation)
-            % y  =  w1*age + w2
-            cross_val_linear = NaN(length(n1Means), 4);
-            % size latency (ms) X prediction (ms) X p1 (slope) X p2 (intercept) of left out
+            % Test fitting a first order polynomial (with leave-one-out cross validation)
+            cross_val_linear = NaN(length(n1Means), 4);     % <age> x <size latency (ms), prediction (ms), p1 (slope), p2 (intercept) of left out>
+            
+            % loop over the ages (for leave-one-out)
             age_counter = 0;
             for iAge = 1:length(n1Means)
                 age_counter = age_counter + 1;
-                % leave out iAge
-                subsTrain = ~ismember(1:length(n1Means), iAge)'; % leave out one age
+                
+                % determine training set of N1s (leaving one age out)
+                subsTrain = ~ismember(1:length(n1Means), iAge)';
+                
+                % fit linear on training set of N1s
                 P = polyfit(ages(subsTrain), n1Means(subsTrain), 1);
+                
+                % 
                 cross_val_linear(age_counter, 3:4) = P;                        % linear parameters
                 cross_val_linear(age_counter, 1) = n1Means(iAge);              % measured N1 for iAge
                 cross_val_linear(age_counter, 2) = P(1) * ages(iAge) + P(2);   % left out prediction for iAge
+                
             end
-            % coefficient of determination between prediction and left out
-            % measurement
+            
+            % coefficient of determination between prediction and left out measurement
             out{iTr}{iSubTr}{iDir + 1}.cod_out(1) = calccod(cross_val_linear(:, 2), cross_val_linear(:, 1), 1);
-            % correlation just for fun
+            
+            %
             out{iTr}{iSubTr}{iDir + 1}.sp_out(1) = corr(cross_val_linear(:, 2), cross_val_linear(:, 1), 'type', 'Spearman');
+            
             % average parameters for linear fit across ages
             out{iTr}{iSubTr}{iDir + 1}.linear_avparams = mean(cross_val_linear(:, 3:4));
             
+            % 
             if isnan(out{iTr}{iSubTr}{iDir + 1}.cod_out(1))
                 error('nan for cod');
             end
+            
             
             %
             % fit second order polynomial
@@ -166,18 +176,29 @@ for iTr = 1:length(rois)
             age_counter = 0;
             for iAge = 1:length(n1Means)
                 age_counter = age_counter + 1;
-                % leave out iAge
+                
+                % determine training set of N1s (leaving one age out)
                 subsTrain = ~ismember(1:length(n1Means), iAge)';
+                
+                % fit second-order polynomial on training set of N1s
                 P = polyfit(ages(subsTrain), n1Means(subsTrain), 2);
+                
+                %
                 cross_val_second(age_counter, 3:5) = P;
                 cross_val_second(age_counter, 1) = n1Means(iAge);
                 cross_val_second(age_counter, 2) = P(1) * ages(iAge) .^2 + P(2) * ages(iAge) + P(3);
+                
             end
+            
+            %
             out{iTr}{iSubTr}{iDir + 1}.cod_out(2) = calccod(cross_val_second(:, 2), cross_val_second(:, 1), 1);
             out{iTr}{iSubTr}{iDir + 1}.sp_out(2) = corr(cross_val_second(:, 2),cross_val_second(:, 1), 'type', 'Spearman');
+            
+            % average parameters for second-order fit across ages
             out{iTr}{iSubTr}{iDir + 1}.second_avparams = mean(cross_val_second(:, 3:5));
 
-            out{iTr}{iSubTr}{iDir + 1}.cod_out(3) = length(n1Means); % number of ages
+            % store the number of ages
+            out{iTr}{iSubTr}{iDir + 1}.cod_out(3) = length(n1Means);
             
             
             %
