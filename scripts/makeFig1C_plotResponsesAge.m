@@ -122,7 +122,7 @@ else
                                 end
                                 
                                 % should we check the electrode distance
-                                if respStimElec_excludeDist ~= 0 || stimStimElec_excludeDist ~= 0
+                                if isfield(ccepData(iSubj), 'nativeElecDistances') && (respStimElec_excludeDist ~= 0 || stimStimElec_excludeDist ~= 0)
                                     
                                     % retrieve the stimulated and response electrode
                                     stimPiarElecs = split(ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, '-');
@@ -369,15 +369,17 @@ for iTr = 1:length(rois)
 end
 numTests = numTests * 2;    % test both directions
 
+
 %
 % Prepare summary matrices
 % 
+all_Ps = [];
 for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         
-        all_pBonf{iTr}{iSubTr} = zeros(1, 2);
-        all_p{iTr}{iSubTr} = zeros(1, 2);
         all_r{iTr}{iSubTr} = zeros(1, 2);
+        all_p{iTr}{iSubTr} = zeros(1, 2);
+        all_p_fdr{iTr}{iSubTr} = zeros(1, 2);
         
         for iDir = [false true]
             
@@ -386,168 +388,34 @@ for iTr = 1:length(rois)
             
             % check if there are at least two subjects to correlate age and latency
             if numel(age) < 2
-                all_pBonf{iTr}{iSubTr}(iDir + 1) = nan;
-                all_p{iTr}{iSubTr}(iDir + 1) = nan;
                 all_r{iTr}{iSubTr}(iDir + 1) = nan;
+                all_p{iTr}{iSubTr}(iDir + 1) = nan;
             else
                 [r, p] = corr(n1Latencies', age', 'type', 'Spearman');
-                all_pBonf{iTr}{iSubTr}(iDir + 1) = p / numTests;
-                all_p{iTr}{iSubTr}(iDir + 1) = p;
+                
                 all_r{iTr}{iSubTr}(iDir + 1) = r;
+                all_p{iTr}{iSubTr}(iDir + 1) = p;
                 
             end
+            all_p_fdr{iTr}{iSubTr}(iDir + 1) = nan;
             
-            
-        end
-    end
-end
-
-
-
-%%
-%  Age descriptive plots
-
-for iTr = 1:length(rois)
-    for iSubTr = 1:length(rois(iTr).sub_tract)
-        for iDir = [false true]
-            
-            % construct sub-tract string
-            subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
-            
-            figure('Position',[0 0 600 300]);
-            s = histogram(numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1});
-            title([rois(iTr).tract_name, ' - ', strSubTitle, '  (', num2str(length(numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1})), ' subjects)']);
-
-            if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
-                mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
-            end
-            figureName = fullfile(myDataPath.output,'derivatives', 'age', ['AllSortAge_descr_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
-
-            set(gcf,'PaperPositionMode','auto')
-            print('-dpng','-r300',figureName)
-            close(gcf)
+            % store all P values for FDR correction later
+            all_Ps(end + 1, :) = [iTr, iSubTr, iDir + 1, all_p{iTr}{iSubTr}(iDir + 1)];
             
         end
     end
 end
 
+% FDR corrected
+[~, ~, ~, all_Ps(:, 5)]  = fdr_bh(all_Ps(:, 4), 0.05, 'pdep');
+for iP = 1:size(all_Ps, 1)
+    all_p_fdr{all_Ps(iP, 1)}{all_Ps(iP, 2)}(all_Ps(iP, 3)) = all_Ps(iP, 5);
 
-
-%%
-%  Plot age vs latencies, and age vs speed
-
-% loop over the tracts
-for iTr = 1:length(rois)
-
-    %
-    % each tract is one figure
-    %
-    figure('Position',[0 0 length(rois(iTr).sub_tract) * 600 800])
-
-    % loop over the subtracts and direction
-    for iSubTr = 1:length(rois(iTr).sub_tract)
-        for iDir = [false true]
-            
-            % construct sub-tract string
-            subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
-            
-            
-            %
-            % each sub-tract/direction is one column (3 plots per column)
-            %
-            
-            plotIndex = ((iSubTr - 1) * 2 + 1) + iDir;
-            
-            
-            % age vs mean latency
-            subplot(3, length(rois(iTr).sub_tract) * 2, plotIndex);
-            x = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
-            y = 1000 * sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1;
-            plot(x, y, '.')
-            if iSubTr == 1 && iDir == 0
-                ylabel('latency (ms)');
-            end
-            [r, p] = corr(x', y', 'Type', 'Pearson');
-            title({rois(iTr).tract_name, strSubTitle, ' ', ['r=' num2str(r, 3) ' p=' num2str(p, 3)]})
-            
-            [P, S] = polyfit(x, y, 1);
-            [y_fit, ~] = polyval(P, x, S);
-            hold on
-            plot(x, y_fit, 'Color', [0.7,0.7,0.7], 'LineWidth', 2)
-            hold off
-            
-            
-            
-            % age vs tract length
-            subplot(3, length(rois(iTr).sub_tract) * 2, length(rois(iTr).sub_tract) * 2 + plotIndex);
-            
-            x = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
-            y = mean([sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength; sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan');
-            x(isnan(y)) = [];
-            y(isnan(y)) = [];
-            
-            plot(x, y, '.')
-            if iSubTr == 1 && iDir == 0
-                ylabel('tract length (mm)');
-            end
-            [r, p] = corr(x', y', 'Type', 'Pearson');
-            title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
-            
-            [P, S] = polyfit(x, y, 1);
-            [y_fit, ~] = polyval(P, x, S);
-            hold on
-            plot(x, y_fit, 'Color', [0.7,0.7,0.7], 'LineWidth', 2)
-            hold off
-            
-            
-            % age vs speed
-            subplot(3, length(rois(iTr).sub_tract) * 2, 2 * length(rois(iTr).sub_tract) * 2 + plotIndex);
-            
-            x = sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age;
-            y = mean([sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength, sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength], 'omitnan') ./ ...
-                (1000 * sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1);
-            x(isnan(y)) = [];
-            y(isnan(y)) = [];
-            
-            plot(x, y, '.')
-            xlabel('age (years)');
-            if iSubTr == 1 && iDir == 0
-                ylabel('speed (mm per ms)');
-            end
-            [r, p] = corr(x', y', 'Type', 'Pearson');
-            title(['r=' num2str(r, 3) ' p=' num2str(p, 3)])
-            
-            [P, S] = polyfit(x, y, 1);
-            [y_fit, ~] = polyval(P, x, S);
-            hold on
-            plot(x, y_fit, 'Color', [0.7,0.7,0.7], 'LineWidth', 2)
-            hold off
-            
-        end
-    end
-    
-    %
-    % save
-    %
-    if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
-        mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
-    end
-    figureName = fullfile(myDataPath.output,'derivatives', 'age', ['correlations_', rois(iTr).tract_name]);
-    
-    set(gcf,'PaperPositionMode','auto')
-    print('-dpng','-r300',figureName)
-    print('-depsc','-r300',figureName)
-    close(gcf)
-    
 end
-
 
 
 %% 
-%  figure of subplots for each stimulated and responding region with normalized CCEPs + N1 sorted by age
-
+%  Plots for each stimulated and responding region with normalized CCEPs + N1 sorted by age
 
 ttmin = 0.010;
 ttmax = .100;
@@ -577,8 +445,8 @@ for iTr = 1:length(rois)
                 set(gca,'XTick',20:20:80,'YTick',[])
                 axis tight
 
-                strSign = [' (pbonf = ', num2str(all_pBonf{iTr}{iSubTr}(iDir + 1)), ')'];
-                if all_pBonf{iTr}{iSubTr}(iDir + 1) < .05,  strSign = [strSign, ' *'];     end
+                strSign = [' (p\_fdr = ', num2str(all_p_fdr{iTr}{iSubTr}(iDir + 1)), ')'];
+                if all_p_fdr{iTr}{iSubTr}(iDir + 1) < .05,  strSign = [strSign, ' *'];     end
                 title([rois(iTr).tract_name, ' - ', strSubTitle, strSign]);
 
                 %
