@@ -113,50 +113,57 @@ else
                         
                         % loop over the stim-pair and response combinations
                         for iStimPair = 1:size(stimPairs, 1)
+                            
+                            % check if native electrode distances are available
+                            if isfield(ccepData(iSubj), 'nativeElecDistances')
+
+                                % retrieve the stimulated electrodes and their respective indices in the electrodes table
+                                stimPiarElecs = split(ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, '-');
+                                stim1_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(stimPiarElecs{1})));
+                                stim2_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(stimPiarElecs{2})));
+                                if isempty(stim1_elecIndex)
+                                    error(['Stim electrode 1 name (' , stimPiarElecs{1}, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
+                                end
+                                if isempty(stim2_elecIndex)
+                                    error(['Stim electrode 2 name (' , stimPiarElecs{2}, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
+                                end
+                                
+                                % retrieve the distance between stimulated electrodes
+                                stim_stim_dist = ccepData(iSubj).nativeElecDistances(stim1_elecIndex, stim2_elecIndex);
+
+                                % check if the distance between the stimulated electrodes is larger than exclusion threshold
+                                if stimStimElec_excludeDist ~= 0 && stim_stim_dist > stimStimElec_excludeDist
+                                    warning(['Distance between two stimulated electrodes (', ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, ') is larger than ', num2str(stimStimElec_excludeDist), ' (', num2str(stim_stim_dist), ')']);
+                                    
+                                    % skip this stim-pair
+                                    continue;
+                                    
+                                end
+
+                            end
+                            
+                            % loop over the response electrodes
                             for iRespChan = 1:size(respChan, 1)
                                 
                                 % check if there was no N1 response between this stim-pair and the response electrode, goto next if no N1
-                                % Note: that stim-pair and response channels that are bad should have a NaN in the matrix and should be skipped here
+                                % Note: stim-pair and response channels that are bad should have a NaN in the matrix and should be skipped here
                                 if isnan(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(iRespChan), stimPairs(iStimPair)))
                                     continue;
                                 end
                                 
-                                % should we check the electrode distance
-                                if isfield(ccepData(iSubj), 'nativeElecDistances') && (respStimElec_excludeDist ~= 0 || stimStimElec_excludeDist ~= 0)
+                                % check if native electrode distances are available and 
+                                if isfield(ccepData(iSubj), 'nativeElecDistances') && respStimElec_excludeDist ~= 0
                                     
-                                    % retrieve the stimulated and response electrode
-                                    stimPiarElecs = split(ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, '-');
+                                    % retrieve the response electrode and it's respective index in the electrodes table
                                     respElec = ccepData(iSubj).run(iRun).channel_names{respChan(iRespChan)};
-                                    
-                                    % find their respective indices in the electrodes table
                                     resp_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(respElec)));
-                                    stim1_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(stimPiarElecs{1})));
-                                    stim2_elecIndex = find(ismember(upper(ccepData(iSubj).electrodes.name), upper(stimPiarElecs{2})));
-                                    
-
-                                    % check whether electrode was found to calculate distance
                                     if isempty(resp_elecIndex)
                                         error(['Response electrode channel name (' , respElec, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
                                     end
-                                    if isempty(stim1_elecIndex)
-                                        error(['Stim electrode 1 name (' , stimPiarElecs{1}, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
-                                        
-                                    end
-                                    if isempty(stim2_elecIndex)
-                                        error(['Stim electrode 2 name (' , stimPiarElecs{2}, ') does not match any of the electrode names in ', ccepData(iSubj).id, ' - run ', num2str(iRun), ', trying case-insensitive.']); 
-                                    end
                                     
-                                    
-                                    % retrieve the distances
+                                    % retrieve the distances between the stimulated and response electrodes
                                     resp_stim1_dist = ccepData(iSubj).nativeElecDistances(stim1_elecIndex, resp_elecIndex);
                                     resp_stim2_dist = ccepData(iSubj).nativeElecDistances(stim2_elecIndex, resp_elecIndex);
-                                    stim_stim_dist = ccepData(iSubj).nativeElecDistances(stim1_elecIndex, stim2_elecIndex);
-
-                                    % check the distance between the stimulated electrodes, skip if larger than 18
-                                    if stimStimElec_excludeDist ~= 0 && stim_stim_dist > stimStimElec_excludeDist
-                                        warning(['Distance between two stimulated electrodes (', ccepData(iSubj).run(iRun).stimpair_names{stimPairs(iStimPair)}, ') is larger than 18 (', num2str(stim_stim_dist), ')']);
-                                        continue;
-                                    end
                                     
                                     % check whether either of the electrodes of the stimulus pair is within x mm of the response channel/electrode, skip if so
                                     if respStimElec_excludeDist ~= 0 && resp_stim1_dist < respStimElec_excludeDist
@@ -166,22 +173,22 @@ else
                                     if respStimElec_excludeDist ~= 0 && resp_stim2_dist < respStimElec_excludeDist
                                         %warning(['Distance between stim2 electrode (', stimPiarElecs{2}, ') and response electrode (', respElec, ') is smaller than ', num2str(electrode_excludeDist), ' (', num2str(resp_stim2_dist), '), skipping']);
                                         continue;
-                                    end                            
- 
-                                    clear stimPiarElecs respElec resp_elecIndex stim1_elecIndex stim2_elecIndex;
+                                    end
                                     
                                 end
                                 
 
                                 % add response
-                                tempResp = squeeze(runData.average_ccep(respChan(iRespChan), stimPairs(iStimPair), :));
-                                average_ccep_select(iStimPair, iRespChan, :) = tempResp;
+                                average_ccep_select(iStimPair, iRespChan, :) = squeeze(runData.average_ccep(respChan(iRespChan), stimPairs(iStimPair), :));
                                 
                                 % add N1 latency (in ms)
                                 average_N1_select(iStimPair, iRespChan) = runData.tt(ccepData(iSubj).run(iRun).n1_peak_sample(respChan(iRespChan), stimPairs(iStimPair)));
 
-                                clear tempResp
+                                
                             end
+                            
+                            clear stimPiarElecs respElec resp_elecIndex stim1_elecIndex stim2_elecIndex;
+                            
                         end
 
                         % if responses are added to average_ccep_select
