@@ -90,14 +90,9 @@ else
             elecPositions = [electrodes.x electrodes.y electrodes.z];
             
         end
-%{
+
         % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
         for iTr = 1:length(rois)
-
-            %
-            if rois(iTr).interHemi == 1
-                error('Inter-hemisphere not implemented, only processing per hemisphere');
-            end
 
             % for each hemisphere
             for iHemi = 1:2
@@ -311,7 +306,7 @@ else
             end     % end hemisphere loop
             
         end     % end of tract loop
-        %}
+        
     end     % end subjects loop
     
 end

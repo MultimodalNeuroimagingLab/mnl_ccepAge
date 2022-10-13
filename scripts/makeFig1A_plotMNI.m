@@ -1,9 +1,7 @@
 %
-% This script can be used to create an MNI cortex (inflated) with
-% electrodes in different colors for different locations for all patients
-% used in this study. 
+% This script creates the images for Figure 1A that depict a MNI surface with tracts, subtracts, ROIs and electrodes
 %
-% Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
+% Max van den Boom, Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, 2022
 %
 
 
@@ -41,24 +39,19 @@ end
 %%
 %  Retrieve the included line-tracts from all subjects
 
-% loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
+% loop over the tracts (SLF, AF, etc...) and sub-tracts
 for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         
         % init fields
         rois(iTr).sub_tract(iSubTr).allMNIlineIndices = cell(1, 2);
         rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount = cell(1, 2);
-        if rois(iTr).interHemi == 1
-            error('interhemi not supported');
-        end
         
         % loop over the subjects
         for iSubj = 1:size(ccepData, 2)
 
-            %nativeDistances = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances;
-            %MNIfiles = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).MNIfiles;
+            % retrieve the lines for this subject
             MNIlineIndices = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).MNIlineIndices;
-
             
             % for each hemisphere, concatenate the MNI line indices (for either the inter, or individual hemispheres)
             for iHemi = 1:2
@@ -80,7 +73,7 @@ for iTr = 1:length(rois)
             
         end
         
-        %
+        % each hemisphere
         for iHemi = 1:2
             
             % determine the 80th percentile of the number of subjects per tract-line (given only the relevant tract-lines)
@@ -196,6 +189,7 @@ for iSubj = 1:length(ccepData)
     
 end
 clear elecs temp_inflated;
+
 
 %%
 %  Label, for each (sub)tract, the ROIs for display (in color)
@@ -317,9 +311,19 @@ end
 return;
 
 
+
+
+
+
+
+
+
+
+
+
 %% 
 %   Plot figure with right pial with electrodes in mni space
-
+%{
 v_d = [96 6];
 
 % pour the faces and vertices into a gifti
@@ -573,6 +577,20 @@ for iTr = 1:length(rois)
         trkFile = fullfile(track_path, rois(iTr).tract_name);
         disp('Retrieving tracts in native space');
 
+        
+
+        [trkDist, trkLineIndices, trkExtElecs, gROIPial1, gROIPial2] = ccep_retrieveInterROIDistance( ...
+                                                                                gPial, hemi, ...
+                                                                                fibers, idx, ...
+                                                                                subjFSDir, ...
+                                                                                rois(iTr).sub_tract(iSubTr).roi1, ...
+                                                                                rois(iTr).sub_tract(iSubTr).roi2, ...
+                                                                                rois(iTr).sub_tract(iSubTr).allowIntraROI, ...
+                                                                                elecPositions, ...
+                                                                                trcLineEnds, ...
+                                                                                extLines);
+        
+        
         % retrieve the distance between the stimulation and response end-point ROIs
         % for this particular patient given specific tracts
         [~, ~, trkLineIndices, trkNativeFibers] = ccep_retrieveInterROIDistance( ...
@@ -629,3 +647,4 @@ for iTr = 1:length(rois)
 
     end
 end
+%}
