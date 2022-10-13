@@ -21,8 +21,8 @@ else
     disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
 end
 
-respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which electrodes are excluded, 0 = not excluding
-stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which electrodes are excluded, 0 = not excluding
+stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which N1s are excluded, 0 = not excluding
+respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which N1s are excluded, 0 = not excluding
 
 
 %% 
