@@ -18,6 +18,9 @@ else
     disp('Run scripts ccep02_loadN1.m first')
 end
 
+stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which N1s are excluded, 0 = not excluding
+respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which N1s are excluded, 0 = not excluding
+
 % load tracts and their corresponding end-point ROIs
 rois = ccep_categorizeAnatomicalRegions();
 
@@ -54,7 +57,8 @@ for iRow = 1:size(conn_matrix, 1)
         % extract the latencies and number of N1s between the end-point ROIs for a specific (sub-)tract and direction
         metrics = ccep_N1sBetweenRegions( ccepData, ...
                                           rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]), ...
-                                          rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]));
+                                          rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]), ...
+                                          stimStimElec_excludeDist, respStimElec_excludeDist);
         
         % retrieve metrics per subject, output format:
         % <subject> x <age, mean in latencies, variance in latencies, variance in (latencies * 1000), relative number of N1s>

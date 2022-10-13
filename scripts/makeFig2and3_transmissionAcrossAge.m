@@ -8,6 +8,8 @@
 
 clear
 close all
+warning('on');
+warning('backtrace', 'off')
 
 myDataPath = setLocalDataPath(1);
 
@@ -17,6 +19,8 @@ else
     disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
 end
 
+stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which N1s are excluded, 0 = not excluding
+respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which N1s are excluded, 0 = not excluding
 
 
 %%
@@ -45,7 +49,8 @@ for iTr = 1:length(rois)
             % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
             out{iTr}{iSubTr}{iDir + 1}.metrics = ccep_N1sBetweenRegions(ccepData, ...
                                                                         rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]), ...
-                                                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]));
+                                                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]), ...
+                                                                        stimStimElec_excludeDist, respStimElec_excludeDist);
             
             % add the native tract length 
             for iSubj = 1:length(out{iTr}{iSubTr}{iDir + 1}.metrics)
@@ -110,11 +115,12 @@ for iTr = 1:length(rois)
             for iAge = 1:length(ages)
                 subjInclIndices = ismember(subsValues(:, 1), ages(iAge));
                 if strcmpi(n1Type, 'speed')
-                    % divide each subject by it's own length, then average
-                    % across subjects of the same age in m/s
+                    
+                    % divide each subject by it's own length, then average across subjects of the same age in m/s
                     n1Means(iAge) = mean(.001 * subsValues(subjInclIndices, 5) ./ subsValues(subjInclIndices, 2), 'omitnan');
                     
                 elseif strcmpi(n1Type, 'latency')
+                    
                     n1Means(iAge) = 1000 * mean(subsValues(subjInclIndices, 2), 'omitnan');
                     
                 else
@@ -192,7 +198,7 @@ for iTr = 1:length(rois)
             
             %
             out{iTr}{iSubTr}{iDir + 1}.cod_out(2) = calccod(cross_val_second(:, 2), cross_val_second(:, 1), 1);
-            out{iTr}{iSubTr}{iDir + 1}.sp_out(2) = corr(cross_val_second(:, 2),cross_val_second(:, 1), 'type', 'Spearman');
+            out{iTr}{iSubTr}{iDir + 1}.sp_out(2) = corr(cross_val_second(:, 2), cross_val_second(:, 1), 'type', 'Spearman');
             
             % average parameters for second-order fit across ages
             out{iTr}{iSubTr}{iDir + 1}.second_avparams = mean(cross_val_second(:, 3:5));
@@ -211,9 +217,11 @@ for iTr = 1:length(rois)
                 figure('position',[0 0 600 300])
             end
             hold on;
-
+            
+            
             % plot vertical histogram per subject in background
-            % add this if you want to see every single subject and the effect of averaging within an age group
+            % (shows every single subject and the effect of averaging within an age group)
+            warning('off');
             for iSubj = 1:nsubs
                 
                 if ~isnan(subsValues(iSubj, 2))
@@ -229,13 +237,10 @@ for iTr = 1:length(rois)
                     end
                 end
                 
-                % plot mean + std err per subject
-                %plot([my_output(kk, 1) my_output(kk, 1)], [1000 * (my_output(kk, 2) - my_output(kk, 3)) 1000 * (my_output(kk, 2)+my_output(kk, 3))], 'k', 'LineWidth', 1)
                 
             end
-            
-            % plot mean per subject in a dot
-            %plot(my_output(:, 1), 1000 * my_output(:, 2), 'ko', 'MarkerSize', 6)
+            warning('on');
+            warning('backtrace', 'off')
             
             %
             % plot 1st or 2nd order polynomial
@@ -283,16 +288,17 @@ for iTr = 1:length(rois)
                 fill([x_age x_age(end:-1:1)], [low_ci up_ci(end:-1:1)], cmap, 'EdgeColor', cmap)
             end
             
-            % if more than 20 subject and 2nd order, plot minimum 
+            % check if more than 20 subjects and 2nd order
             if out{iTr}{iSubTr}{iDir + 1}.cod_out(3) >= 20 && out{iTr}{iSubTr}{iDir + 1}.cod_out(2) > out{iTr}{iSubTr}{iDir + 1}.cod_out(1)
                 
-                % calculate minimum x
+                % calculate minimum x and plot minimum
                 min_age = -cross_val_second(:, 4) ./ (2 * cross_val_second(:, 3));
                 if strcmpi(n1Type, 'speed')
                     plot([quantile(min_age, 0.025, 1) quantile(min_age, 0.975, 1)], [.05 .05], 'Color', [.2 .7 .6], 'LineWidth', 10);
                 else
                     plot([quantile(min_age, 0.025, 1) quantile(min_age, 0.975, 1)], [5 5], 'Color', [.2 .7 .6], 'LineWidth', 10);
                 end
+                disp([rois(iTr).tract_name, ' - ', strSubTitle, '  CI: ', num2str(quantile(min_age, 0.025, 1)), ' - ', num2str(quantile(min_age, 0.975, 1))]);
                 
             end
             
@@ -311,7 +317,6 @@ for iTr = 1:length(rois)
                     xlim([0 60]), ylim([0 12]);
                     set(gca, 'YTick', 0:4:12, 'FontName', 'Arial', 'FontSize', 12);
                 end
-                %set(gca, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
             else
                 xlim([0 60]), ylim([0 80]);
                 set(gca, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
@@ -341,7 +346,6 @@ end
 %% 
 %  Display in command window the cod and delta for each subplot
 %  this info is displayed in Figure 3 as well.
-clc 
 
 % loop over the (sub-)tracts and directions
 numOut = 0;
@@ -368,8 +372,7 @@ end
 
 %%
 %  Find average latencies
-clc
-
+%{
 delta_all = [];
 y_lin = NaN(numOut, 3);
 y_sec = NaN(numOut, 3);
@@ -408,29 +411,23 @@ for iTr = 1:length(rois)
     end
 end
 fprintf('\n         LINEAR MODEL FIT \n')
-fprintf('mean delta (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', ...
-        mean(delta_all), min(delta_all),max(delta_all))
-fprintf('Mean latency at age 4 years: %1.2f ms \nMean latency at age 51 years: %1.2f ms\n \n',...
-        mean(y_lin(:,1),'omitnan'), mean(y_lin(:,3),'omitnan'))
+fprintf('mean delta (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', mean(delta_all), min(delta_all),max(delta_all))
+fprintf('Mean latency at age 4 years: %1.2f ms \nMean latency at age 51 years: %1.2f ms\n \n', mean(y_lin(:,1),'omitnan'), mean(y_lin(:,3),'omitnan'))
 
 fprintf('         SECOND ORDER MODEL FIT \n')
 delta_sec = diff(y_sec, [], 2) ./ diff([repmat(4, numOut, 1), min_age, repmat(51, numOut, 1)], [], 2);
 
-fprintf('Mean minimal age (min-max) = %1.2f years (%1.2f - %1.2f)\n',...
-    mean(min_age,'omitnan'), min(min_age),max(min_age))
-fprintf('Mean delta until minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n',...
-    mean(delta_sec(:,1),'omitnan'), min(delta_sec(:,1)), max(delta_sec(:,1)))
-fprintf('Mean delta after minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n',...
-    mean(delta_sec(:,2),'omitnan'), min(delta_sec(:,2)), max(delta_sec(:,2)))
-fprintf('Minimal latency (min-max) = %1.2f ms (%1.2f - %1.2f)\n \n',...
-    mean(y_sec(:,2),'omitnan'), min(y_sec(:,2)),max(y_sec(:,2)))
+fprintf('Mean minimal age (min-max) = %1.2f years (%1.2f - %1.2f)\n', mean(min_age,'omitnan'), min(min_age),max(min_age))
+fprintf('Mean delta until minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', mean(delta_sec(:,1),'omitnan'), min(delta_sec(:,1)), max(delta_sec(:,1)))
+fprintf('Mean delta after minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', mean(delta_sec(:,2),'omitnan'), min(delta_sec(:,2)), max(delta_sec(:,2)))
+fprintf('Minimal latency (min-max) = %1.2f ms (%1.2f - %1.2f)\n \n', mean(y_sec(:,2),'omitnan'), min(y_sec(:,2)),max(y_sec(:,2)))
 
 % show all latencies at age 4, minimal age/25years, 51 years. 
 y = y_lin;
 y(~isnan(y_sec(:, 1)), 1:3) = y_sec(~isnan(y_sec(:, 1)), 1:3);
 
 disp([{'Connection'} ,{'Fit'}, {'Latency (4)'}, {'Latency(25/min_age)'}, {'Latency(51)'}, {'min_age'}; connection(:), fit(:), num2cell(y), num2cell(min_age)])
-
+%}
  
 %% extra explained variance
 

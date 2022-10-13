@@ -151,7 +151,7 @@ else
                                     continue;
                                 end
                                 
-                                % check if native electrode distances are available and 
+                                % check if native electrode distances are available and an exclusion distance is set
                                 if isfield(ccepData(iSubj), 'nativeElecDistances') && respStimElec_excludeDist ~= 0
                                     
                                     % retrieve the response electrode and it's respective index in the electrodes table
@@ -167,11 +167,11 @@ else
                                     
                                     % check whether either of the electrodes of the stimulus pair is within x mm of the response channel/electrode, skip if so
                                     if respStimElec_excludeDist ~= 0 && resp_stim1_dist < respStimElec_excludeDist
-                                        %warning(['Distance between stim1 electrode (', stimPiarElecs{1}, ') and response electrode (', respElec, ') is smaller than ', num2str(electrode_excludeDist), ' (', num2str(resp_stim1_dist), '), skipping']);
+                                        %warning(['Distance between stim1 electrode (', stimPiarElecs{1}, ') and response electrode (', respElec, ') is smaller than ', num2str(respStimElec_excludeDist), ' (', num2str(resp_stim1_dist), '), skipping']);
                                         continue;
                                     end
                                     if respStimElec_excludeDist ~= 0 && resp_stim2_dist < respStimElec_excludeDist
-                                        %warning(['Distance between stim2 electrode (', stimPiarElecs{2}, ') and response electrode (', respElec, ') is smaller than ', num2str(electrode_excludeDist), ' (', num2str(resp_stim2_dist), '), skipping']);
+                                        %warning(['Distance between stim2 electrode (', stimPiarElecs{2}, ') and response electrode (', respElec, ') is smaller than ', num2str(respStimElec_excludeDist), ' (', num2str(resp_stim2_dist), '), skipping']);
                                         continue;
                                     end
                                     
