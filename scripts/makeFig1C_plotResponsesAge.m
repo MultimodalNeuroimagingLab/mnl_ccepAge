@@ -367,15 +367,6 @@ end
 %% 
 %  Prepare data for plotting and calculate some statistics
 
-% count the number of tests
-numTests = 0;
-for iTr = 1:length(rois)
-    for iSubTr = 1:length(rois(iTr).sub_tract)
-        numTests = numTests + 1;
-    end
-end
-numTests = numTests * 2;    % test both directions
-
 
 %
 % Prepare summary matrices
