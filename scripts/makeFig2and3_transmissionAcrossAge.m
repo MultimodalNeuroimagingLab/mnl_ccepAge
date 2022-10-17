@@ -8,37 +8,19 @@
 
 clear
 close all
+warning('on');
+warning('backtrace', 'off')
 
-selectPat = input('Would you like to include all patients, or only the ones for whom it is certain that 8mA was applied (supplemental material)? [all/8] ','s');
-
-if strcmp(selectPat, 'all')
-    select_amplitude = 0; % make this 8 for only 8mA
-elseif strcmp(selectPat, '8')
-    select_amplitude = 8;
-else
-    error('Answer to previous question is not recognized.')
-end
 myDataPath = setLocalDataPath(1);
 
-if select_amplitude == 0 
-    if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'file')
-        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-        load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData')
-    else
-        disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
-    end
-elseif select_amplitude == 8 % only 8 mA
-    if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_8ma.mat'), 'file')
-        % if the n1Latencies_V1.mat was saved after ccep02_loadN1, load the n1Latencies structure here
-        load(fullfile(myDataPath.output,'derivatives', 'av_ccep', 'ccepData_8ma.mat'), 'n1Latencies8ma')
-
-        n1Latencies = n1Latencies8ma;
-        filename_averageCCEP = fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'average_ccep_age_8ma.mat');
-    else
-        disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
-    end
+if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'file')
+    load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData')
+else
+    disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
 end
 
+stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which N1s are excluded, 0 = not excluding
+respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which N1s are excluded, 0 = not excluding
 
 
 %%
@@ -59,41 +41,32 @@ for iTr = 1:length(rois)
         % direction along tract
         for iDir = [false true] 
             
-            % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
-            temp = ccep_connectRegions( ccepData, ...
-                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]), ...
-                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]));
-            out{iTr}{iSubTr}{iDir + 1} = temp;
-            
-            % construct sub-tract string
+            % construct sub-tract string (that includes the stim-resp direction) and store
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
-            
-            % store the tract and ROIs designations
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
             out{iTr}{iSubTr}{iDir + 1}.name = [rois(iTr).tract_name, ' - ', strSubTitle];
             
+            % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
+            out{iTr}{iSubTr}{iDir + 1}.metrics = ccep_N1sBetweenRegions(ccepData, ...
+                                                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)]), ...
+                                                                        rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)]), ...
+                                                                        stimStimElec_excludeDist, respStimElec_excludeDist);
+            
             % add the native tract length 
-            for iSubj = 1:length(out{iTr}{iSubTr}{iDir + 1}.sub)
-                
-                
+            for iSubj = 1:length(out{iTr}{iSubTr}{iDir + 1}.metrics)
                 if any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L')) && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R'))
                     % left and right
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
+                    out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist = mean(cell2mat(ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances), 'omitnan');
                     
                 elseif any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))
-                    % left
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
+                    % only left
+                    out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{1};
                     
                 else
-                    % right
-                    out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
+                    % only right
+                    out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances{2};
                     
                 end
-                
             end
             
         end
@@ -103,9 +76,9 @@ end
 
 
 %%
-%  ...
+%   Generate the images for figure 2 and 3
 
-n1Type = 'Latency';
+%n1Type = 'Latency';
 n1Type = 'Speed';
 
 % loop over the (sub-)tracts and directions
@@ -113,28 +86,25 @@ for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         for iDir = [false true]
 
-            % construct sub-tract string
+            % construct sub-tract string (that includes the stim-resp direction)
             subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
-            if iDir == false
-                strSubTitle = [subDir{1}, ' -> ', subDir{2}];
-            else
-                strSubTitle = [subDir{2}, ' -> ', subDir{1}];
-            end
-            
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
+
+            %%
             % initialize output: age, mean, variance in latency, and number of connections per subject
-            nsubs = length(out{iTr}{iSubTr}{iDir + 1}.sub);
+            nsubs = length(out{iTr}{iSubTr}{iDir + 1}.metrics);
             subsValues = NaN(nsubs, 5);              % [subject, <age, mean latency, standard error, number of latency values, tract dist>]
 
             % retrieve the age, mean latency, standard error and number of latency values per subject
             for iSubj = 1:nsubs
-                subsValues(iSubj, 1) = out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age;
-                subsValues(iSubj, 2) = mean(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies, 'omitnan');
-                numLatencies = sum(~isnan(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies));
-                subsValues(iSubj, 3) = std(out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies, 'omitnan') ./ sqrt(numLatencies);
+                subsValues(iSubj, 1) = out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).age;
+                subsValues(iSubj, 2) = mean(out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies, 'omitnan');
+                numLatencies = sum(~isnan(out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies));
+                subsValues(iSubj, 3) = std(out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies, 'omitnan') ./ sqrt(numLatencies);
                 subsValues(iSubj, 4) = numLatencies;
                 
                 % take the average distance of the tract in the left and right hemisphere
-                subsValues(iSubj, 5) = out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist;
+                subsValues(iSubj, 5) = out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist;
                 
                 clear numLatencies nativeTractDist
             end
@@ -145,11 +115,12 @@ for iTr = 1:length(rois)
             for iAge = 1:length(ages)
                 subjInclIndices = ismember(subsValues(:, 1), ages(iAge));
                 if strcmpi(n1Type, 'speed')
-                    % divide each subject by it's own length, then average
-                    % across subjects of the same age in m/s
+                    
+                    % divide each subject by it's own length, then average across subjects of the same age in m/s
                     n1Means(iAge) = mean(.001 * subsValues(subjInclIndices, 5) ./ subsValues(subjInclIndices, 2), 'omitnan');
                     
                 elseif strcmpi(n1Type, 'latency')
+                    
                     n1Means(iAge) = 1000 * mean(subsValues(subjInclIndices, 2), 'omitnan');
                     
                 else
@@ -157,36 +128,49 @@ for iTr = 1:length(rois)
                 end
                 
             end
+            ages(isnan(n1Means)) = [];
+            n1Means(isnan(n1Means)) = [];
+            
 
             %
             % fit first order polynomial
             %
             
-            % Test fitting a first order polynomial (leave 1 out cross validation)
-            % y  =  w1*age + w2
-            cross_val_linear = NaN(length(n1Means), 4);
-            % size latency (ms) X prediction (ms) X p1 (slope) X p2 (intercept) of left out
+            % Test fitting a first order polynomial (with leave-one-out cross validation)
+            cross_val_linear = NaN(length(n1Means), 4);     % <age> x <size latency (ms), prediction (ms), p1 (slope), p2 (intercept) of left out>
+            
+            % loop over the ages (for leave-one-out)
             age_counter = 0;
             for iAge = 1:length(n1Means)
                 age_counter = age_counter + 1;
-                % leave out iAge
-                subsTrain = ~ismember(1:length(n1Means), iAge)'; % leave out one age
+                
+                % determine training set of N1s (leaving one age out)
+                subsTrain = ~ismember(1:length(n1Means), iAge)';
+                
+                % fit linear on training set of N1s
                 P = polyfit(ages(subsTrain), n1Means(subsTrain), 1);
+                
+                % 
                 cross_val_linear(age_counter, 3:4) = P;                        % linear parameters
                 cross_val_linear(age_counter, 1) = n1Means(iAge);              % measured N1 for iAge
                 cross_val_linear(age_counter, 2) = P(1) * ages(iAge) + P(2);   % left out prediction for iAge
+                
             end
-            % coefficient of determination between prediction and left out
-            % measurement
+            
+            % coefficient of determination between prediction and left out measurement
             out{iTr}{iSubTr}{iDir + 1}.cod_out(1) = calccod(cross_val_linear(:, 2), cross_val_linear(:, 1), 1);
-            % correlation just for fun
+            
+            %
             out{iTr}{iSubTr}{iDir + 1}.sp_out(1) = corr(cross_val_linear(:, 2), cross_val_linear(:, 1), 'type', 'Spearman');
+            
             % average parameters for linear fit across ages
             out{iTr}{iSubTr}{iDir + 1}.linear_avparams = mean(cross_val_linear(:, 3:4));
             
+            % 
             if isnan(out{iTr}{iSubTr}{iDir + 1}.cod_out(1))
-                disp('nan for cod');
+                error('nan for cod');
             end
+            
             
             %
             % fit second order polynomial
@@ -198,51 +182,65 @@ for iTr = 1:length(rois)
             age_counter = 0;
             for iAge = 1:length(n1Means)
                 age_counter = age_counter + 1;
-                % leave out iAge
+                
+                % determine training set of N1s (leaving one age out)
                 subsTrain = ~ismember(1:length(n1Means), iAge)';
+                
+                % fit second-order polynomial on training set of N1s
                 P = polyfit(ages(subsTrain), n1Means(subsTrain), 2);
+                
+                %
                 cross_val_second(age_counter, 3:5) = P;
                 cross_val_second(age_counter, 1) = n1Means(iAge);
                 cross_val_second(age_counter, 2) = P(1) * ages(iAge) .^2 + P(2) * ages(iAge) + P(3);
+                
             end
+            
+            %
             out{iTr}{iSubTr}{iDir + 1}.cod_out(2) = calccod(cross_val_second(:, 2), cross_val_second(:, 1), 1);
-            out{iTr}{iSubTr}{iDir + 1}.sp_out(2) = corr(cross_val_second(:, 2),cross_val_second(:, 1), 'type', 'Spearman');
+            out{iTr}{iSubTr}{iDir + 1}.sp_out(2) = corr(cross_val_second(:, 2), cross_val_second(:, 1), 'type', 'Spearman');
+            
+            % average parameters for second-order fit across ages
             out{iTr}{iSubTr}{iDir + 1}.second_avparams = mean(cross_val_second(:, 3:5));
 
-            out{iTr}{iSubTr}{iDir + 1}.cod_out(3) = length(n1Means); % number of ages
+            % store the number of ages
+            out{iTr}{iSubTr}{iDir + 1}.cod_out(3) = length(n1Means);
             
             
             %
-            % make output figure
+            % make output figures
             %
             
-            figure('position',[0 0 600 600])
+            if strfind(rois(iTr).tract_name, '_U')
+                figure('position',[0 0 600 400])
+            else
+                figure('position',[0 0 600 300])
+            end
             hold on;
-
+            
+            
             % plot vertical histogram per subject in background
-            % add this if you want to see every single subject and the effect of averaging within an age group
+            % (shows every single subject and the effect of averaging within an age group)
+            warning('off');
             for iSubj = 1:nsubs
                 
                 if ~isnan(subsValues(iSubj, 2))
                     if strcmpi(n1Type, 'speed')
-                        distributionPlot(.001 * out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).nativeTractDist ./ out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
-                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age, ...
+                        distributionPlot(.001 * out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).nativeTractDist ./ out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies', ...
+                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).age, ...
                                         'color', [.8 .8 .8], 'showMM', 0, 'histOpt', 2)
                     else
 
-                        distributionPlot(1000 * out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).latencies', ...
-                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.sub(iSubj).age, ...
+                        distributionPlot(1000 * out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).latencies', ...
+                                        'xValues', out{iTr}{iSubTr}{iDir + 1}.metrics(iSubj).age, ...
                                         'color', [.8 .8 .8], 'showMM', 0, 'histOpt', 2)
                     end
                 end
                 
-                % plot mean + std err per subject
-                %plot([my_output(kk, 1) my_output(kk, 1)], [1000 * (my_output(kk, 2) - my_output(kk, 3)) 1000 * (my_output(kk, 2)+my_output(kk, 3))], 'k', 'LineWidth', 1)
                 
             end
-            
-            % plot mean per subject in a dot
-            %plot(my_output(:, 1), 1000 * my_output(:, 2), 'ko', 'MarkerSize', 6)
+            warning('on');
+            warning('backtrace', 'off')
             
             %
             % plot 1st or 2nd order polynomial
@@ -273,6 +271,7 @@ for iTr = 1:length(rois)
                 out{iTr}{iSubTr}{iDir + 1}.fit = 'second';
                 out{iTr}{iSubTr}{iDir + 1}.delta = diff(out{iTr}{iSubTr}{iDir + 1}.second_avparams(1) * delta_ages .^ 2 + out{iTr}{iSubTr}{iDir + 1}.second_avparams(2) * delta_ages + out{iTr}{iSubTr}{iDir + 1}.second_avparams(3)) / 10;
                 out{iTr}{iSubTr}{iDir + 1}.cod = out{iTr}{iSubTr}{iDir + 1}.cod_out(2);
+                
             end
 
             
@@ -289,16 +288,17 @@ for iTr = 1:length(rois)
                 fill([x_age x_age(end:-1:1)], [low_ci up_ci(end:-1:1)], cmap, 'EdgeColor', cmap)
             end
             
-            % if more than 20 subject and 2nd order, plot minimum 
+            % check if more than 20 subjects and 2nd order
             if out{iTr}{iSubTr}{iDir + 1}.cod_out(3) >= 20 && out{iTr}{iSubTr}{iDir + 1}.cod_out(2) > out{iTr}{iSubTr}{iDir + 1}.cod_out(1)
                 
-                % calculate minimum x
+                % calculate minimum x and plot minimum
                 min_age = -cross_val_second(:, 4) ./ (2 * cross_val_second(:, 3));
                 if strcmpi(n1Type, 'speed')
                     plot([quantile(min_age, 0.025, 1) quantile(min_age, 0.975, 1)], [.05 .05], 'Color', [.2 .7 .6], 'LineWidth', 10);
                 else
                     plot([quantile(min_age, 0.025, 1) quantile(min_age, 0.975, 1)], [5 5], 'Color', [.2 .7 .6], 'LineWidth', 10);
                 end
+                disp([rois(iTr).tract_name, ' - ', strSubTitle, '  CI: ', num2str(quantile(min_age, 0.025, 1)), ' - ', num2str(quantile(min_age, 0.975, 1))]);
                 
             end
             
@@ -310,11 +310,18 @@ for iTr = 1:length(rois)
             
             % 
             if strcmpi(n1Type, 'speed')
-                
+                if strfind(rois(iTr).tract_name, '_U')
+                    xlim([0 60]), ylim([0 4]);
+                    set(gca, 'YTick', 0:1:4, 'FontName', 'Arial', 'FontSize', 12);
+                else
+                    xlim([0 60]), ylim([0 12]);
+                    set(gca, 'YTick', 0:4:12, 'FontName', 'Arial', 'FontSize', 12);
+                end
             else
                 xlim([0 60]), ylim([0 80]);
-                set(gca, 'XTick', 10:10:50, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
+                set(gca, 'YTick', 20:20:100, 'FontName', 'Arial', 'FontSize', 12);
             end
+            set(gca, 'XTick', 10:10:50, 'FontName', 'Arial', 'FontSize', 12);
             
             
             %
@@ -325,14 +332,10 @@ for iTr = 1:length(rois)
                 mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
             end
 
-            if select_amplitude == 0
-                figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVs', n1Type, '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
-            elseif select_amplitude == 8
-                figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVs', n1Type, '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_'), '_8mA']);
-            end
+            figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVs', n1Type, '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
             set(gcf,'PaperPositionMode', 'auto');
             print('-dpng', '-r300', figureName);
-            %print('-depsc', '-r300', figureName);
+            print('-depsc', '-r300', figureName);
             close(gcf)
 
         end
@@ -343,7 +346,6 @@ end
 %% 
 %  Display in command window the cod and delta for each subplot
 %  this info is displayed in Figure 3 as well.
-clc 
 
 % loop over the (sub-)tracts and directions
 numOut = 0;
@@ -370,8 +372,7 @@ end
 
 %%
 %  Find average latencies
-clc
-
+%{
 delta_all = [];
 y_lin = NaN(numOut, 3);
 y_sec = NaN(numOut, 3);
@@ -410,29 +411,23 @@ for iTr = 1:length(rois)
     end
 end
 fprintf('\n         LINEAR MODEL FIT \n')
-fprintf('mean delta (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', ...
-        mean(delta_all), min(delta_all),max(delta_all))
-fprintf('Mean latency at age 4 years: %1.2f ms \nMean latency at age 51 years: %1.2f ms\n \n',...
-        mean(y_lin(:,1),'omitnan'), mean(y_lin(:,3),'omitnan'))
+fprintf('mean delta (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', mean(delta_all), min(delta_all),max(delta_all))
+fprintf('Mean latency at age 4 years: %1.2f ms \nMean latency at age 51 years: %1.2f ms\n \n', mean(y_lin(:,1),'omitnan'), mean(y_lin(:,3),'omitnan'))
 
 fprintf('         SECOND ORDER MODEL FIT \n')
 delta_sec = diff(y_sec, [], 2) ./ diff([repmat(4, numOut, 1), min_age, repmat(51, numOut, 1)], [], 2);
 
-fprintf('Mean minimal age (min-max) = %1.2f years (%1.2f - %1.2f)\n',...
-    mean(min_age,'omitnan'), min(min_age),max(min_age))
-fprintf('Mean delta until minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n',...
-    mean(delta_sec(:,1),'omitnan'), min(delta_sec(:,1)), max(delta_sec(:,1)))
-fprintf('Mean delta after minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n',...
-    mean(delta_sec(:,2),'omitnan'), min(delta_sec(:,2)), max(delta_sec(:,2)))
-fprintf('Minimal latency (min-max) = %1.2f ms (%1.2f - %1.2f)\n \n',...
-    mean(y_sec(:,2),'omitnan'), min(y_sec(:,2)),max(y_sec(:,2)))
+fprintf('Mean minimal age (min-max) = %1.2f years (%1.2f - %1.2f)\n', mean(min_age,'omitnan'), min(min_age),max(min_age))
+fprintf('Mean delta until minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', mean(delta_sec(:,1),'omitnan'), min(delta_sec(:,1)), max(delta_sec(:,1)))
+fprintf('Mean delta after minimal latency (min-max) = %1.2fms/year (%1.2f - %1.2f)\n', mean(delta_sec(:,2),'omitnan'), min(delta_sec(:,2)), max(delta_sec(:,2)))
+fprintf('Minimal latency (min-max) = %1.2f ms (%1.2f - %1.2f)\n \n', mean(y_sec(:,2),'omitnan'), min(y_sec(:,2)),max(y_sec(:,2)))
 
 % show all latencies at age 4, minimal age/25years, 51 years. 
 y = y_lin;
 y(~isnan(y_sec(:, 1)), 1:3) = y_sec(~isnan(y_sec(:, 1)), 1:3);
 
 disp([{'Connection'} ,{'Fit'}, {'Latency (4)'}, {'Latency(25/min_age)'}, {'Latency(51)'}, {'min_age'}; connection(:), fit(:), num2cell(y), num2cell(min_age)])
-
+%}
  
 %% extra explained variance
 

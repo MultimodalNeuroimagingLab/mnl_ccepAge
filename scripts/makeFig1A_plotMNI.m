@@ -1,9 +1,7 @@
 %
-% This script can be used to create an MNI cortex (inflated) with
-% electrodes in different colors for different locations for all patients
-% used in this study. 
+% This script creates the images for Figure 1A that depict a MNI surface with tracts, subtracts, ROIs and electrodes
 %
-% Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
+% Max van den Boom, Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, 2022
 %
 
 
@@ -13,6 +11,7 @@
 
 clc
 clear
+close all
 myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
@@ -39,31 +38,66 @@ end
 
 %%
 %  Retrieve the included line-tracts from all subjects
-        
-% loop over the subjects
-for iSubj = 1:size(ccepData, 2)
-    
-    % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
-    for iTr = 1:length(ccepData(iSubj).rois)
-        for iSubTr = 1:length(ccepData(iSubj).rois(iTr).sub_tract)
 
-            %nativeDistances = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).nativeDistances;
-            %MNIfiles = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).MNIfiles;
+% loop over the tracts (SLF, AF, etc...) and sub-tracts
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        
+        % init fields
+        rois(iTr).sub_tract(iSubTr).allMNIlineIndices = cell(1, 2);
+        rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount = cell(1, 2);
+        
+        % loop over the subjects
+        for iSubj = 1:size(ccepData, 2)
+
+            % retrieve the lines for this subject
             MNIlineIndices = ccepData(iSubj).rois(iTr).sub_tract(iSubTr).MNIlineIndices;
             
-            % concatenate the MNI line indices (for either the inter, or individual hemispheres)
-            if ~isfield(rois(iTr).sub_tract(iSubTr), 'allMNIlineIndices') || isempty(rois(iTr).sub_tract(iSubTr).allMNIlineIndices)
-                rois(iTr).sub_tract(iSubTr).allMNIlineIndices = cell(1, length(MNIlineIndices));
-            end
-            for iHemi = 1:length(MNIlineIndices)
+            % for each hemisphere, concatenate the MNI line indices (for either the inter, or individual hemispheres)
+            for iHemi = 1:2
                 rois(iTr).sub_tract(iSubTr).allMNIlineIndices{iHemi} = unique([rois(iTr).sub_tract(iSubTr).allMNIlineIndices{iHemi}, MNIlineIndices{iHemi}]);
+
+                if ~isempty(MNIlineIndices{iHemi})
+                    if isempty(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi})
+                        rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi} = zeros(1, max(MNIlineIndices{iHemi}));
+                    else
+                        if max(MNIlineIndices{iHemi}) > length(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi})
+                            rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi} = [rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi}, ...
+                                                                                         zeros(1, max(MNIlineIndices{iHemi}) - length(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi}))];
+                        end
+                    end
+                    rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi}(MNIlineIndices{iHemi}) = rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi}(MNIlineIndices{iHemi}) + 1;
+                end
             end
             clear MNIlineIndices;
+            
+        end
         
+        % each hemisphere
+        for iHemi = 1:2
+            
+            % determine the 80th percentile of the number of subjects per tract-line (given only the relevant tract-lines)
+            percentile80 = prctile(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi}(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi} > 0), 80);
+            
+            % take the mean over the number of subjects for the tract-lines that are above the 80th percentile
+            mm = mean(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi}(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi} > percentile80));
+            
+            % allow tract-lines that have at least 1/3 of the "average" of the subjects
+            mmlim = round(mm/3);
+            
+            % hist
+            %{
+            figure; bar(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi});
+            title([strrep(rois(iTr).tract_name, '_', '\_'), ' - ',  rois(iTr).sub_tract(iSubTr).name, ' - ', num2str(iHemi), ' - top average: ', num2str(mm), ' - 1/3 rnd: ', num2str(mmlim)]);
+            %}
+            
+            %
+            rois(iTr).sub_tract(iSubTr).allMNIlineIndices{iHemi} = find(rois(iTr).sub_tract(iSubTr).allMNIlineIndicesCount{iHemi} > mmlim);
+            
         end
     end
-    
 end
+    
 
 
 %%
@@ -156,6 +190,7 @@ for iSubj = 1:length(ccepData)
 end
 clear elecs temp_inflated;
 
+
 %%
 %  Label, for each (sub)tract, the ROIs for display (in color)
 
@@ -173,10 +208,6 @@ for iTr = 1:length(rois)
     
 end
 
-
-%% 
-%  Start here to make figures
-%
 
 
 %%
@@ -210,7 +241,8 @@ for iTr = 1:length(rois)
         roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2);
         
         % open the MNI pial
-        figure
+        hFig = figure;
+        set(hFig, 'Visible', 'off');
         %tH = ieeg_RenderGifti(gl);
         vLabels = rois(iTr).sub_tract(iSubTr).Lvert_labels;
         vLabels(isnan(vLabels)) = 0;
@@ -247,17 +279,31 @@ for iTr = 1:length(rois)
         
         % plot electrodes not part of the end-point ROIs 
         %ieeg_elAdd(els(ismember(allmni305_hemi, 'L') & ~ismember(allmni305_Destrlabels, [rois(iTr).sub_tract(iSubTr).roi1 rois(iTr).sub_tract(iSubTr).roi2]), :), 'k', 10)
+
+        % set the electrode colormap
+        colorMap                = [];
+        colorMap.temporal       = [0 0 .8];
+        colorMap.frontal        = [1 .8 0];
+        colorMap.central        = [.8 .3 0];
+        colorMap.parietal       = [0 .5 0];
+        
+        colorMap.ventral        = [0 0 .8];
+        colorMap.dorsal         = [0 .5 0];
+        colorMap.precentral     = [.8 .7 0];
+        colorMap.postcentral    = [.8 .4 0];
         
         % plot the electrodes for the end-point ROIs
-        ieeg_elAdd(els(roi1elecs, :), [0 0 .8], 15)
-        ieeg_elAdd(els(roi2elecs, :), [.8 .3 0], 15)
+        subDir = lower(split(rois(iTr).sub_tract(iSubTr).name, '-'));
+        ieeg_elAdd(els(roi1elecs, :), colorMap.(subDir{1}), 7)
+        ieeg_elAdd(els(roi2elecs, :), colorMap.(subDir{2}), 7)
         ieeg_viewLight(v_d(1), v_d(2))
 
         % save the image
         figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
         set(gcf, 'PaperPositionMode', 'auto')
+        set(hFig, 'Visible', 'on');
         print('-dpng', '-r300', figureName)
-        close(gcf)
+        close(hFig)
         
     end
 end
@@ -265,9 +311,19 @@ end
 return;
 
 
+
+
+
+
+
+
+
+
+
+
 %% 
 %   Plot figure with right pial with electrodes in mni space
-
+%{
 v_d = [96 6];
 
 % pour the faces and vertices into a gifti
@@ -521,6 +577,20 @@ for iTr = 1:length(rois)
         trkFile = fullfile(track_path, rois(iTr).tract_name);
         disp('Retrieving tracts in native space');
 
+        
+
+        [trkDist, trkLineIndices, trkExtElecs, gROIPial1, gROIPial2] = ccep_retrieveInterROIDistance( ...
+                                                                                gPial, hemi, ...
+                                                                                fibers, idx, ...
+                                                                                subjFSDir, ...
+                                                                                rois(iTr).sub_tract(iSubTr).roi1, ...
+                                                                                rois(iTr).sub_tract(iSubTr).roi2, ...
+                                                                                rois(iTr).sub_tract(iSubTr).allowIntraROI, ...
+                                                                                elecPositions, ...
+                                                                                trcLineEnds, ...
+                                                                                extLines);
+        
+        
         % retrieve the distance between the stimulation and response end-point ROIs
         % for this particular patient given specific tracts
         [~, ~, trkLineIndices, trkNativeFibers] = ccep_retrieveInterROIDistance( ...
@@ -577,3 +647,4 @@ for iTr = 1:length(rois)
 
     end
 end
+%}

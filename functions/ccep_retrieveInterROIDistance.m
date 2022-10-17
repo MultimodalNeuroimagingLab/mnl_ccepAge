@@ -52,7 +52,15 @@ function [trkDistance, trkIndices, trkExtElecs, gROIPial1, gROIPial2] = ccep_ret
         trkIndices = find((proxTrkLines1(:, 1) & proxTrkLines2(:, 2)) | (proxTrkLines1(:, 2) & proxTrkLines2(:, 1)))';
 
     end
-
+    
+    % make sure there are at least 5 tract-lines
+    if length(trkIndices) < 5
+        trkDistance = nan;
+        trkIndices = [];
+        trkExtElecs = [];
+        return;
+    end
+                    
     % calculate the length of each tract-line
     for iTrk = 1:length(trkIndices)
 
@@ -68,34 +76,40 @@ function [trkDistance, trkIndices, trkExtElecs, gROIPial1, gROIPial2] = ccep_ret
 
 
     %%
-    %  Determine which electrodes are at the end of the tract-lines
+    %  Determine which electrodes are close to the end of the tract-lines
+    
+    if ~isempty(elecPositions)
 
-    % specify the point of detection along the extended lines of the line-tracts that pierce the ROIs
-    steps = 20;
-    extPoints = nan(length(trkIndices), 2, steps, 3);
-    for iLine = 1:length(trkIndices)
-        lineIdx = (trkIndices(iLine) - 1) * 2 + 1;
+        % specify the point of detection along the extended lines of the line-tracts that pierce the ROIs
+        steps = 40;
+        extPoints = nan(length(trkIndices), 2, steps, 3);
+        for iLine = 1:length(trkIndices)
+            lineIdx = (trkIndices(iLine) - 1) * 2 + 1;
 
-        extPoints(iLine, 1, :, :)  = [linspace(extLines(lineIdx, 1),     extLines(lineIdx, 4), steps); ...
-                                      linspace(extLines(lineIdx, 2),     extLines(lineIdx, 5), steps); ...
-                                      linspace(extLines(lineIdx, 3),     extLines(lineIdx, 6), steps)]';
-        extPoints(iLine, 2, :, :)  = [linspace(extLines(lineIdx + 1, 4), extLines(lineIdx + 1, 1), steps); ...
-                                      linspace(extLines(lineIdx + 1, 5), extLines(lineIdx + 1, 2), steps); ...
-                                      linspace(extLines(lineIdx + 1, 6), extLines(lineIdx + 1, 3), steps)]';
+            extPoints(iLine, 1, :, :)  = [linspace(extLines(lineIdx, 1),     extLines(lineIdx, 4), steps); ...
+                                          linspace(extLines(lineIdx, 2),     extLines(lineIdx, 5), steps); ...
+                                          linspace(extLines(lineIdx, 3),     extLines(lineIdx, 6), steps)]';
+            extPoints(iLine, 2, :, :)  = [linspace(extLines(lineIdx + 1, 4), extLines(lineIdx + 1, 1), steps); ...
+                                          linspace(extLines(lineIdx + 1, 5), extLines(lineIdx + 1, 2), steps); ...
+                                          linspace(extLines(lineIdx + 1, 6), extLines(lineIdx + 1, 3), steps)]';
+        end
+        extPoints = reshape(extPoints, [], 3);
+
+        %{
+        % debug, check detection points and lines
+        b = (trkIndices - 1) * 2 + 1;
+        viewGii(gROIPial1, gROIPial2, 'merge', extLines(b, :), extLines(b + 1, :), extPoints);
+        %}
+
+        % check and return which electrodes are at the end of the extended tract-lines
+        pInter = collPoints(elecPositions, extPoints, 1);
+        trkExtElecs = find(pInter);
+        
+    else
+        trkExtElecs = [];
     end
-    extPoints = reshape(extPoints, [], 3);
 
-    %{
-    % debug, check detection points and lines
-    b = (trkIndices - 1) * 2 + 1;
-    viewGii(gROIPial1, gROIPial2, 'merge', extLines(b, :), extLines(b + 1, :), extPoints);
-    %}
-
-    % check and return which electrodes are at the end of the extended tract-lines
-    pInter = collPoints(elecPositions, extPoints, 1);
-    trkExtElecs = find(pInter);
-
-
+    
     %%
     %  Calculate the average distance over the tract-lines
 
@@ -117,6 +131,7 @@ function [trkDistance, trkIndices, trkExtElecs, gROIPial1, gROIPial2] = ccep_ret
     trkDistance = mean(trkLengths);
     
 end
+
 
 function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, annotVertexLabels, trcLineEnds, trcExtLines, gPial)
 
@@ -143,7 +158,7 @@ function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, 
     
     % build points along the extended lines
     % TODO: probably could optimize this
-    steps = 30;
+    steps = 40;
     extPoints = nan(size(trcLineEnds, 1), steps, 3);
     for iLine = 1:2:size(trcLineEnds, 1)
         
@@ -159,8 +174,9 @@ function [proxTrkLines, gROIPial] = retrieveROILines(roiCodes, annotColortable, 
     %viewGii(gROIPial, trcExtLines, reshape(extPoints, [], 3));
 
     % Check extPoints to roiVertices, this will allow for a "dilated" line piercing
-    % Note: some ROIs the sulci might not be included so an extended tract-line can pierce just between the gyri
-    pInter = collPoints(extPoints, roiVertices, 2);
+    % Note: for some some ROIs the sulci might not be included and can create small gaps between the gyri, so an extended tract-line
+    %       can pierce just trought and not be include, therefore allow a bit of a radius around the line
+    pInter = collPoints(extPoints, roiVertices, .5);
     
     % return which tract-lines touch ROI <1st dim = tract-line, 2nd dim = which end of the tract line>
     proxTrkLines = any(reshape(pInter, [], steps, 1), 2);

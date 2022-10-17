@@ -2,9 +2,13 @@
 %  Script to add the (sub-)tracts lines and distance between the end-point ROIs
 %
 %
-%   Note: For Linux and Mac, execute permissions might need to be set for
-%         the leadDBS binary files ('/leadDBS/ext_libs/ANTs').
-%         Navigate to that folder in the terminal and run 'chmod u+x antsApplyTransformsToPoints.*'
+%   Note:   This script requires the freesurfer output of the individual subjects to run. Unfortunately, for privacy
+%           reasons, we are not allowed to share the freesurfer output files. Instead, the file that this script would
+%           produce, ccepData_V2.mat, is shared and can be used directly in the subsequent scripts
+%
+%   Note 2: For Linux and Mac, execute permissions might need to be set for
+%           the leadDBS binary files ('/leadDBS/ext_libs/ANTs').
+%           Navigate to that folder in the terminal and run 'chmod u+x antsApplyTransformsToPoints.*'
 %
 %   Max van den Boom, MultimodalNeuroimaging Lab (MNL), 2022
 %
@@ -14,6 +18,9 @@
 %  Set paths
 clc
 clear
+warning('on');
+warning('backtrace', 'off')
+
 myDataPath = setLocalDataPath(1);
 track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
@@ -40,7 +47,6 @@ else
     % loop over the subjects
     for iSubj = 1:length(ccepData)
         fprintf('Load subj %d of %d (%s)\n', iSubj, length(ccepData), ccepData(iSubj).id);
-        tic
         
         subjFSDir   = fullfile(myDataPath.input, 'derivatives', 'freesurfer', ccepData(iSubj).id);
         subjElecDir = fullfile(myDataPath.input, 'derivatives', 'native_electrodes', ccepData(iSubj).id);
@@ -57,18 +63,36 @@ else
         good_channels = setdiff(1:size(channels, 1), bad_channels);
         clear jsonFiles;
         
-        % retrieve the electrodes and sort the electrodes so they match the channels
-        electrodes = ccepData(iSubj).electrodes;
-        electrodes = ccep_sortElectrodes(electrodes, channels, 0);
+
+        electrodes = [];
+        elecPositions = [];
+        if isfolder(subjElecDir)
+            
+            % load the electrodes (in native space)
+            electrodes = readtable(fullfile(subjElecDir, [ccepData(iSubj).id, '_', ccepData(iSubj).ses, '_electrodes.tsv']), ...
+                                   'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
+
+            % check if the native electrode order matches the MNI electrodes by name
+            if length(electrodes.name) ~= length(ccepData(iSubj).electrodes.name) || sum(~strcmp(electrodes.name, ccepData(iSubj).electrodes.name)) > 0
+                error('The native electrodes files does not match the MNI electrodes file');
+            end
+            
+            % calculate and store the distances (in native space) between the electrodes
+            dist = (electrodes.x' - electrodes.x) .^ 2 + ...
+                   (electrodes.y' - electrodes.y) .^ 2 + ...
+                   (electrodes.z' - electrodes.z) .^ 2;
+            dist = sqrt(dist);
+            ccepData(iSubj).nativeElecDistances = dist;
+
+            % retrieve the electrodes and sort the electrodes so they match the channels
+            % Note: this might remove electrode rows (if they are not in channels), so only do this after calculating the distance
+            electrodes = ccep_sortElectrodes(electrodes, channels, 0);
+            elecPositions = [electrodes.x electrodes.y electrodes.z];
+            
+        end
 
         % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
         for iTr = 1:length(rois)
-        %for iTr = 7:7
-
-            %
-            if rois(iTr).interHemi == 1
-                error('Inter-hemisphere not implemented, only processing per hemisphere');
-            end
 
             % for each hemisphere
             for iHemi = 1:2
@@ -77,7 +101,8 @@ else
 
                 % load the subject freesurfer hemisphere pial
                 gPial = gifti(fullfile(subjFSDir, ['/pial.', upper(hemi), '.surf.gii']));
-        
+                %viewGii(gPial, 'trans.7', elecPositions, 'WireSpheres1');
+                
                 % 
                 trkFile = fullfile(track_path, rois(iTr).tract_name);
                 disp('Retrieving tract distance');
@@ -123,7 +148,7 @@ else
 
                 % extend the tract-lines forward and backward
                 extLines = [((trcLineEnds(:, 1:3) - trcLineEnds(:, 4:6)) * 3) + trcLineEnds(:, 1:3), ...
-                            ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 14) + trcLineEnds(:, 1:3)];
+                            ((trcLineEnds(:, 4:6) - trcLineEnds(:, 1:3)) * 10) + trcLineEnds(:, 1:3)];
 
                 %{
                 % debug, check extended lines
@@ -154,10 +179,10 @@ else
                 %
                 % 
                 %
-                %{
+
+                
                 % loop over the sub-tracts (frontal, central, parietal, etc...)
                 for iSubTr = 1:length(rois(iTr).sub_tract)
-
 
                     % retrieve the distance between the stimulation and response end-point ROIs
                     % for this particular patient given specific tracts
@@ -168,14 +193,23 @@ else
                                                                                             rois(iTr).sub_tract(iSubTr).roi1, ...
                                                                                             rois(iTr).sub_tract(iSubTr).roi2, ...
                                                                                             rois(iTr).sub_tract(iSubTr).allowIntraROI, ...
-                                                                                            [electrodes.x electrodes.y electrodes.z], ...
+                                                                                            elecPositions, ...
                                                                                             trcLineEnds, ...
                                                                                             extLines);
 
+                    % warn if the tract length could not be determined
+                    if isempty(trkDist) || isnan(trkDist)
+                        warning(['Could not determine tract-length: subject ', ccepData(iSubj).id, ' - hemisphere ', upper(hemi), ' - tract-roi', rois(iTr).tract_name, ' ', rois(iTr).sub_tract(iSubTr).name])
+                    end
+                                                                                        
                     % store the distances, included MNI files and tract-lines, and elec
                     rois(iTr).sub_tract(iSubTr).MNIlineIndices{iHemi} = trkLineIndices;
                     rois(iTr).sub_tract(iSubTr).nativeDistances{iHemi} = trkDist;
-                    rois(iTr).sub_tract(iSubTr).extElecNames{iHemi} = electrodes(trkExtElecs, :).name;
+                    if ~isempty(trkExtElecs)
+                        rois(iTr).sub_tract(iSubTr).extElecNames{iHemi} = electrodes(trkExtElecs, :).name;
+                    else
+                        rois(iTr).sub_tract(iSubTr).extElecNames{iHemi} = {};
+                    end
 
 
                     %{
@@ -191,17 +225,18 @@ else
                     hold off;
                     %}
 
-                    
+                    %{
                     % debug, show ROI tracts in native with relevant electrodes
-                    if (iHemi == 1 && any(contains(electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
+                    if (iHemi == 1 && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'L'))) || (iHemi == 2 && any(contains(ccepData(iSubj).electrodes.jsonHemi, 'R')))   % only on hemisphere that matters
 
-                        elecPositions = [electrodes.x electrodes.y electrodes.z];
                         excludedTrkElecs = 1:size(elecPositions, 1);
                         excludedTrkElecs(trkExtElecs) = [];
                         b = (trkLineIndices - 1) * 2 + 1;
                         %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres3');
                         %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), elecPositions(excludedTrkElecs, :), 'WireSpheres1');
-                        viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres1');
+                        %viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', extLines(b, :), extLines(b + 1, :), elecPositions(trkExtElecs, :), 'WireSpheres1');
+                        viewGii(gROIPial1, gROIPial2, 'trans.7', 'merge', elecPositions(trkExtElecs, :), 'WireSpheres1');
+                        set(gcf, 'Visible', 'off');
                         hold on;
                         startV = 1;
                         for iLine = trkLineIndices
@@ -225,14 +260,12 @@ else
                         camlight(gca, 'headlight');
 
                         %
-                        [~, trc] = fileparts(trkFile);
-                        [~, sub] = fileparts(subjFSDir);
-                        myDataPath = setLocalDataPath(1);
                         if ~exist(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'), 'dir')
                             mkdir(fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs'));
                         end
-                        figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [sub, '_', upper(hemi), '_', trc, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', '_'), '.png']);
-                        set(gcf,'PaperPositionMode', 'auto')
+                        figureName = fullfile(myDataPath.output, 'derivatives', 'render', 'tractsROIs', [ccepData(iSubj).id, '_', upper(hemi), '_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', '_'), '.png']);
+                        set(gcf,'PaperPositionMode', 'auto');
+                        set(gcf, 'Visible', 'on');
                         print('-dpng', '-r300', figureName);
                         close(gcf)
 
@@ -274,7 +307,6 @@ else
             
         end     % end of tract loop
         
-    toc
     end     % end subjects loop
     
 end
