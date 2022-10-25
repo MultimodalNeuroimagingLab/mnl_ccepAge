@@ -147,9 +147,11 @@ for iTr = 1:length(rois)
                 subsTrain = ~ismember(1:length(n1LatencyMeans), iAge)';
                 
                 % fit linear on training set of N1s
-                lat_polyfit = polyfit(ages(subsTrain), n1LatencyMeans(subsTrain), 1);
-                spd_polyfit = polyfit(ages(subsTrain), n1SpeedMeans(subsTrain), 1);
-                
+                lat_polyfit = robustfit([ages(subsTrain)], n1LatencyMeans(subsTrain),'bisquare',4.685);% default
+                lat_polyfit = lat_polyfit(end:-1:1); % reverse order to match previous polyfit
+                spd_polyfit = robustfit([ages(subsTrain)], n1SpeedMeans(subsTrain),'bisquare',4.685);% default
+                spd_polyfit = spd_polyfit(end:-1:1); % reverse order to match previous polyfit
+
                 % 
                 lat_cross_linear(age_counter, 3:4) = lat_polyfit;                                   % linear parameters
                 lat_cross_linear(age_counter, 1) = n1LatencyMeans(iAge);                            % measured N1 for iAge
@@ -163,12 +165,12 @@ for iTr = 1:length(rois)
             end
             
             % coefficient of determination between prediction and left out measurement
-            out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(1) = calccod(lat_cross_linear(:, 2), lat_cross_linear(:, 1), 1);
-            out{iTr}{iSubTr}{iDir + 1}.spd_cod_out(1) = calccod(spd_cross_linear(:, 2), spd_cross_linear(:, 1), 1);
+            out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(1) = calccod(lat_cross_linear(:, 2), lat_cross_linear(:, 1), 1, [], 1);
+            out{iTr}{iSubTr}{iDir + 1}.spd_cod_out(1) = calccod(spd_cross_linear(:, 2), spd_cross_linear(:, 1), 1, [], 1);
             
             %
-            out{iTr}{iSubTr}{iDir + 1}.lat_sp_out(1) = corr(lat_cross_linear(:, 2), lat_cross_linear(:, 1), 'type', 'Spearman');
-            out{iTr}{iSubTr}{iDir + 1}.spd_sp_out(1) = corr(spd_cross_linear(:, 2), spd_cross_linear(:, 1), 'type', 'Spearman');
+            out{iTr}{iSubTr}{iDir + 1}.lat_sp_out(1) = corr(lat_cross_linear(:, 2), lat_cross_linear(:, 1), 'type', 'Pearson');
+            out{iTr}{iSubTr}{iDir + 1}.spd_sp_out(1) = corr(spd_cross_linear(:, 2), spd_cross_linear(:, 1), 'type', 'Pearson');
             
             % average parameters for linear fit across ages
             out{iTr}{iSubTr}{iDir + 1}.lat_linear_avparams = mean(lat_cross_linear(:, 3:4));
@@ -199,8 +201,10 @@ for iTr = 1:length(rois)
                 subsTrain = ~ismember(1:length(n1LatencyMeans), iAge)';
                 
                 % fit second-order polynomial on training set of N1s
-                lat_polyfit = polyfit(ages(subsTrain), n1LatencyMeans(subsTrain), 2);
-                spd_polyfit = polyfit(ages(subsTrain), n1SpeedMeans(subsTrain), 2);
+                lat_polyfit = robustfit([ages(subsTrain) ages(subsTrain).^2], n1LatencyMeans(subsTrain),'bisquare',4.685);% default
+                lat_polyfit = lat_polyfit(end:-1:1); % reverse order to match previous polyfit
+                spd_polyfit = robustfit([ages(subsTrain) ages(subsTrain).^2], n1SpeedMeans(subsTrain),'bisquare',4.685);% default
+                spd_polyfit = spd_polyfit(end:-1:1); % reverse order to match previous polyfit
                 
                 %
                 lat_cross_second(age_counter, 3:5) = lat_polyfit;
@@ -215,11 +219,11 @@ for iTr = 1:length(rois)
             end
             
             %
-            out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(2) = calccod(lat_cross_second(:, 2), lat_cross_second(:, 1), 1);
-            out{iTr}{iSubTr}{iDir + 1}.lat_sp_out(2) = corr(lat_cross_second(:, 2), lat_cross_second(:, 1), 'type', 'Spearman');
+            out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(2) = calccod(lat_cross_second(:, 2), lat_cross_second(:, 1), 1, [], 1);
+            out{iTr}{iSubTr}{iDir + 1}.lat_sp_out(2) = corr(lat_cross_second(:, 2), lat_cross_second(:, 1), 'type', 'Pearson');
             
-            out{iTr}{iSubTr}{iDir + 1}.spd_cod_out(2) = calccod(spd_cross_second(:, 2), spd_cross_second(:, 1), 1);
-            out{iTr}{iSubTr}{iDir + 1}.spd_sp_out(2) = corr(spd_cross_second(:, 2), spd_cross_second(:, 1), 'type', 'Spearman');
+            out{iTr}{iSubTr}{iDir + 1}.spd_cod_out(2) = calccod(spd_cross_second(:, 2), spd_cross_second(:, 1), 1, [], 1);
+            out{iTr}{iSubTr}{iDir + 1}.spd_sp_out(2) = corr(spd_cross_second(:, 2), spd_cross_second(:, 1), 'type', 'Pearson');
             
             % average parameters for second-order fit across ages
             out{iTr}{iSubTr}{iDir + 1}.lat_second_avparams = mean(lat_cross_second(:, 3:5));
@@ -322,15 +326,15 @@ for iTr = 1:length(rois)
             end
             warning('on');
             warning('backtrace', 'off')
-            
-            % plot fit trend (with confidence interval)
-            plot(ages, n1LatencyMeans, 'k.', 'MarkerSize', 12, 'Color', [0 0 0]);
-            
+                        
             % plot 95% CI
             low_ci = quantile(y_lat_n1, .025, 1);
             up_ci = quantile(y_lat_n1, .975, 1);
             fill([x_age x_age(end:-1:1)], [low_ci up_ci(end:-1:1)], lat_cmap, 'EdgeColor', lat_cmap)
             
+            % plot fit trend (with confidence interval)
+            plot(ages, n1LatencyMeans, 'k.', 'MarkerSize', 12, 'Color', [0 0 0]);
+
             % check if more than 20 subjects and 2nd order
             if out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(3) >= 20 && out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(2) > out{iTr}{iSubTr}{iDir + 1}.lat_cod_out(1)
                 
@@ -433,11 +437,21 @@ for iTr = 1:length(rois)
     end
 end
 
-
-
 %% 
 %  Display in command window the cod and delta for each subplot
 %  this info is displayed in Figure 3 as well.
+
+long_tracts = {'Y1065_TPAT - Parietal -> Temporal','Y1065_TPAT - Temporal -> Parietal',...
+    'Y1065_AF - Frontal -> Temporal','Y1065_AF - Temporal -> Frontal',...
+    'Y1065_SLF2 - Frontal -> Parietal','Y1065_SLF2 - Parietal -> Frontal',...
+    'Y1065_SLF2 - Frontal -> Central','Y1065_SLF2 - Central -> Frontal'};
+long_cod_lat = NaN(1,length(long_tracts));
+long_cod_spd = NaN(1,length(long_tracts));
+
+U_tracts = {'Y842_U - PreCentral -> PostCentral','Y842_U - PostCentral -> PreCentral',...
+    'Y842_U - Frontal -> Frontal','Y842_U - Parietal -> Parietal'};
+U_cod_lat = NaN(1,length(U_tracts));
+U_cod_spd = NaN(1,length(U_tracts));
 
 % latency
 disp('Latency: ');
@@ -455,6 +469,14 @@ for iTr = 1:length(rois)
                         out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta);
                 
             end
+            
+            % get averages
+            if ismember(out{iTr}{iSubTr}{iDir + 1}.name,U_tracts)
+                U_cod_lat(find(ismember(U_tracts,out{iTr}{iSubTr}{iDir + 1}.name))) = out{iTr}{iSubTr}{iDir + 1}.lat_cod;
+            elseif ismember(out{iTr}{iSubTr}{iDir + 1}.name,long_tracts)
+                long_cod_lat(find(ismember(long_tracts,out{iTr}{iSubTr}{iDir + 1}.name))) = out{iTr}{iSubTr}{iDir + 1}.lat_cod;
+            end
+
         end
     end
 end
@@ -465,16 +487,29 @@ for iTr = 1:length(rois)
     for iSubTr = 1:length(rois(iTr).sub_tract)
         for iDir = [false true]
 
-            if strcmp(out{iTr}{iSubTr}{iDir + 1}.lat_fit, 'linear')
+            if strcmp(out{iTr}{iSubTr}{iDir + 1}.spd_fit, 'linear')
                 fprintf(' - %s: best fit is linear, with COD = %2.0f, and delta %1.2f \n', ...
-                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta)
+                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.spd_cod, out{iTr}{iSubTr}{iDir + 1}.spd_delta)
                 
-            elseif strcmp(out{iTr}{iSubTr}{iDir + 1}.lat_fit, 'second')
+            elseif strcmp(out{iTr}{iSubTr}{iDir + 1}.spd_fit, 'second')
                 
                 fprintf(' - %s: best fit is second, with COD = %2.0f, and delta: age0-10 = %1.2f, age10-20 = %1.2f, age20-30 = %1.2f, age30-40 = %1.2f, age40-50 = %1.2f \n', ...
-                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta);
+                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.spd_cod, out{iTr}{iSubTr}{iDir + 1}.spd_delta);
                 
             end
+            % get averages
+            if ismember(out{iTr}{iSubTr}{iDir + 1}.name,U_tracts)
+                U_cod_spd(find(ismember(U_tracts,out{iTr}{iSubTr}{iDir + 1}.name))) = out{iTr}{iSubTr}{iDir + 1}.spd_cod;
+            elseif ismember(out{iTr}{iSubTr}{iDir + 1}.name,long_tracts)
+                long_cod_spd(find(ismember(long_tracts,out{iTr}{iSubTr}{iDir + 1}.name))) = out{iTr}{iSubTr}{iDir + 1}.spd_cod;
+            end
+
         end
     end
 end
+
+mean(long_cod_lat)
+mean(long_cod_spd)
+mean(U_cod_lat)
+mean(U_cod_spd)
+
