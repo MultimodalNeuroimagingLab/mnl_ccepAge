@@ -363,10 +363,10 @@ for iTr = 1:length(rois)
             set(gca, 'YGrid', 'on', 'XGrid', 'off');
             
             % save latency figure
-            if ~exist(fullfile(myDataPath.output, 'derivatives', 'ageRobust'), 'dir')
-                mkdir(fullfile(myDataPath.output, 'derivatives', 'ageRobust'));
+            if ~exist(fullfile(myDataPath.output, 'derivatives', 'age'), 'dir')
+                mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
             end
-            figureName = fullfile(myDataPath.output, 'derivatives', 'ageRobust', ['ageVsLatency', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+            figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVsLatency', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
             set(gcf,'PaperPositionMode', 'auto');
             print('-dpng', '-r300', figureName);
             print('-depsc', '-r300', figureName);
@@ -427,7 +427,7 @@ for iTr = 1:length(rois)
             set(gca, 'YGrid', 'on', 'XGrid', 'off');
             
             % save speed figure
-            figureName = fullfile(myDataPath.output, 'derivatives', 'ageRobust', ['ageVsSpeed', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+            figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVsSpeed', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
             set(gcf,'PaperPositionMode', 'auto');
             print('-dpng', '-r300', figureName);
             print('-depsc', '-r300', figureName);
