@@ -466,3 +466,66 @@ for iTr = 1:length(rois)
 end
 
 
+%%
+%% Plot exampel CCEPs for a few older and younger subjects 
+%%
+
+ttmin = -0.300;
+ttmax = .400;
+
+for iTr = 3%1:length(rois)
+    for iSubTr = 1%:length(rois(iTr).sub_tract)
+        for iDir = [true]% [false true]
+            
+            % construct sub-tract string
+            subDir = split(rois(iTr).sub_tract(iSubTr).name, '-');
+            strSubTitle = [subDir{iDir + 1}, ' -> ', subDir{~iDir + 1}];
+            
+            if ~isempty(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age)
+                
+                %
+                figure('Position', [0 0 500 150])
+                plot(1000 * tt(tt > ttmin & tt < ttmax), ...
+                        zeros(size(tt(tt > ttmin & tt < ttmax))),'Color',[.5 .5 .5]);
+                hold on
+                
+                sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([1 4 5])
+                for kk = [1 4 5]%size(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp,1)
+                    plot(1000 * tt(tt > ttmin & tt < ttmax), ...
+                            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm(kk, tt > ttmin & tt < ttmax),'k','LineWidth',1);
+                end
+                sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([28 30:32])
+                for kk = [28 30:32]%size(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp,1)
+                    plot(1000 * tt(tt > ttmin & tt < ttmax), ...
+                            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm(kk, tt > ttmin & tt < ttmax),'b','LineWidth',1);
+                end
+
+                hold on
+                set(gca,'XTick',0:50:100,'YTick',[-250 0 250])
+                axis tight
+                ylim([-350 150])
+
+                fill([-10 10 10 -10],[500 500 -500 -500],[.5 .5 .5],'EdgeColor','w','FaceAlpha',.8)
+
+                strSign = [' (p\_fdr = ', num2str(all_p_fdr{iTr}{iSubTr}(iDir + 1)), ')'];
+                if all_p_fdr{iTr}{iSubTr}(iDir + 1) < .05,  strSign = [strSign, ' *'];     end
+                title([rois(iTr).tract_name, ' - ', strSubTitle, strSign]);
+
+                %
+                % save
+                %
+                if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
+                    mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
+                end
+                figureName = fullfile(myDataPath.output,'derivatives', 'age', ['CCEPexamples_6subjects', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+
+                set(gcf,'PaperPositionMode','auto')
+                print('-dpng','-r300',figureName)
+                print('-depsc','-r300',figureName)
+                close(gcf)
+                
+            end
+        end
+    end
+end
+
