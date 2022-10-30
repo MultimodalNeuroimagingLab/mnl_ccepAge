@@ -124,6 +124,13 @@ for iFile = 1:size(rootFiles, 1)
             end
             
             
+            if isnan(max(stim_pair_nr))
+                warning(['No more trials left in this run, consider removing run!']);
+                continue;
+            end
+            
+            
+            
             % read the channel 
             channels_tsv_name = replace(fullfile(runFiles(iRun).folder, runFiles(iRun).name), 'events.tsv', 'channels.tsv');
             channels_table = readtable(channels_tsv_name, 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
