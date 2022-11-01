@@ -2,152 +2,94 @@
 % This script loads CCEPs of one subject and plots a distribution of
 % latencies to distances from the stimulus pair
 % 
-% Dorien van Blooijs 2022
+%
+% 
+% D Hermes, M vd Boom, D van Blooijs 2022
 %
 
-%% Set paths
-clc
+
+%%  1. Load the ccepData from the derivatives
+
 clear
-myDataPath = setLocalDataPath(1);
-
-%% add subject information for five different patients
 close all
+warning('on');
+warning('backtrace', 'off')
 
-% bids_sub = 'sub-ccepAgeUMCU50'; % 7y, M
-% bids_ses = 'ses-1';
-% bids_task = 'task-SPESclin';
-% bids_runs = 'run-021222';
+myDataPath = setLocalDataPath(1);
+track_path = fullfile(myDataPath.input, 'sourcedata', 'tracks');
 
-% bids_sub = 'sub-ccepAgeUMCU55'; % 14y, M
-% bids_ses = 'ses-1';
-% bids_task = 'task-SPESclin';
-% bids_runs = 'run-031717';
+if exist(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'file')
+    load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepData_V2.mat'), 'ccepData')
+else
+    disp('Run scripts ccep02_loadN1.m and ccep03_addtracts.m first')
+end
 
-bids_sub = 'sub-ccepAgeUMCU19';  % 25y, F
-bids_ses = 'ses-1';
-bids_task = 'task-SPESclin';
-bids_runs = 'run-040955';
+stimStimElec_excludeDist = 18;     % the distance between the stimulated electrodes (in mm) above which N1s are excluded, 0 = not excluding
+respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which N1s are excluded, 0 = not excluding
 
-% bids_sub = 'sub-ccepAgeUMCU70'; % 38y, F
-% bids_ses = 'ses-1';
-% bids_task = 'task-SPESclin';
-% bids_runs = 'run-021404';
 
-% bids_sub = 'sub-ccepAgeUMCU59'; % 50y, F
-% bids_ses = 'ses-1';
-% bids_task = 'task-SPESclin';
-% bids_runs = 'run-041501';
+%% pull distances for all ROIs
 
-load(fullfile(myDataPath.output, 'derivatives', 'av_ccep', bids_sub ,bids_ses, ...
-    [bids_sub, '_', bids_ses,'_',bids_task,'_',bids_runs, '_averageCCEPs.mat']));
+clear out
+clc
 
-tb_elec = readtable(fullfile(myDataPath.input,bids_sub,bids_ses,'ieeg',...
-    [bids_sub, '_', bids_ses,'_','electrodes.tsv']), ...
-    'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
+% load tracts and their corresponding end-point ROIs
+rois = ccep_categorizeAnatomicalRegions();
 
-%% calculate distance between stimpair and response electrode
-
-distance = NaN(size(n1_peak_sample));
-elecPos = [tb_elec.x tb_elec.y tb_elec.z];
-
-for iStimp = 1:size(n1_peak_sample,2)
-    for iChan = 1:size(n1_peak_sample,1)
-        if ~isnan(n1_peak_sample(iChan,iStimp))
-            stimp1 = extractBefore(stimpair_names{iStimp},'-');
-            stimp2 = extractAfter(stimpair_names{iStimp},'-');
-            stimpChan1 = find(strcmp(stimp1, tb_elec.name) == 1);
-            stimpChan2 = find(strcmp(stimp2, tb_elec.name) == 1);
+% loop over the (sub-)tracts and directions
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract) 
+        % direction along tract
+        for iDir = [false true] 
             
-            midStimp = (elecPos(stimpChan1,:) + elecPos(stimpChan2,:))/2;
-            distance(iChan,iStimp) = sqrt(sum((midStimp - elecPos(iChan,:)).^2));
+            stim_roi = [stim_roi, rois(iTr).sub_tract(iSubTr).(['roi', num2str(iDir + 1)])];
+            resp_roi = [resp_roi, rois(iTr).sub_tract(iSubTr).(['roi', num2str(~iDir + 1)])];
+             
         end
     end
 end
 
-%% figure of all latencies of 1 subject
+% extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
+out = ccep_N1sBetweenRegions(ccepData,stim_roi, resp_roi,stimStimElec_excludeDist, respStimElec_excludeDist);
 
-all_n1_peak_sample = n1_peak_sample(:);
-all_n1_peak_sample(isnan(all_n1_peak_sample)) = [];
+%%
 
-figure(1),
-histogram(tt(all_n1_peak_sample)*1000,'BinWidth',1)
-xlabel('N1 latency (ms)')
-ylabel('Number of responses')
-title('Distribution of N1 latencies')
-xlim([0 100])
+figure('Position',[0 0 400 300])
 
-% save the image
-figureName = fullfile(myDataPath.output,'derivatives','age',...
-            [bids_sub,'_histogram_N1latencies']);
+subplot(5,1,1:4),hold on
 
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-painters','-depsc','-r300',figureName)
+all_varLatencies = [];
 
+for iSubj = 1:length(ccepData) 
 
-%% figure of all latencies for different distances from stimulus pair
-
-cmap = jet(size(n1_peak_sample,2));
-stimnum = repmat(1:size(n1_peak_sample,2),size(n1_peak_sample,1),1);
-
-all_distance = distance(:);
-all_stimnum = stimnum(:);
-all_stimnum(isnan(all_distance)) = [];
-all_distance(isnan(all_distance)) = [];
-
-figure(2),
-hold on,
-for iCh = 1:size(all_distance,1)
-    plot(all_distance(iCh),tt(all_n1_peak_sample(iCh))*1000,'.','Color',cmap(all_stimnum(iCh),:))
-end
-hold off
-xlabel('Distance (mm)')
-ylabel('N1 latency (ms)')
-title('Distribution of N1 latencies')
-xlim([0 125])
-ylim([0 100])
-
-% save the image
-figureName = fullfile(myDataPath.output,'derivatives','age',...
-            [bids_sub,'_distance_N1latencies']);
-
-set(gcf,'PaperPositionMode','auto')
-print('-dpng','-r300',figureName)
-print('-painters','-depsc','-r300',figureName)
-
-%% figure
-
-counts =[];
-for iStim = 1:size(n1_peak_sample,2)
-    [n,edges] = histcounts(tt(all_n1_peak_sample(all_stimnum == iStim))*1000,[5:10:105]);
-    
-    counts(iStim,:) = n;
-end
-
-sz = 1:5:100;
-
-figure(3),
-hold on,
-for iStim = 1:size(n1_peak_sample,2)
-    plot([iStim iStim],[0 100],'Color',[0.9 0.9 0.9])
-for iLat = 1:10
-    if counts(iStim,iLat) >0
-    scatter(iStim,iLat*10,sz(counts(iStim,iLat)),cmap(iStim,:),"filled")
+    stim_pairs = unique(out(iSubj).StimPairNr);
+    for kk = 1:length(stim_pairs)
+        this_plot = find(out(iSubj).StimPairNr==stim_pairs(kk));
+        if length(this_plot)>5 % several stim/record pairs
+            plot(std(1000*out(iSubj).latencies(this_plot)),iSubj,'k.')
+            all_varLatencies = [all_varLatencies; std(1000*out(iSubj).latencies(this_plot))];
+        end
     end
 end
-end
+plot([0 0],[0 75],'k')
+xlim([-1 50])
+set(gca,'XTick',[0:10:50],'XTickLabel',[])
+ylim([0 75])
+ylabel('Subject number')
 
-xlim([0 size(n1_peak_sample,2)+1])
-ylim([0 100])
-xlabel('Stimulus pair')
-ylabel('N1 latency (ms)')
+subplot(5,1,5),hold on
+histogram(all_varLatencies,[0:50],'FaceColor',[1 1 1]);
+% plot([0 0],[0 200],'k')
+xlim([-1 50])
+xlabel('Standard deviation (ms)')
+ylabel('Number of stimulation pairs')
 
-%% figure
+figureName = fullfile(myDataPath.output,'derivatives','age',...
+    'SuppFigS8_volumeConductionCheck');
+set(gcf,'PaperPositionMode','auto')
 
-minVal =-0.45;
-maxVal = 0.45;
-randVal = (maxVal - minVal).*rand(size(all_n1_peak_sample,1),1) + minVal;
+print('-dpng','-r300','-painters',figureName)
+print('-depsc2','-r300','-painters',figureName)
 
-figure,
-plot(all_stimnum+randVal,(tt(all_n1_peak_sample)*1000),'.')
+
 
