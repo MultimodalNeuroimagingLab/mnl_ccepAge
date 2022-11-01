@@ -244,7 +244,7 @@ for iSubj = 1:size(ccepData, 2)
             end
         end
 
-        clear runData averageN1;
+        clear runData;
     end
 
 
@@ -295,10 +295,90 @@ for iSubj = 1:size(ccepData, 2)
     clear subjectMeanResponse subjectMeanResponse_nonnorm subjectMeanN1 subjectMeanN1FWHM ROIsDist ROIsTrcs;
 end
 
+
+%%
+%  Sort CCEPs and their properties according to age (for each connection)
+%
+%  Note: this does not average anything over multiple subjects at the same age.
+%
+
+sortedCCEPs = {};
+numSubjectsWithROICoverage = {};
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        for iDir = [false true]
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1 = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1FWHM = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength = [];
+            sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength = [];
+            numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1} = [];
+        end
+    end
+end
+
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        
+        for age = 1:max([ccepData.age])
+            if ~isempty(subjectResponses{iTr}{iSubTr}{age})
+                
+                % for both directions (consider stim on roi1 and response on roi2, and vice versa)
+                for iDir = [false true]
+                    
+                    % 
+                    ageResponse = squeeze(subjectResponses{iTr}{iSubTr}{age}(iDir + 1, :, :));                  % [subjects, samples]
+                    ageResponseNonnorm = squeeze(subjectResponses_nonnorm{iTr}{iSubTr}{age}(iDir + 1, :, :));   % [subjects, samples]
+                    ageN1 = squeeze(subjectN1s{iTr}{iSubTr}{age}(iDir + 1, :));                                 % [subjects]
+                    ageN1Width = squeeze(subjectN1sFWHM{iTr}{iSubTr}{age}(iDir + 1, :));                        % [subjects]
+                    ageLTrkLength = average_L_trk_length{iTr}{iSubTr}{age};                                     % [subjects]         (note, no direction in average_L_trk_length, since same length)
+                    ageRTrkLength = average_R_trk_length{iTr}{iSubTr}{age};                                     % [subjects]         (note, no direction in average_R_trk_length, since same length)
+                    
+                    % if squeeze changed the orientation of the matrix, undo
+                    if size(ageResponse, 1) > size(ageResponse, 2)
+                        ageResponse = ageResponse';
+                        ageResponseNonnorm = ageResponseNonnorm';
+                    end
+                    
+                    % determine if there are nans (meaning no N1s - for subjects - and between a specific tract, sub-tract and direction)
+                    excludeN1s = find(isnan(ageResponse(:, 1)));
+                    ageResponse(excludeN1s, :) = [];
+                    ageResponseNonnorm(excludeN1s, :) = [];
+                    ageN1(excludeN1s) = [];
+                    ageN1Width(excludeN1s) = [];
+                    ageLTrkLength(excludeN1s) = [];
+                    ageRTrkLength(excludeN1s) = [];
+                    
+                    if ~isempty(ageResponse) % there are subjects with electrodes on ROI
+                        nr_subs = size(ageResponse, 1);
+                        
+                        numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1} = [numSubjectsWithROICoverage{iTr}{iSubTr}{iDir + 1}, (zeros(1, nr_subs) + age)];
+
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp; ageResponse];                             % [all subjects, samples]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm; ageResponseNonnorm];      % [all subjects, samples]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1 = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1, ageN1];                                       % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1FWHM = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageN1FWHM, ageN1Width];                          % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age, zeros(1, nr_subs) + age];                                 % [all subjects]
+                        
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.L_trkLength, ageLTrkLength];                           % [all subjects]
+                        sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength = [sortedCCEPs{iTr}{iSubTr}{iDir + 1}.R_trkLength, ageRTrkLength];                           % [all subjects]
+                        
+                        clear addThis addThisNonnorm addN1 ageN1Width LTrkLength RTrkLength
+                    end
+
+                end
+            end
+        end
+    end
+end
+
+%%
 % save
 s = input('Do you want to save the ccepAverages structure? [y/n]: ', 's');
 if strcmp(s, 'y')
     save(fullfile(myDataPath.output, 'derivatives', 'av_ccep', 'ccepAverages.mat'), ...
-         'subjectResponses', 'subjectResponses_nonnorm', 'subjectN1s', 'subjectN1sFWHM', 'tt', 'rois', 'average_L_trk_length', 'average_R_trk_length');
+         'subjectResponses', 'subjectResponses_nonnorm', 'subjectN1s', 'subjectN1sFWHM', 'tt', 'rois', 'average_L_trk_length', 'average_R_trk_length', 'sortedCCEPs');
 end
 
