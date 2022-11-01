@@ -1,5 +1,5 @@
 %
-% This script collects the metadata, extracts the average CCEPs and detects N1s for all the subjects in the RESPect database
+% This script collects the metadata, extracts the average CCEPs and detects N1s for all the subjects
 %
 % Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 %

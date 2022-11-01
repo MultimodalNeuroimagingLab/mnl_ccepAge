@@ -18,7 +18,7 @@ myDataPath = setLocalDataPath(1);
 if exist(fullfile(myDataPath.output,'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'file')
     load(fullfile(myDataPath.output,'derivatives', 'av_ccep', 'ccepData_V1.mat'), 'ccepData')
 else
-    disp('Run scripts ccep02_loadN1.m first')
+    disp('Run scripts ccep02_aggregateToStruct.m first')
 end
 
 
