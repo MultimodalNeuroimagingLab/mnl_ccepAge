@@ -1,12 +1,14 @@
 %
 %   Calculates average across condition numbers for ccep data 
-%   [average_ccep, average_ccep_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, events_table, channel_names, stim_pair_nr, stim_pair_name, params)
+%   [average_ccep, average_ccep_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, events_table, channel_names, stim_pair_nr, stim_pair_name, params, verbose)
 %
 %       data                        = seeg or ecog data in electrodes X time
 %       srate                       = sampling frequency
 %       events_table                = loaded table with bids events
+%       channel_names               = 
 %       stim_pair_nr                = ccep condition number, starts at 1
 %       stim_pair_name              = ccep stim pair name (e.g. F01-F02)
+%       verbose                     = 
 %
 %       params                      = the configuration struct (pass [] for defaults)
 %       params.epoch_length         = total epoch length in sec, default = 5
@@ -26,9 +28,10 @@
 % 
 %   Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 %
-function [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, events_table, channel_names, stim_pair_nr, stim_pair_name, params)
+function [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, events_table, channel_names, stim_pair_nr, stim_pair_name, params, verbose)
 
-    if isempty(params)
+    % defaults/optional parameters
+    if ~exist('params', 'var') || isempty(params)
         % epochs of -2:3 seconds
         epoch_length = 5; 
         epoch_prestim_length = 2;
@@ -37,6 +40,9 @@ function [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_aver
         epoch_length = params.epoch_length; 
         epoch_prestim_length = params.epoch_prestim_length; 
         baseline_subtract = params.baseline_subtract;
+    end
+    if ~exist('verbose', 'var') || isempty(verbose)
+        verbose = 1;
     end
 
     nr_channels = size(data, 1);
@@ -55,8 +61,10 @@ function [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_aver
     %  
     
     for iCond = 1:max(stim_pair_nr)
-        disp(['loading data for condition/stimpair: ' int2str(iCond) ' out of ' int2str(max(stim_pair_nr))])
-
+        if verbose == 1
+            disp(['loading data for condition/stimpair: ' int2str(iCond) ' out of ' int2str(max(stim_pair_nr))])
+        end
+        
         % trials/epochs belonging to this condition/stim-pair
         trialIndices = find(stim_pair_nr == iCond);
 

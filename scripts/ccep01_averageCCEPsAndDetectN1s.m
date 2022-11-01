@@ -1,5 +1,5 @@
 %
-% This script collects the metadata, extracts the average CCEPs and detects N1s for all the subjects in the RESPect database
+% This script collects the metadata, extracts the average CCEPs and detects N1s for all the subjects
 %
 % Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 %
@@ -93,6 +93,44 @@ for iFile = 1:size(rootFiles, 1)
             params.mergePlusMin = 1;
             [stim_pair_nr, stim_pair_name, stim_pair_current] = ccep_bidsEvents2conditions(ccep_events, events_include, params);
 
+            % detect errors in the events, events closer than 3s
+            minOnsetDiff = 3;
+            included_events = ccep_events(events_include, :);
+            included_diffs = diff(included_events.onset);
+            if any(included_diffs < minOnsetDiff)
+                for iDiff = 1:length(included_diffs)
+                    if included_diffs(iDiff) < minOnsetDiff && ~strcmp(included_events(iDiff, :).trial_type{1}, 'stimulation')
+                        warning(['Events are less than ', num2str(minOnsetDiff), 's apart. Event onsets: ', num2str(included_events(iDiff, :).onset) ' - ' num2str(included_events(iDiff + 1, :).onset), ' (dist: ', num2str(included_diffs(iDiff)), ')' ]);
+                    end 
+                end
+            end
+            
+            % check and remove stim-pairs with less than 5 trials
+            for iCond = max(stim_pair_nr):-1:1
+                trialIndices = find(stim_pair_nr == iCond);
+                if length(trialIndices) < 5
+                    warning(['Less than 5 trials for stim-pair (', num2str(length(trialIndices)), ' trial(s) - ', stim_pair_name{trialIndices(1)}, '), ignoring stim-pair']);
+                    
+                    % remove condition
+                    stim_pair_nr(trialIndices) = [];
+                    stim_pair_name(trialIndices) = [];
+                    stim_pair_current(trialIndices) = [];
+                    
+                    % move other condition
+                    lowerIndices = stim_pair_nr > iCond;
+                    stim_pair_nr(lowerIndices) = stim_pair_nr(lowerIndices) - 1;
+                    
+                end
+            end
+            
+            
+            if isnan(max(stim_pair_nr))
+                warning(['No more trials left in this run, consider removing run!']);
+                continue;
+            end
+            
+            
+            
             % read the channel 
             channels_tsv_name = replace(fullfile(runFiles(iRun).folder, runFiles(iRun).name), 'events.tsv', 'channels.tsv');
             channels_table = readtable(channels_tsv_name, 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
@@ -101,7 +139,7 @@ for iFile = 1:size(rootFiles, 1)
             channel_names = channels_table.name;
 
             % find good ECoG channels
-            good_channels = find(ismember(channels_table.type, {'ECOG'}) & ismember(channels_table.status, 'good'));
+            good_channels = find(ismember(upper(channels_table.type), {'ECOG'}) & ismember(channels_table.status, 'good'));
 
 
 
@@ -122,7 +160,7 @@ for iFile = 1:size(rootFiles, 1)
             params.epoch_prestim_length = 2;    %: prestimulus epoch length in sec, default = 2
             params.baseline_subtract    = 1;    % subtract median baseline from each trial
 
-            [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, ccep_events, channel_names, stim_pair_nr, stim_pair_name, params);
+            [average_ccep, stimpair_names, stimpair_currents, ccep, tt] = ccep_averageConditions(data, srate, ccep_events, channel_names, stim_pair_nr, stim_pair_name, params, 0);
 
 
 

@@ -24,7 +24,7 @@ myDataPath = setLocalDataPath(1);
 
 
 %%
-%  Get a list of datasets (output of the 'ccep01_averageCCEPs.m' script)
+%  Get a list of datasets (output of the 'ccep01_averageCCEPsAndDetectN1s.m' script)
 
 subjects = ccep_getSubFilenameInfo(myDataPath);
 
