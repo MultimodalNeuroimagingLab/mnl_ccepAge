@@ -216,7 +216,6 @@ for iRow = 1:size(conn_matrix, 1)
     for iCol = 1:size(conn_matrix, 2)
         outInd = (iRow - 1) * size(conn_matrix, 2) + iCol;
         subjectsN1Values = out{iRow, iCol}.subjectsN1Values;
-        
 
         % mean latency (* 1000) vs latency variance (base values already multiplied before by 1000)
         subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
@@ -224,19 +223,19 @@ for iRow = 1:size(conn_matrix, 1)
         
         %
         title(strrep(out{iRow, iCol}.name, '_', '\_'));
-        xlim([0 80]);
+        xlim([10 80]);
         ylim([0 (max(subjectsN1Values(:, 4)))])
         if iRow == size(conn_matrix, 1),    xlabel('mean lat'); end
         if iCol == 1,                       ylabel('lat var'); end
         
         %
-        text(5, max(subjectsN1Values(:, 4) * .95), ['\rho=', num2str(round(out{iRow, iCol}.meanvarlat_r, 2))]);
+        text(15, max(subjectsN1Values(:, 4) * .95), ['\rho=', num2str(round(out{iRow, iCol}.meanvarlat_r, 2))]);
         if out{iRow, iCol}.meanvarlat_p_fdr < .001
-            text(5, max(subjectsN1Values(:, 4) * .85), 'P_f_d_r < 0.001');
+            text(15, max(subjectsN1Values(:, 4) * .85), 'P_f_d_r < 0.001');
         elseif out{iRow, iCol}.meanvarlat_p_fdr < .01
-            text(5, max(subjectsN1Values(:, 4) * .85), 'P_f_d_r < 0.01');
+            text(15, max(subjectsN1Values(:, 4) * .85), 'P_f_d_r < 0.01');
         else
-            text(5, max(subjectsN1Values(:, 4) * .85), ['P_f_d_r=', num2str(round(out{iRow, iCol}.meanvarlat_p_fdr, 2))]);
+            text(15, max(subjectsN1Values(:, 4) * .85), ['P_f_d_r=', num2str(round(out{iRow, iCol}.meanvarlat_p_fdr, 2))]);
         end
         
         %
@@ -274,13 +273,13 @@ for iRow = 1:size(conn_matrix, 1)
         % mean latency (* 1000) vs FWGM (* 1000)
         subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
         plot(subjectsN1WidthValues(:, 2) * 1000, subjectsN1WidthValues(:, 3) * 1000, 'k.', 'MarkerSize', 10);
-                
+        
         %
         title(strrep(out{iRow, iCol}.name, '_', '\_'));
         if iRow == size(conn_matrix, 1),    xlabel('mean lat'); end
         if iCol == 1,                       ylabel('FWHM'); end
-        xlim([0 80]);
-        ylim([0 (max(subjectsN1WidthValues(:, 3) * 1000))])
+        xlim([5 80]);
+        ylim([5, (max(subjectsN1WidthValues(:, 3) * 1000)) + 2])
         
         %
         text(75, max(subjectsN1WidthValues(:, 3) * 1000 * .95), ['\rho=', num2str(round(out{iRow, iCol}.n1Widths_r, 2))]);
