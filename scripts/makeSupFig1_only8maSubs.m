@@ -1,5 +1,5 @@
 %
-% This script outputs supplementary figure 1, ...
+% This script outputs supplementary figure 1 - relation between age (years) and latency (ms) at different stimulation currents
 %
 % Dorien van Blooijs, Max van den Boom, 2022
 
@@ -47,6 +47,10 @@ for iSubj = 1:length(ccepData)
                 warning(['Multiple currents on single stim-pair (subj ', ccepData(iSubj).id, ', run ', num2str(iRun), ', stimpair ', num2str(iStimpair), ' - ' , ccepData(iSubj).run(iRun).stimpair_names{iStimpair}, '), skipping']);
                 continue;
             else
+
+                % retrieve the (non-NaN) latencies for this pair (in samples) and convert them to seconds (from stim onset)
+                lat = ccepData(iSubj).run(iRun).n1_peak_sample(~isnan(ccepData(iSubj).run(iRun).n1_peak_sample(:, iStimpair)), iStimpair);
+                lat = ccepData(iSubj).run(iRun).tt(lat);
                 
                 % ensurure the existence of a field for the this current in this run
                 run_unique_currents = [run_unique_currents; current];
@@ -54,9 +58,6 @@ for iSubj = 1:length(ccepData)
                     run_currents.(['mA', num2str(current)]) = [];
                 end
                 
-                % retrieve the (non-NaN) latencies for this pair (in samples) and convert them to seconds (from stim onset)
-                lat = ccepData(iSubj).run(iRun).n1_peak_sample(~isnan(ccepData(iSubj).run(iRun).n1_peak_sample(:, iStimpair)), iStimpair);
-                lat = ccepData(iSubj).run(iRun).tt(lat);
                 
                 % store the latencies for this stim-pair
                 run_currents.(['mA', num2str(current)]) = [run_currents.(['mA', num2str(current)]), lat];
@@ -127,7 +128,9 @@ for iCurrent = 1:length(all_unique_currents)
     latencies = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).latency]';
     
     if length(latencies) >= minDataPoints
-        [r, p] = corr(ages, latencies * 1000, 'Type', 'Spearman');
+        
+        [r, p] = corr(     ages(~isnan(ages) & ~isnan(latencies)) * 1000, ...
+                      latencies(~isnan(ages) & ~isnan(latencies)), 'Type', 'Spearman');
         all_unique_currents_r(iCurrent) = r;
         all_unique_currents_p(iCurrent) = p;
         
@@ -156,6 +159,9 @@ hold on;
 for iCurrent = 1:length(all_unique_currents)
     ages = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).age]';
     latencies = [all_currents.(['mA', num2str(all_unique_currents(iCurrent))]).latency]';
+    if all(isnan(latencies))
+        continue;
+    end
     
     % determine the color
     curColor = [0 0 0];
@@ -170,11 +176,12 @@ for iCurrent = 1:length(all_unique_currents)
     end
     
     % plot the points
-    plot(ages, latencies * 1000, '.', 'Color', curColor, 'MarkerSize', 12, 'DisplayName', [num2str(all_unique_currents(iCurrent)) ' mA (n=', num2str(length(latencies)), ')']);
+    plot(ages, latencies * 1000, '.', 'Color', curColor, 'MarkerSize', 16, 'DisplayName', [num2str(all_unique_currents(iCurrent)) ' mA (n=', num2str(length(latencies)), ')']);
 
     if length(latencies) >= minDataPoints
         
-        [P, S] = polyfit(ages, latencies * 1000, 1);
+        [P, S] = polyfit(ages(~isnan(ages) & ~isnan(latencies)), ...
+                         latencies(~isnan(ages) & ~isnan(latencies)) * 1000, 1);
         [y_fit, ~] = polyval(P, ages, S);
 
         % Plot polyfit throught data points
@@ -187,7 +194,7 @@ hold off;
 
 xlabel('age (years)');
 ylabel('mean latency (ms)');
-xlim([0 50]), ylim([10 55]);
+xlim([0 55]), ylim([15 55]);
 legend()
 
 % save
@@ -195,7 +202,7 @@ if ~exist(fullfile(myDataPath.output, 'derivatives', 'age'), 'dir')
     mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
 end
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS1_corrAgeVslatency_8mA');
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFig01_corrAgeVslatency_8mA');
 set(gcf, 'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
