@@ -34,8 +34,8 @@ rois = ccep_categorizeAnatomicalRegions();
 %% 
 %  Define the connection to be displayed and prepare the data
 
-conn_matrix = {[3 1 0], [4 1 0], [4 2 0], [1 1 0]; ...
-               [3 1 1], [4 1 1], [4 2 1], [1 1 1]; ...
+conn_matrix = {[2 1 0], [3 1 0], [3 2 0], [1 1 0]; ...
+               [2 1 1], [3 1 1], [3 2 1], [1 1 1]; ...
                };
 
 all_varlat_p = [];
@@ -306,11 +306,10 @@ for iRow = 1:size(conn_matrix, 1)
     end
 end
 
-
-%figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS5_MeanVsFWHM');
-%set(gcf,'PaperPositionMode', 'auto');
-%print('-dpng', '-r300', figureName);
-%print('-depsc', '-r300', figureName);
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS5_MeanVsFWHM');
+set(gcf,'PaperPositionMode', 'auto');
+print('-dpng', '-r300', figureName);
+print('-depsc', '-r300', figureName);
 
 
 
