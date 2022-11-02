@@ -41,7 +41,9 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
         out(iSubj).samples      = [];
         out(iSubj).latencies    = [];
         out(iSubj).numN1s       = [];
-        out(iSubj).ratioN1s    = [];
+        out(iSubj).ratioN1s     = [];
+        out(iSubj).distRespStim = [];
+        out(iSubj).StimPairNr   = [];
 
         % loop over runs
         for iRun = 1:length(ccepData(iSubj).run)
@@ -92,6 +94,8 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
                         
                         % find response electrodes that are to close to the stimulated electrodes
                         exclChans = [];
+                        all_respStimDist = [];
+
                         for iRespChan = 1:length(respChans)
 
                             % retrieve the response electrode and it's respective index in the electrodes table
@@ -104,6 +108,7 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
                             % retrieve the distances between the stimulated and response electrodes
                             resp_stim1_dist = ccepData(iSubj).nativeElecDistances(stim1_elecIndex, resp_elecIndex);
                             resp_stim2_dist = ccepData(iSubj).nativeElecDistances(stim2_elecIndex, resp_elecIndex);
+                            all_respStimDist(end+1,:) = [resp_stim1_dist resp_stim2_dist];
 
                             % check whether either of the electrodes of the stimulus pair is within x mm of the response channel/electrode, skip if so
                             if respStimElec_excludeDist ~= 0 && resp_stim1_dist < respStimElec_excludeDist
@@ -119,6 +124,7 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
                         % exclude response electrodes
                         respChans(exclChans) = [];
                         respChanDestrieux(exclChans) = [];
+                        all_respStimDist(exclChans,:) = [];
                         
                         clear exclChans respElec resp_elecIndex iRespChan respElec resp_stim1_dist resp_stim2_dist;
                         
@@ -139,7 +145,13 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
                         % store the number of N1s for this stim-pair
                         out(iSubj).numN1s = [out(iSubj).numN1s, size(n1SampleIndices, 1)];
 
-                        
+                        % store the distances
+                        out(iSubj).distRespStim = [out(iSubj).distRespStim; all_respStimDist(ismember(respChanDestrieux, roiResp),:)];
+                                    
+                        % store the stim pair nr, add 100 to the second
+                        % run, because there are not >100 stim pairs
+                        out(iSubj).StimPairNr = [out(iSubj).StimPairNr; (iRun-1)*100+iStimPair*ones(size(n1SampleIndices))];
+
                         %
                         % relative number of N1s for this stim-pair
                         %
