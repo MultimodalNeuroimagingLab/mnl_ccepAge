@@ -164,8 +164,8 @@ for iTr = 3                 % SLF
                 end
                 
                 % plot traces for a couple of older subjects
-                sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([28 30:32])
-                for iSubj = [28 30:32]
+                sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([28 30 32])
+                for iSubj = [28 30 32]
                     plot(1000 * tt(tt > ttmin & tt < ttmax), ...
                             sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm(iSubj, tt > ttmin & tt < ttmax), 'b', 'LineWidth', 1);
                 end
