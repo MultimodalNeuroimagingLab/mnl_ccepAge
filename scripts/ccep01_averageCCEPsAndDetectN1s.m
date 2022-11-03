@@ -78,7 +78,6 @@ for iFile = 1:size(rootFiles, 1)
             fprintf('- Run file %s\n', replace(runFiles(iRun).name, '_events.tsv', ''))
 
 
-
             %% 
             %  Load events and channels metadata, and extract essential information
             params = struct();
@@ -88,11 +87,11 @@ for iFile = 1:size(rootFiles, 1)
             ccep_events = readtable(events_name, 'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
 
             % extract the conditions from the events
-            events_include = ismember(ccep_events.sub_type, {'SPES', 'SPESclin'});
+            events_include = ismember(ccep_events.trial_type, {'electrical_stimulation'}) & ismember(ccep_events.sub_type, {'SPES', 'SPESclin'});
             params.mergeAmp = 1;
             params.mergePlusMin = 1;
             [stim_pair_nr, stim_pair_name, stim_pair_current] = ccep_bidsEvents2conditions(ccep_events, events_include, params);
-
+            
             % detect errors in the events, events closer than 3s
             minOnsetDiff = 3;
             included_events = ccep_events(events_include, :);
@@ -217,7 +216,6 @@ for iFile = 1:size(rootFiles, 1)
                 ccep_plot_av(average_ccep, tt, n1_peak_sample, n1_peak_amplitude, stimpair_names, ...
                              channel_names, good_channels, myDataPath, bids_sub, bids_ses, bids_task, bids_run, params)
             end
-
 
         end     % end run loop
     end     % end sessions loop
