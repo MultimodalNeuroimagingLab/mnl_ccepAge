@@ -59,8 +59,6 @@ for iSubj = 1:length(ccepData)
                                                  [ccepData(iSubj).id, '_', ccepData(iSubj).ses, '_task-SPESclin*_channels.tsv']));
     channels = readtable(fullfile(jsonFiles(1).folder, jsonFiles(1).name), ...
                          'FileType', 'text', 'Delimiter', '\t', 'TreatAsEmpty', {'N/A', 'n/a'}, 'ReadVariableNames', true);
-    bad_channels = find(~strcmpi(channels.status, 'good'));
-    good_channels = setdiff(1:size(channels, 1), bad_channels);
     clear jsonFiles;
 
 
