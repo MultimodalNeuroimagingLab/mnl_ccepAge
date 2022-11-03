@@ -138,57 +138,31 @@ clear Llabel Rlabel a iLbl;
 %% 
 %  Add all electrodes labels and left or right hemisphere into variables: allmni305_coords and allmni305_coords_infl
 
-allmni305_coords        = [];
-allmni305_coords_infl   = [];
-allmni305_labels        = [];
-allmni305_Destrlabels   = [];
-allmni305_hemi          = [];
+allmni305_coords            = [];
+allmni305_subjIds           = [];
+allmni305_labels            = [];
+allmni305_destrLabels       = [];
+allmni305_destrLabelTexts   = [];
+allmni305_hemi              = [];
+allmni305_age               = [];
 
 for iSubj = 1:length(ccepData)
 
     elecs = ccepData(iSubj).electrodes;
-    
-    Destrieux_label = elecs.Destrieux_label;
-    if iscell(Destrieux_label)                  % TODO: this is because bad BIDS store/loading (unnecessary)
-        for iElec = 1:size(Destrieux_label,1)
-            if ischar(Destrieux_label{iElec})
-                if isequal(Destrieux_label, 'n/a') 
-                    Destrieux_label{iElec} = NaN;
-                else
-                    Destrieux_label{iElec} = str2double(Destrieux_label{iElec});
-                end
-            end
-        end
-        Destrieux_label = cell2mat(Destrieux_label);
-    end
-    
-    mni305_coords           = [elecs.x, elecs.y, elecs.z];
+    elecInclude = find(ismember(lower(elecs.group), {'strip', 'grid'}));
+    elecs = elecs(elecInclude, :);
     
     % 
-    allmni305_labels        = [allmni305_labels; strcat(['s', ccepData(iSubj).id(end - 1:end), '-'], elecs.name)];
-    allmni305_coords        = [allmni305_coords; mni305_coords];
-    allmni305_Destrlabels   = [allmni305_Destrlabels; Destrieux_label];
-    allmni305_hemi          = [allmni305_hemi; elecs.jsonHemi];
-    
-    % run through all coordinates and find the inflated points
-    temp_inflated = NaN(size(mni305_coords));
-    for iElec = 1:size(Destrieux_label, 1)
-        
-        if isequal(elecs.jsonHemi{iElec}, 'L')
-            [~, min_ind] = min(sqrt(sum((Lmnipial_vert - mni305_coords(iElec, :)) .^ 2, 2)));
-            temp_inflated(iElec, :) = Lmniinfl_vert(min_ind, :);
-            
-        elseif isequal(elecs.jsonHemi{iElec}, 'R')
-            [~, min_ind] = min(sqrt(sum((Rmnipial_vert - mni305_coords(iElec, :)) .^ 2, 2)));
-            temp_inflated(iElec, :) = Rmniinfl_vert(min_ind, :);
-            
-        end
-        
-    end
-    allmni305_coords_infl = [allmni305_coords_infl; temp_inflated];
+    allmni305_coords            = [allmni305_coords; [elecs.x, elecs.y, elecs.z]];
+    allmni305_subjIds           = [allmni305_subjIds; repmat(str2double(ccepData(iSubj).id(end - 1:end)), size(elecs, 1), 1)];
+    allmni305_labels            = [allmni305_labels; strcat(['s', ccepData(iSubj).id(end - 1:end), '-'], elecs.name)];
+    allmni305_destrLabels       = [allmni305_destrLabels; elecs.Destrieux_label];
+    allmni305_destrLabelTexts   = [allmni305_destrLabelTexts; elecs.Destrieux_label_text];
+    allmni305_hemi              = [allmni305_hemi; elecs.jsonHemi];
+    allmni305_age               = [allmni305_age; repmat(ccepData(iSubj).age, size(elecs, 1), 1)];
     
 end
-clear elecs temp_inflated;
+clear elecs;
 
 
 %%
@@ -224,21 +198,32 @@ gl = gifti(gl);
 a_offset = .1 * max(abs(allmni305_coords(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
 els = allmni305_coords + repmat(a_offset, size(allmni305_coords, 1), 1);
 
+% count the total number of connections
+numPlots = 0;
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        numPlots = numPlots + 1;
+    end
+end
+
+% 
+hFigElec = figure('Position', [0 0 2400 400]);
+elecPlotCounter = 1;
+
 % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
 %for iTr = 1:1
 for iTr = 1:length(rois)
     %for iSubTr = 1:1
     for iSubTr = 1:length(rois(iTr).sub_tract)
-        
-        
+    
         
         % load the (sub)tract file (is in MNI152 space)
         trkFile = fullfile(track_path, [rois(iTr).tract_name, '_L.trk.gz']);
         [fibers, idx] = ea_trk2ftr(trkFile, 1);
         
         %
-        roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi1);
-        roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_Destrlabels, rois(iTr).sub_tract(iSubTr).roi2);
+        roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1);
+        roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2);
         
         % open the MNI pial
         hFig = figure;
@@ -261,7 +246,7 @@ for iTr = 1:length(rois)
         toolConfig.('overlay1PosMax')       = max(rois(iTr).sub_tract(iSubTr).Lvert_labels);
         toolConfig.('overlay1NegEnabled')   = 0;
         %toolConfig.pointSet1                = els(roi2elecs, :);
-        %toolConfig.pointSet1Text            = string(allmni305_Destrlabels(roi2elecs));
+        %toolConfig.pointSet1Text            = string(allmni305_destrLabels(roi2elecs));
         toolConfig.defaultBackgroundAlpha   = .6;
         mx.three_dimensional.giftiTools(gl, toolConfig);
         %}
@@ -278,7 +263,7 @@ for iTr = 1:length(rois)
         hold off;
         
         % plot electrodes not part of the end-point ROIs 
-        %ieeg_elAdd(els(ismember(allmni305_hemi, 'L') & ~ismember(allmni305_Destrlabels, [rois(iTr).sub_tract(iSubTr).roi1 rois(iTr).sub_tract(iSubTr).roi2]), :), 'k', 10)
+        %ieeg_elAdd(els(ismember(allmni305_hemi, 'L') & ~ismember(allmni305_destrLabels, [rois(iTr).sub_tract(iSubTr).roi1 rois(iTr).sub_tract(iSubTr).roi2]), :), 'k', 10)
 
         % set the electrode colormap
         colorMap                = [];
@@ -297,13 +282,50 @@ for iTr = 1:length(rois)
         ieeg_elAdd(els(roi1elecs, :), colorMap.(subDir{1}), 7)
         ieeg_elAdd(els(roi2elecs, :), colorMap.(subDir{2}), 7)
         ieeg_viewLight(v_d(1), v_d(2))
-
+        
         % save the image
         figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
         set(gcf, 'PaperPositionMode', 'auto')
         set(hFig, 'Visible', 'on');
         print('-dpng', '-r300', figureName)
         close(hFig)
+        
+        
+        
+        %
+        % electrode information
+        %
+        
+        subNames = split(rois(iTr).sub_tract(iSubTr).name, '-');
+        disp(' ');
+        disp(['----   ', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '   ----']);
+        
+        roi1Elecs = ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1);
+        disp(['--     ', subNames{1}, '     --']);
+        disp(['labels: ', strjoin(unique(allmni305_destrLabelTexts(roi1Elecs)), ', ')]);
+        disp(['total # elec: ', num2str(length(allmni305_age(roi1Elecs)))]);
+        disp(['total # subjects with coverage: ', num2str(length(unique(allmni305_subjIds(roi1Elecs))))]);
+        
+        roi2Elecs = ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2);
+        disp(['--     ', subNames{2}, '     --']);
+        disp(['labels: ', strjoin(unique(allmni305_destrLabelTexts(roi2Elecs)), ', ')]);
+        disp(['total # elec: ', num2str(length(allmni305_age(roi2Elecs)))]);
+        disp(['total # subjects with coverage: ', num2str(length(unique(allmni305_subjIds(roi2Elecs))))]);
+        
+        %
+        subplot(2, numPlots, elecPlotCounter, 'Parent', hFigElec);
+        histogram(allmni305_age(ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1)), [0 10 20 30 40 50 60])
+        title({strrep(rois(iTr).tract_name, '_', '\_'), ' ', subNames{1}});
+        xlim([0, 60]);
+        set(gca, 'XTick', 0:10:60)
+        
+        subplot(2, numPlots, numPlots + elecPlotCounter, 'Parent', hFigElec);
+        histogram(allmni305_age(ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2)), [0 10 20 30 40 50 60])
+        title(subNames{2});
+        xlim([0, 60]);
+        set(gca, 'XTick', 0:10:60)
+        
+        elecPlotCounter = elecPlotCounter + 1;
         
     end
 end
