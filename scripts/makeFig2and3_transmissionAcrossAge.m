@@ -341,7 +341,7 @@ for iTr = 1:length(rois)
                 % plot 95% CI around age
                 min_age = -lat_cross_second(:, 4) ./ (2 * lat_cross_second(:, 3));
                 plot([quantile(min_age, 0.025, 1) quantile(min_age, 0.975, 1)], [5 5], 'Color', [.2 .7 .6], 'LineWidth', 10);
-                disp([rois(iTr).tract_name, ' - ', strSubTitle, '  CI: ', num2str(quantile(min_age, 0.025, 1)), ' - ', num2str(quantile(min_age, 0.975, 1))]);
+                disp([rois(iTr).tract_name, ' - ', strSubTitle, '  latency CI: ', num2str(quantile(min_age, 0.025, 1)), ' - ', num2str(quantile(min_age, 0.975, 1))]);
                 
             end
             
@@ -399,7 +399,7 @@ for iTr = 1:length(rois)
                 % plot 95% CI around age
                 min_age = -spd_cross_second(:, 4) ./ (2 * spd_cross_second(:, 3));
                 plot([quantile(min_age, 0.025, 1) quantile(min_age, 0.975, 1)], [5 5], 'Color', [.2 .7 .6], 'LineWidth', 10);
-                disp([rois(iTr).tract_name, ' - ', strSubTitle, '  CI: ', num2str(quantile(min_age, 0.025, 1)), ' - ', num2str(quantile(min_age, 0.975, 1))]);
+                disp([rois(iTr).tract_name, ' - ', strSubTitle, '  speed CI: ', num2str(quantile(min_age, 0.025, 1)), ' - ', num2str(quantile(min_age, 0.975, 1))]);
                 
             end
 
