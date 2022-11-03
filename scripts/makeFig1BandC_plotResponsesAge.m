@@ -121,9 +121,9 @@ for iTr = 1:length(rois)
                 end
                 figureName = fullfile(myDataPath.output,'derivatives', 'age', ['sortedAge_tmax' int2str(ttmax * 1000), '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
 
-                set(gcf,'PaperPositionMode','auto')
-                print('-dpng','-r300',figureName)
-                print('-depsc','-r300',figureName)
+                set(gcf, 'PaperPositionMode', 'auto')
+                print('-dpng', '-r300', figureName)
+                print('-depsc', '-r300', figureName)
                 close(gcf)
                 
             end
