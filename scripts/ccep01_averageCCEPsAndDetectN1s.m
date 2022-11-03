@@ -98,7 +98,7 @@ for iFile = 1:size(rootFiles, 1)
             included_diffs = diff(included_events.onset);
             if any(included_diffs < minOnsetDiff)
                 for iDiff = 1:length(included_diffs)
-                    if included_diffs(iDiff) < minOnsetDiff && ~strcmp(included_events(iDiff, :).trial_type{1}, 'stimulation')
+                    if included_diffs(iDiff) < minOnsetDiff
                         warning(['Events are less than ', num2str(minOnsetDiff), 's apart. Event onsets: ', num2str(included_events(iDiff, :).onset) ' - ' num2str(included_events(iDiff + 1, :).onset), ' (dist: ', num2str(included_diffs(iDiff)), ')' ]);
                     end 
                 end
@@ -216,7 +216,7 @@ for iFile = 1:size(rootFiles, 1)
                 ccep_plot_av(average_ccep, tt, n1_peak_sample, n1_peak_amplitude, stimpair_names, ...
                              channel_names, good_channels, myDataPath, bids_sub, bids_ses, bids_task, bids_run, params)
             end
-
+            
         end     % end run loop
     end     % end sessions loop
 end     % end subjects loop
