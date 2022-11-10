@@ -311,53 +311,53 @@ print('-dpng', '-r300', figureName);
 print('-depsc', '-r300', figureName);
 
 
-
-
-
-%% 
-%  with averaging over run and without
-
-figure('position', [0 0 1200 600])
-for iRow = 1:size(conn_matrix, 1)
-    for iCol = 1:size(conn_matrix, 2)
-        outInd = (iRow - 1) * size(conn_matrix, 2) + iCol;
-        subjectsN1Values = out{iRow, iCol}.subjectsN1Values;
-
-        subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
-        plot(subjectsN1Values(:, 1), 1000 * subjectsN1Values(:, 2), 'k.', 'MarkerSize', 10);
-        disp(['ccep\_N1sBetweenRegions (not averaged over runs first), num values: ', num2str(size(subjectsN1Values, 1))]);
-        
-        %
-        title(strrep(out{iRow, iCol}.name, '_', '\_'));
-        xlim([0 55]);   xlabel('age');
-        ylim([0 80]);   ylabel('latency');
-        
-
-        hold off;
-    end
-end
-set(gca, 'XTick', 20:20:100)
-sgtitle('ccep\_N1sBetweenRegions (not averaged over runs first)');
-
-figure('position', [0 0 1200 600])
-for iRow = 1:size(conn_matrix, 1)
-    for iCol = 1:size(conn_matrix, 2)
-        outInd = (iRow - 1) * size(conn_matrix, 2) + iCol;
-        subjectsN1WidthValues = out{iRow, iCol}.subjectsN1WidthValues;
-        
-        subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
-        plot(subjectsN1WidthValues(:, 1), 1000 * subjectsN1WidthValues(:, 2), 'k.', 'MarkerSize', 10);
-        disp(['ccep04\_averageConnections (averaged over runs first), num values: ', num2str(size(subjectsN1Values, 1))]);
-        
-        %
-        title(strrep(out{iRow, iCol}.name, '_', '\_'));
-        xlim([0 55]);   xlabel('age');
-        ylim([0 80]);   ylabel('latency');
-        
-        
-        hold off;
-    end
-end
-set(gca, 'XTick', 20:20:100)
-sgtitle('ccep04\_averageConnections (averaged over runs first)');
-
+% 
+% 
+% 
+% %% 
+% %  with averaging over run and without
+% 
+% figure('position', [0 0 1200 600])
+% for iRow = 1:size(conn_matrix, 1)
+%     for iCol = 1:size(conn_matrix, 2)
+%         outInd = (iRow - 1) * size(conn_matrix, 2) + iCol;
+%         subjectsN1Values = out{iRow, iCol}.subjectsN1Values;
+% 
+%         subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
+%         plot(subjectsN1Values(:, 1), 1000 * subjectsN1Values(:, 2), 'k.', 'MarkerSize', 10);
+%         disp(['ccep\_N1sBetweenRegions (not averaged over runs first), num values: ', num2str(size(subjectsN1Values, 1))]);
+%         
+%         %
+%         title(strrep(out{iRow, iCol}.name, '_', '\_'));
+%         xlim([0 55]);   xlabel('age');
+%         ylim([0 80]);   ylabel('latency');
+%         
+% 
+%         hold off;
+%     end
+% end
+% set(gca, 'XTick', 20:20:100)
+% sgtitle('ccep\_N1sBetweenRegions (not averaged over runs first)');
+% 
+% figure('position', [0 0 1200 600])
+% for iRow = 1:size(conn_matrix, 1)
+%     for iCol = 1:size(conn_matrix, 2)
+%         outInd = (iRow - 1) * size(conn_matrix, 2) + iCol;
+%         subjectsN1WidthValues = out{iRow, iCol}.subjectsN1WidthValues;
+%         
+%         subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
+%         plot(subjectsN1WidthValues(:, 1), 1000 * subjectsN1WidthValues(:, 2), 'k.', 'MarkerSize', 10);
+%         disp(['ccep04\_averageConnections (averaged over runs first), num values: ', num2str(size(subjectsN1Values, 1))]);
+%         
+%         %
+%         title(strrep(out{iRow, iCol}.name, '_', '\_'));
+%         xlim([0 55]);   xlabel('age');
+%         ylim([0 80]);   ylabel('latency');
+%         
+%         
+%         hold off;
+%     end
+% end
+% set(gca, 'XTick', 20:20:100)
+% sgtitle('ccep04\_averageConnections (averaged over runs first)');
+% 
