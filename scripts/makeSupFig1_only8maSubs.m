@@ -202,7 +202,7 @@ if ~exist(fullfile(myDataPath.output, 'derivatives', 'age'), 'dir')
     mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
 end
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFig01_corrAgeVslatency_8mA');
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS1_corrAgeVslatency_8mA');
 set(gcf, 'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
