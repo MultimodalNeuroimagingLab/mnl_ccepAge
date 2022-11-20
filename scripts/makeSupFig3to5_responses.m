@@ -1,5 +1,5 @@
 %
-% This script produces supplementary figures 2-5
+% This script produces supplementary figures 3-5
 %
 % Dora Hermes, Dorien van Blooijs, Max van den Boom, 2022
 
@@ -40,7 +40,7 @@ conn_matrix = {[2 1 0], [3 1 0], [3 2 0], [1 1 0]; ...
 
 all_varlat_p = [];
 all_meanvarlat_p = [];
-all_ratioN1s_p = [];
+% all_ratioN1s_p = [];
 all_n1Widths_p = [];
 
 %
@@ -60,8 +60,6 @@ for iRow = 1:size(conn_matrix, 1)
         disp(['Running - ', strName]);
         out{iRow, iCol}.name = strName;
         
-        
-        
         %
         % latencies, number of N1s and ratio of N1s
         %
@@ -76,12 +74,10 @@ for iRow = 1:size(conn_matrix, 1)
         % <subject> x <age, mean in latencies, variance in latencies, variance in (latencies * 1000), relative number of N1s>
         subjectsN1Values = NaN(length(metrics), 4);
         for iSubj = 1:length(metrics)
-            subjectsN1Values(iSubj, 1) =      metrics(iSubj).age;
+            subjectsN1Values(iSubj, 1) = metrics(iSubj).age;
             subjectsN1Values(iSubj, 2) = mean(metrics(iSubj).latencies, 'omitnan');
-            subjectsN1Values(iSubj, 3) =  var(metrics(iSubj).latencies, 'omitnan');
-            subjectsN1Values(iSubj, 4) =  var(1000 * metrics(iSubj).latencies, 'omitnan');
-            subjectsN1Values(iSubj, 5) = mean(metrics(iSubj).ratioN1s);
-            
+            subjectsN1Values(iSubj, 3) = var(metrics(iSubj).latencies, 'omitnan');
+            subjectsN1Values(iSubj, 4) = var(1000 * metrics(iSubj).latencies, 'omitnan');            
         end
         out{iRow, iCol}.subjectsN1Values = subjectsN1Values;
         
@@ -99,12 +95,14 @@ for iRow = 1:size(conn_matrix, 1)
         out{iRow, iCol}.meanvarlat_p = meanvarlat_p;
         all_meanvarlat_p(end + 1, :) = [iRow, iCol, meanvarlat_p];
 
-        % calculate and store the r and p for the age vs ratio of N1s
-        [ratioN1s_r, ratioN1s_p] = corr(subjectsN1Values(~isnan(subjectsN1Values(:, 2)) & ~isnan(subjectsN1Values(:, 5)), 1), ...
-                                        subjectsN1Values(~isnan(subjectsN1Values(:, 2)) & ~isnan(subjectsN1Values(:, 5)), 5), 'Type', 'Spearman');
-        out{iRow, iCol}.ratioN1s_r = ratioN1s_r;
-        out{iRow, iCol}.ratioN1s_p = ratioN1s_p;
-        all_ratioN1s_p(end + 1, :) = [iRow, iCol, ratioN1s_p];
+
+        % Figure S2 moved to separate script, can later be placed back here
+%         % calculate and store the r and p for the age vs ratio of N1s
+%         [ratioN1s_r, ratioN1s_p] = corr(subjectsN1Values(~isnan(subjectsN1Values(:, 2)) & ~isnan(subjectsN1Values(:, 5)), 1), ...
+%                                         subjectsN1Values(~isnan(subjectsN1Values(:, 2)) & ~isnan(subjectsN1Values(:, 5)), 5), 'Type', 'Spearman');
+%         out{iRow, iCol}.ratioN1s_r = ratioN1s_r;
+%         out{iRow, iCol}.ratioN1s_p = ratioN1s_p;
+%         all_ratioN1s_p(end + 1, :) = [iRow, iCol, ratioN1s_p];
         
         
         %
@@ -129,48 +127,15 @@ end
 % calculate the FDR corrected P-values
 [~, ~, ~, all_varlat_p(:, 4)]  = fdr_bh(all_varlat_p(:, 3), 0.05, 'pdep');
 [~, ~, ~, all_meanvarlat_p(:, 4)]  = fdr_bh(all_meanvarlat_p(:, 3), 0.05, 'pdep');
-[~, ~, ~, all_ratioN1s_p(:, 4)]  = fdr_bh(all_ratioN1s_p(:, 3), 0.05, 'pdep');
+% [~, ~, ~, all_ratioN1s_p(:, 4)]  = fdr_bh(all_ratioN1s_p(:, 3), 0.05, 'pdep');
 [~, ~, ~, all_n1Widths_p(:, 4)]  = fdr_bh(all_n1Widths_p(:, 3), 0.05, 'pdep');
 for iP = 1:size(all_varlat_p, 1)
     out{all_varlat_p(iP, 1), all_varlat_p(iP, 2)}.varlat_p_fdr = all_varlat_p(iP, 4);
     out{all_meanvarlat_p(iP, 1), all_meanvarlat_p(iP, 2)}.meanvarlat_p_fdr = all_meanvarlat_p(iP, 4);
-    out{all_ratioN1s_p(iP, 1), all_ratioN1s_p(iP, 2)}.ratioN1s_p_fdr = all_ratioN1s_p(iP, 4);
+%     out{all_ratioN1s_p(iP, 1), all_ratioN1s_p(iP, 2)}.ratioN1s_p_fdr = all_ratioN1s_p(iP, 4);
     out{all_n1Widths_p(iP, 1), all_n1Widths_p(iP, 2)}.n1Widths_p_fdr = all_n1Widths_p(iP, 4); 
 end
 
-
-
-%% 
-%  Generate supplementary figure 2 that displays the ratio of #N1s per #channels for each of the connections between the end-point areas
-
-figure('position', [0 0 1200 600])
-for iRow = 1:size(conn_matrix, 1)
-    for iCol = 1:size(conn_matrix, 2)
-        outInd = (iRow - 1) * size(conn_matrix, 2) + iCol;
-        subjectsN1Values = out{iRow, iCol}.subjectsN1Values;
-        
-        % Plot age vs ratio of N1s
-        subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
-        plot(subjectsN1Values(~isnan(subjectsN1Values(:, 2)), 1), subjectsN1Values(~isnan(subjectsN1Values(:, 2)), 5), 'k.', 'MarkerSize', 10);
-        
-        %
-        title(strrep(out{iRow, iCol}.name, '_', '\_'));
-        xlim([0 60]); ylim([0 1]);
-        if iRow == size(conn_matrix, 1),    xlabel('age'); end
-        if iCol == 1,                       ylabel('ratio N1s'); end
-        
-        %
-        text(40, 0.9, ['\rho=', num2str(round(out{iRow, iCol}.ratioN1s_r, 2))]);
-        text(40, 0.8, ['P_f_d_r=', num2str(round(out{iRow, iCol}.ratioN1s_p_fdr, 2))]);
-
-        hold off;
-    end
-end
-
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS2_AgeVsRatioN1s');
-set(gcf,'PaperPositionMode', 'auto')
-print('-dpng', '-r300', figureName)
-print('-depsc', '-r300', figureName)
 
 
 %% 
