@@ -36,6 +36,10 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
         
         % count the number of response electodes that are in the response ROI
         out(iSubj).numElecRespROI = sum(ismember(str2double(ccepData(iSubj).run(1).channel_DestrieuxNr), roiResp));
+        
+        % initialize the number of electrode pairs on the stimulated ROI,
+        % later add 1 if we find a match
+        out(iSubj).numElecStimROI = 0;
 
         % initialize connections as empty
         out(iSubj).samples      = [];
@@ -83,6 +87,9 @@ function [out] = ccep_N1sBetweenRegions(ccepData, roiStim, roiResp, stimStimElec
                 if ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{iStimPair, 1}), roiStim) || ...
                    ismember(str2double(ccepData(iSubj).run(iRun).stimpair_DestrieuxNr{iStimPair, 2}), roiStim)
                     
+                    % count the number of stimulated electode pairs that are in the stimulated ROI
+                    out(iSubj).numElecStimROI = out(iSubj).numElecStimROI + 1;
+
                     % retrieve the channels that have a N1 response for this stim-pair
                     respChans = find(~isnan(ccepData(iSubj).run(iRun).n1_peak_sample(:, iStimPair)));
                     
