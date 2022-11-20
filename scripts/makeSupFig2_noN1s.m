@@ -268,6 +268,8 @@ end
 
 %%
 
+p_all = NaN(size(conn_matrix, 1),size(conn_matrix, 2));
+
 figure('position', [0 0 200 300])
 for iRow = 1:size(conn_matrix, 1)
     for iCol = 1:size(conn_matrix, 2)
@@ -287,8 +289,25 @@ for iRow = 1:size(conn_matrix, 1)
         distributionPlot(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0),...
             'xValues',iCol,'histOpt',2,'addSpread',1)
 
-        ylim([-0.02 1])
+        [h,p,ci,stats] = ttest(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0));
+        
+        p_all(iRow,iCol) = p;
+
         hold off;
+    end
+end
+
+[~,~,~,p_all_fdr]  = fdr_bh(p_all, 0.05, 'pdep');
+set(gca,'XTick',[1:4])
+
+for iRow = 1:size(conn_matrix, 1)
+    for iCol = 1:size(conn_matrix, 2)
+        subplot(size(conn_matrix, 1), 1, iRow);    hold on;
+        if p_all_fdr(iRow,iCol)<0.05
+            plot(iCol,-0.1,'r*')
+        end
+        ylim([-0.15 1.02])
+        xlim([0.5 size(conn_matrix, 2)+.5])
     end
 end
 
@@ -300,7 +319,10 @@ print('-depsc', '-r300', figureName)
 
 
 %%
-figure('position', [0 0 200 400])
+
+p_all = NaN(length(nonrois),2);
+
+figure('position', [0 0 160 300])
 for iRow = 1:length(nonrois)
     for iCol = 1:2
         subjectsN1Values = nonout{iRow, iCol}.subjectsN1Values;
@@ -319,12 +341,26 @@ for iRow = 1:length(nonrois)
         distributionPlot(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0),...
             'xValues',iRow,'histOpt',2,'addSpread',1)
 
+        [h,p,ci,stats] = ttest(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0));
+        
+        p_all(iRow,iCol) = p;
     end
 end
 
-ylim([-0.02 1.02])
-xlim([0 3.5])
-% set(gca,'XTick',[1:3],'XTickLabel',{nonrois.name})
+[~,~,~,p_all_fdr]  = fdr_bh(p_all, 0.05, 'pdep');
+
+for iRow = 1:length(nonrois)
+    for iCol = 1:2        
+        subplot(2,1, iCol);    hold on;
+        if p_all_fdr(iRow,iCol)<0.05
+            plot(iCol,-0.1,'r*')
+        end
+        xlim([0.5 3.5])
+        ylim([-0.15 1.02])
+    end
+end
+
+set(gca,'XTick',[1:3])
 
 figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS2c_RatioN1sNoconn');
 set(gcf,'PaperPositionMode', 'auto')
