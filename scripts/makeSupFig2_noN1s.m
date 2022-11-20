@@ -73,10 +73,9 @@ for iRow = 1:size(conn_matrix, 1)
             subjectsN1Values(iSubj, 2) = mean(metrics(iSubj).latencies, 'omitnan');
             subjectsN1Values(iSubj, 3) = var(metrics(iSubj).latencies, 'omitnan');
             subjectsN1Values(iSubj, 4) = var(1000 * metrics(iSubj).latencies, 'omitnan');
-            subjectsN1Values(iSubj, 5) = mean(metrics(iSubj).ratioN1s);
-            subjectsN1Values(iSubj, 6) = metrics(iSubj).numElecRespROI;
-            subjectsN1Values(iSubj, 7) = metrics(iSubj).numElecStimROI;
-            subjectsN1Values(iSubj, 8) = length(metrics(iSubj).latencies);
+            subjectsN1Values(iSubj, 5) = metrics(iSubj).numElecRespROI;
+            subjectsN1Values(iSubj, 6) = metrics(iSubj).numElecStimROI;
+            subjectsN1Values(iSubj, 7) = length(metrics(iSubj).latencies);
         end
 
         out{iRow, iCol}.subjectsN1Values = subjectsN1Values;
@@ -103,10 +102,10 @@ for iRow = 1:size(conn_matrix, 1)
         % plot(subjectsN1Values(~isnan(subjectsN1Values(:, 2)), 1), subjectsN1Values(~isnan(subjectsN1Values(:, 2)), 5), 'k.', 'MarkerSize', 10);
         
         % total possible N1s:
-        total_possible_N1 = subjectsN1Values(:, 6) .* subjectsN1Values(:, 7);
+        total_possible_N1 = subjectsN1Values(:, 5) .* subjectsN1Values(:, 6);
 
         % number of N1s:
-        number_N1 = subjectsN1Values(:, 8);
+        number_N1 = subjectsN1Values(:, 6);
         
         plot(subjectsN1Values(total_possible_N1>0, 1),number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0), 'k.', 'MarkerSize', 10);
         
@@ -195,10 +194,9 @@ for iRow = 1:length(nonrois)
             subjectsN1Values(iSubj, 2) = mean(metrics(iSubj).latencies, 'omitnan');
             subjectsN1Values(iSubj, 3) = var(metrics(iSubj).latencies, 'omitnan');
             subjectsN1Values(iSubj, 4) = var(1000 * metrics(iSubj).latencies, 'omitnan');
-            subjectsN1Values(iSubj, 5) = mean(metrics(iSubj).ratioN1s);
-            subjectsN1Values(iSubj, 6) = metrics(iSubj).numElecRespROI;
-            subjectsN1Values(iSubj, 7) = metrics(iSubj).numElecStimROI;
-            subjectsN1Values(iSubj, 8) = length(metrics(iSubj).latencies);
+            subjectsN1Values(iSubj, 5) = metrics(iSubj).numElecRespROI;
+            subjectsN1Values(iSubj, 6) = metrics(iSubj).numElecStimROI;
+            subjectsN1Values(iSubj, 7) = length(metrics(iSubj).latencies);
         end
 
         nonout{iRow, iCol}.subjectsN1Values = subjectsN1Values;
@@ -207,66 +205,8 @@ for iRow = 1:length(nonrois)
 end
 clear subjectsN1Values
 
-%% 
-%  Generate supplementary figure 2 that displays the ratio of #N1s per
-%  #channels for each of the connections between the end-point areas
 
-p_all = [];
-r_all = [];
-n_all = [];
-
-figure('position', [0 0 1200 600])
-for iRow = 1:length(nonrois)
-    for iCol = 1:2
-        outInd = (iRow - 1) * 2 + iCol;
-        subjectsN1Values = nonout{iRow, iCol}.subjectsN1Values;
-        
-        % Plot age vs ratio of N1s
-        subplot(length(nonrois), 2, outInd);    hold on;
-
-        % total possible N1s:
-        total_possible_N1 = subjectsN1Values(:, 6) .* subjectsN1Values(:, 7);
-
-        % number of N1s:
-        number_N1 = subjectsN1Values(:, 8);
-        
-        plot(subjectsN1Values(total_possible_N1>0, 1),number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0), 'k.', 'MarkerSize', 10);
-        
-        [r,p] = corr(subjectsN1Values(total_possible_N1>0, 1),number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0),'Type','Spearman');
-        
-        r_all = [r_all r];
-        p_all = [p_all p];
-        n_all = [n_all outInd];
-
-        %
-        title(strrep(nonout{iRow, iCol}.name, '_', '\_'));
-        xlim([0 60]); ylim([0 1]);
-        if iRow == 2,    xlabel('age'); end
-        if iCol == 1,    ylabel('ratio N1s'); end
-        
-        hold off;
-    end
-end
-
-[~,~,~,p_all_fdr]  = fdr_bh(p_all, 0.05, 'pdep');
-
-
-for iRow = 1:length(nonrois)
-    for iCol = 1:2
-        outInd = (iRow - 1) * 2 + iCol;
-        subplot(length(nonrois), 2, outInd);    hold on;
-        xlim([0 60]); ylim([0 1]);
-        if iRow == 2,    xlabel('age'); end
-        if iCol == 1,                       ylabel('ratio N1s'); end
-        
-        %
-        text(40, 0.9, ['\rho=', num2str(r_all(outInd), 2) ]);
-        text(40, 0.8, ['P_f_d_r=', num2str(p_all_fdr(outInd), 2)]);
-    end
-end
-
-
-%%
+%% distribution plot of the percentage of N1s in a connection
 
 p_all = NaN(size(conn_matrix, 1),size(conn_matrix, 2));
 
@@ -280,10 +220,10 @@ for iRow = 1:size(conn_matrix, 1)
         subplot(size(conn_matrix, 1), 1, iRow);    hold on;
         
         % total possible N1s:
-        total_possible_N1 = subjectsN1Values(:, 6) .* subjectsN1Values(:, 7);
+        total_possible_N1 = subjectsN1Values(:, 5) .* subjectsN1Values(:, 6);
 
         % number of N1s:
-        number_N1 = subjectsN1Values(:, 8);
+        number_N1 = subjectsN1Values(:, 7);
         
         % boxplot(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0));
         distributionPlot(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0),...
@@ -318,7 +258,7 @@ print('-depsc', '-r300', figureName)
 
 
 
-%%
+%% distribution plot of the percentage of N1s in a connection
 
 p_all = NaN(length(nonrois),2);
 
@@ -332,10 +272,10 @@ for iRow = 1:length(nonrois)
         subplot(2,1, iCol);    hold on;
 
         % total possible N1s:
-        total_possible_N1 = subjectsN1Values(:, 6) .* subjectsN1Values(:, 7);
+        total_possible_N1 = subjectsN1Values(:, 5) .* subjectsN1Values(:, 6);
 
         % number of N1s:
-        number_N1 = subjectsN1Values(:, 8);
+        number_N1 = subjectsN1Values(:, 7);
         
 %         boxplot(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0));
         distributionPlot(number_N1(total_possible_N1>0)./total_possible_N1(total_possible_N1>0),...
