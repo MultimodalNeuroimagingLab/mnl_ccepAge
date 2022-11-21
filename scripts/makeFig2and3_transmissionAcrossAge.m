@@ -508,8 +508,8 @@ for iTr = 1:length(rois)
     end
 end
 
-mean(long_cod_lat)
-mean(long_cod_spd)
-mean(U_cod_lat)
-mean(U_cod_spd)
+disp(['Average COD latency over long fibers: ', num2str(mean(long_cod_lat), 2)]);
+disp(['Average COD speed over long fibers: ', num2str(mean(long_cod_spd), 2)]);
+disp(['Average COD latency over U=fibers: ', num2str(mean(U_cod_lat), 2)]);
+disp(['Average COD speed over U-fibers: ', num2str(mean(U_cod_spd), 2)]);
 
