@@ -154,8 +154,8 @@ for iRow = 1:size(conn_matrix, 1)
         %
         title(strrep(out{iRow, iCol}.name, '_', '\_'));
         xlim([0 60]); ylim([0 1]);
-        if iRow == size(conn_matrix, 1),    xlabel('age'); end
-        if iCol == 1,                       ylabel('lat var'); end
+        if iRow == size(conn_matrix, 1),    xlabel('Age (years)'); end
+        if iCol == 1,                       ylabel('Varience in N1 latency (ms)'); end
         
         %
         text(40, 0.9, ['\rho=', num2str(round(out{iRow, iCol}.varlat_r, 2))]);
@@ -190,8 +190,8 @@ for iRow = 1:size(conn_matrix, 1)
         title(strrep(out{iRow, iCol}.name, '_', '\_'));
         xlim([10 80]);
         ylim([0 (max(subjectsN1Values(:, 4)))])
-        if iRow == size(conn_matrix, 1),    xlabel('mean lat'); end
-        if iCol == 1,                       ylabel('lat var'); end
+        if iRow == size(conn_matrix, 1),    xlabel('Mean N1 latency (ms)'); end
+        if iCol == 1,                       ylabel('Varience in N1 latency (ms)'); end
         
         %
         text(15, max(subjectsN1Values(:, 4) * .95), ['\rho=', num2str(round(out{iRow, iCol}.meanvarlat_r, 2))]);
@@ -241,8 +241,8 @@ for iRow = 1:size(conn_matrix, 1)
         
         %
         title(strrep(out{iRow, iCol}.name, '_', '\_'));
-        if iRow == size(conn_matrix, 1),    xlabel('mean lat'); end
-        if iCol == 1,                       ylabel('FWHM'); end
+        if iRow == size(conn_matrix, 1),    xlabel('Mean N1 latency (ms)'); end
+        if iCol == 1,                       ylabel('N1 response width (FWHM in ms)'); end
         xlim([5 80]);
         ylim([5, (max(subjectsN1WidthValues(:, 3) * 1000)) + 2])
         

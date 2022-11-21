@@ -2,13 +2,10 @@
 % This script loads CCEPs of one subject and plots a distribution of
 % latencies to distances from the stimulus pair
 % 
-%
 % 
-% D Hermes, M vd Boom, D van Blooijs 2022
+% Dora Hermes, Max van den Boom, Dorien van Blooijs 2022
 %
 
-
-%%  1. Load the ccepData from the derivatives
 
 clear
 close all
@@ -28,10 +25,11 @@ stimStimElec_excludeDist = 18;     % the distance between the stimulated electro
 respStimElec_excludeDist = 13;     % the distance between a stimulated and response electrode (in mm) within which N1s are excluded, 0 = not excluding
 
 
-%% pull distances for all ROIs
+%%
+%  pull distances for all ROIs
 
-clear out
-clc
+stim_roi = [];
+resp_roi = [];
 
 % load tracts and their corresponding end-point ROIs
 rois = ccep_categorizeAnatomicalRegions();
@@ -50,11 +48,11 @@ for iTr = 1:length(rois)
 end
 
 % extract the latencies and number of N1s/CCEPs between the end-point ROIs for a specific (sub-)tract and direction
-out = ccep_N1sBetweenRegions(ccepData,stim_roi, resp_roi,stimStimElec_excludeDist, respStimElec_excludeDist);
+out = ccep_N1sBetweenRegions(ccepData, stim_roi, resp_roi, stimStimElec_excludeDist, respStimElec_excludeDist);
 
 %%
 
-figure('Position',[0 0 400 300])
+figure('Position',[0 0 1600 1200])
 
 subplot(5,1,1:4),hold on
 
@@ -73,23 +71,21 @@ for iSubj = 1:length(ccepData)
 end
 plot([0 0],[0 75],'k')
 xlim([-1 50])
-set(gca,'XTick',[0:10:50],'XTickLabel',[])
+set(gca,'XTick', [0:10:50], 'XTickLabel', [])
 ylim([0 75])
 ylabel('Subject number')
 
-subplot(5,1,5),hold on
-histogram(all_varLatencies,[0:50],'FaceColor',[1 1 1]);
-% plot([0 0],[0 200],'k')
+subplot(5, 1, 5), hold on
+histogram(all_varLatencies, [0:50], 'FaceColor', [1 1 1]);
+% plot([0 0], [0 200], 'k')
 xlim([-1 50])
 xlabel('Standard deviation (ms)')
 ylabel('Number of stimulation pairs')
 
-figureName = fullfile(myDataPath.output,'derivatives','age',...
-    'SuppFigS8_volumeConductionCheck');
-set(gcf,'PaperPositionMode','auto')
-
-print('-dpng','-r300','-painters',figureName)
-print('-depsc2','-r300','-painters',figureName)
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS8_volumeConductionCheck');
+set(gcf, 'PaperPositionMode', 'auto')
+print('-dpng', '-r300', '-painters', figureName)
+print('-depsc2', '-r300', '-painters', figureName)
 
 
 

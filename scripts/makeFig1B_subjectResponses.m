@@ -54,7 +54,8 @@ for iTr = 3                 % SLF
                 end
                 
                 % plot traces for a couple of older subjects
-                disp(['Ages older: ', num2str(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([28 30 32]))]);
+                %disp(['Ages older: ', num2str(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([28 30 32]))]);
+                disp(['Ages older: ', num2str(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age([28 29 30]))]);
                 for iSubj = [28 30 32]
                     plot(1000 * tt(tt > ttmin & tt < ttmax), ...
                             sortedCCEPs{iTr}{iSubTr}{iDir + 1}.averageResp_nonnorm(iSubj, tt > ttmin & tt < ttmax), 'b', 'LineWidth', 1);
@@ -63,7 +64,7 @@ for iTr = 3                 % SLF
                 hold on
                 set(gca, 'XTick', 0:50:100, 'YTick', [-250 0 250])
                 axis tight
-                ylim([-350 150])
+                ylim([-400 180])
                 fill([-10 10 10 -10], [500 500 -500 -500], [.5 .5 .5], 'EdgeColor', 'w', 'FaceAlpha', .8)
                 title([rois(iTr).tract_name, ' - ', strSubTitle]);
 
