@@ -192,8 +192,8 @@ for iCurrent = 1:length(all_unique_currents)
 end
 hold off;
 
-xlabel('age (years)');
-ylabel('mean latency (ms)');
+xlabel('Age (years)');
+ylabel('Mean N1 latency (ms)');
 xlim([0 55]), ylim([15 55]);
 legend()
 
