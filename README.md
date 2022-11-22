@@ -14,7 +14,8 @@ Scripts to process the data, detect N1 responses and add tract information:
 
 Scripts to make the figure panels:
 - makeFig1A_plotMNI.m
-- makeFig1BandC_plotResponsesAge.m
+- makeFig1B_subjectResponses.m
+- makeFig1C_heatmapResponsesAge.m
 - makeFig2and3_transmissionAcrossAge.m
 
 
