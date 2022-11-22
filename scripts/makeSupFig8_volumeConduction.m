@@ -52,7 +52,7 @@ out = ccep_N1sBetweenRegions(ccepData, stim_roi, resp_roi, stimStimElec_excludeD
 
 %%
 
-figure('Position',[0 0 1600 1200])
+figure('Position',[0 0 1600 600])
 
 subplot(5,1,1:4),hold on
 

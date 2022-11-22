@@ -145,6 +145,8 @@ allmni305_destrLabels       = [];
 allmni305_destrLabelTexts   = [];
 allmni305_hemi              = [];
 allmni305_age               = [];
+allmni305_age2               = [];
+short_ages                  = nan(1, length(ccepData));
 
 for iSubj = 1:length(ccepData)
 
@@ -160,6 +162,9 @@ for iSubj = 1:length(ccepData)
     allmni305_destrLabelTexts   = [allmni305_destrLabelTexts; elecs.Destrieux_label_text];
     allmni305_hemi              = [allmni305_hemi; elecs.jsonHemi];
     allmni305_age               = [allmni305_age; repmat(ccepData(iSubj).age, size(elecs, 1), 1)];
+    allmni305_age2              = [allmni305_age2; strcat(['sub', num2str(iSubj), '-'], string(repmat(ccepData(iSubj).age, size(elecs, 1), 1)))];
+    
+    short_ages(iSubj)           = ccepData(iSubj).age;
     
 end
 clear elecs;
@@ -198,25 +203,11 @@ gl = gifti(gl);
 a_offset = .1 * max(abs(allmni305_coords(:, 1))) * [cosd(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(1) - 90) * cosd(v_d(2)) sind(v_d(2))];
 els = allmni305_coords + repmat(a_offset, size(allmni305_coords, 1), 1);
 
-% count the total number of connections
-numPlots = 0;
-for iTr = 1:length(rois)
-    for iSubTr = 1:length(rois(iTr).sub_tract)
-        numPlots = numPlots + 1;
-    end
-end
-
-% 
-hFigElec = figure('Position', [0 0 2400 400]);
-elecPlotCounter = 1;
 
 % loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
-%for iTr = 1:1
 for iTr = 1:length(rois)
-    %for iSubTr = 1:1
     for iSubTr = 1:length(rois(iTr).sub_tract)
-    
-        
+
         % load the (sub)tract file (is in MNI152 space)
         trkFile = fullfile(track_path, [rois(iTr).tract_name, '_L.trk.gz']);
         [fibers, idx] = ea_trk2ftr(trkFile, 1);
@@ -233,7 +224,7 @@ for iTr = 1:length(rois)
         vLabels(isnan(vLabels)) = 0;
         tH = ieeg_RenderGiftiLabels(gl, vLabels', 'jet');
         set(tH,'FaceAlpha', .2) % make transparent
-        
+
         %{
         toolConfig = {};
         toolConfig.hideToolWindow           = 1;
@@ -250,7 +241,7 @@ for iTr = 1:length(rois)
         toolConfig.defaultBackgroundAlpha   = .6;
         mx.three_dimensional.giftiTools(gl, toolConfig);
         %}
-        
+
         % add the (sub)tracts
         roisTrkLines = rois(iTr).sub_tract(iSubTr).allMNIlineIndices{1, 1}; % cell 1 = left
         hold on;
@@ -290,43 +281,134 @@ for iTr = 1:length(rois)
         print('-dpng', '-r300', figureName)
         close(hFig)
         
-        
-        
+    end
+end
+
+
+
+%%
+%  Print number of electrodes and generate supplement Figure 9
+
+edges = [0 10 20 30 40 50 60];
+
+% count the total number of connections
+numPlots = 0;
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+        numPlots = numPlots + 1;
+    end
+end
+
+% open figure
+hFigElec = figure('Position', [0 0 2400 800]);
+elecPlotCounter = 1;
+
+% loop over the tracts (SLF, AF, etc...) and sub-tracts (frontal, central, parietal, etc...)
+for iTr = 1:length(rois)
+    for iSubTr = 1:length(rois(iTr).sub_tract)
+
         %
-        % electrode information
-        %
-        
         subNames = split(rois(iTr).sub_tract(iSubTr).name, '-');
         disp(' ');
         disp(['----   ', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '   ----']);
         
+        %
         roi1Elecs = ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1);
+        roi2Elecs = ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2);
+        
+        % determine the unique ages
+        uniqueAges = unique([allmni305_age2(roi1Elecs); allmni305_age2(roi2Elecs)]);
+        for iAge = 1:length(uniqueAges)
+            uAge = split(uniqueAges(iAge), '-');
+            uniqueAges(iAge) = str2double(uAge(2));
+        end
+        uniqueAges = str2double(uniqueAges);
+        
+        % calculate relative count
+        [hstCountAges, ~] = histcounts(uniqueAges, edges);
+        [hstCountRoi1, ~] = histcounts(allmni305_age(roi1Elecs), edges);
+        [hstCountRoi2, ~] = histcounts(allmni305_age(roi2Elecs), edges);
+        hstRelRoi1 = hstCountRoi1 ./ hstCountAges;
+        hstRelRoi2 = hstCountRoi2 ./ hstCountAges;
+        
+        % display descriptives
         disp(['--     ', subNames{1}, '     --']);
         disp(['labels: ', strjoin(unique(allmni305_destrLabelTexts(roi1Elecs)), ', ')]);
         disp(['total # elec: ', num2str(length(allmni305_age(roi1Elecs)))]);
         disp(['total # subjects with coverage: ', num2str(length(unique(allmni305_subjIds(roi1Elecs))))]);
+        %disp(['median elecs per subject: ', num2str(length(unique(allmni305_subjIds(roi1Elecs))))]);
         
-        roi2Elecs = ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2);
+        
         disp(['--     ', subNames{2}, '     --']);
         disp(['labels: ', strjoin(unique(allmni305_destrLabelTexts(roi2Elecs)), ', ')]);
         disp(['total # elec: ', num2str(length(allmni305_age(roi2Elecs)))]);
         disp(['total # subjects with coverage: ', num2str(length(unique(allmni305_subjIds(roi2Elecs))))]);
         
-        %
-        subplot(2, numPlots, elecPlotCounter, 'Parent', hFigElec);
-        histogram(allmni305_age(ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1)), [0 10 20 30 40 50 60])
+        % ROI 1 - electrode per age bin
+        subplot(3, numPlots, elecPlotCounter, 'Parent', hFigElec);
+        histogram(allmni305_age(ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1)), edges)
         title({strrep(rois(iTr).tract_name, '_', '\_'), ' ', subNames{1}});
-        xlim([0, 60]);
-        set(gca, 'XTick', 0:10:60)
+        xlim([edges(1), edges(end)]);
+        set(gca, 'XTick', edges)
+        if elecPlotCounter == 1
+           ylabel('#electrodes'); 
+        end
+
+        %{
+        % ROI 1 - electrodes per subject
+        yyaxis right
+        for iEdge = 1:length(edges) - 1
+            line([edges(iEdge) edges(iEdge + 1)], [hstRelRoi1(iEdge), hstRelRoi1(iEdge)]);
+        end
+        if elecPlotCounter == numPlots
+           ylabel('#electrodes per subject'); 
+        end
+        %}
         
-        subplot(2, numPlots, numPlots + elecPlotCounter, 'Parent', hFigElec);
-        histogram(allmni305_age(ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2)), [0 10 20 30 40 50 60])
+        % ROI 2 - electrode per age bin
+        subplot(3, numPlots, numPlots + elecPlotCounter, 'Parent', hFigElec);
+        histogram(allmni305_age(ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2)), edges)
         title(subNames{2});
-        xlim([0, 60]);
-        set(gca, 'XTick', 0:10:60)
+        xlim([edges(1), edges(end)]);
+        set(gca, 'XTick', edges)
+        if elecPlotCounter == 1
+           ylabel('# electrodes'); 
+        end
+
+        %{
+        % ROI 2 - electrodes per subject
+        yyaxis right
+        for iEdge = 1:length(edges) - 1
+            line([edges(iEdge) edges(iEdge + 1)], [hstRelRoi2(iEdge), hstRelRoi2(iEdge)]);
+        end
+        if elecPlotCounter == numPlots
+           ylabel('#electrodes per subject'); 
+        end
+        %}
+        
+        %
+        if iTr == 1 && iSubTr == 1
+            subplot(3, numPlots, numPlots * 2 + elecPlotCounter, 'Parent', hFigElec);
+            histogram(short_ages, edges, 'FaceColor', [.8 .8 0])
+            %title({strrep(rois(iTr).tract_name, '_', '\_'), ' ', subNames{1}});
+            xlim([edges(1), edges(end)]);
+            set(gca, 'XTick', edges)
+            if elecPlotCounter == 1
+               ylabel('# subjects'); 
+            end
+        end
+        
         
         elecPlotCounter = elecPlotCounter + 1;
         
     end
 end
 
+% save supplement 9 figure
+figure(hFigElec);
+set(hFigElec, 'renderer', 'Painters')
+set(hFigElec, 'PaperPositionMode', 'auto')
+figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS9_ElecCoverage');
+print('-dpng', '-r300', figureName)
+print('-depsc', '-r300', figureName)
+%close(hFigElec)
