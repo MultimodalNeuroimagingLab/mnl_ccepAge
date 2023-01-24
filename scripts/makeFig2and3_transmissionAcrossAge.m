@@ -1,5 +1,5 @@
 %
-% This script produces Figure 3 of the article
+% This script produces the plots for Figure 2 and 3 (B/C) of the article
 %
 
 
@@ -127,6 +127,11 @@ for iTr = 1:length(rois)
             n1LatencyMeans(exclMeans) = [];
             n1SpeedMeans(exclMeans) = [];
             
+            % store the number of age-samples (age can be averages over more than one subject)
+            out{iTr}{iSubTr}{iDir + 1}.numAges = length(ages);
+            
+            
+            % initialize statistics variables
             lat_cross_linear = NaN(length(n1LatencyMeans), 4);      % <age> x <size latency (ms), prediction (ms), p1 (slope), p2 (intercept) of left out>
             spd_cross_linear = NaN(length(n1LatencyMeans), 4);      % <age> x <size latency (ms), prediction (ms), p1 (slope), p2 (intercept) of left out>
             lat_cross_second = NaN(length(n1LatencyMeans), 5);      % <age> x <size latency (ms) X prediction (ms) X p1 (age^2) X p2 (age) X p3 (intercept) of left out>
@@ -441,15 +446,15 @@ end
 %  Display in command window the cod and delta for each subplot
 %  this info is displayed in Figure 3 as well.
 
-long_tracts = {'Y1065_TPAT - Parietal -> Temporal','Y1065_TPAT - Temporal -> Parietal',...
-    'Y1065_AF - Frontal -> Temporal','Y1065_AF - Temporal -> Frontal',...
-    'Y1065_SLF2 - Frontal -> Parietal','Y1065_SLF2 - Parietal -> Frontal',...
-    'Y1065_SLF2 - Frontal -> Central','Y1065_SLF2 - Central -> Frontal'};
+long_tracts = { 'Y1065_TPAT - Parietal -> Temporal','Y1065_TPAT - Temporal -> Parietal',...
+                'Y1065_AF - Frontal -> Temporal','Y1065_AF - Temporal -> Frontal',...
+                'Y1065_SLF2 - Frontal -> Parietal','Y1065_SLF2 - Parietal -> Frontal',...
+                'Y1065_SLF2 - Frontal -> Central','Y1065_SLF2 - Central -> Frontal'};
 long_cod_lat = NaN(1,length(long_tracts));
 long_cod_spd = NaN(1,length(long_tracts));
 
 U_tracts = {'Y842_U - PreCentral -> PostCentral','Y842_U - PostCentral -> PreCentral',...
-    'Y842_U - Frontal -> Frontal','Y842_U - Parietal -> Parietal'};
+            'Y842_U - Frontal -> Frontal','Y842_U - Parietal -> Parietal'};
 U_cod_lat = NaN(1,length(U_tracts));
 U_cod_spd = NaN(1,length(U_tracts));
 
@@ -460,13 +465,13 @@ for iTr = 1:length(rois)
         for iDir = [false true]
 
             if strcmp(out{iTr}{iSubTr}{iDir + 1}.lat_fit, 'linear')
-                fprintf(' - %s: best fit is linear, with COD = %2.0f, and delta %1.2f \n', ...
-                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta)
+                fprintf(' - %s: n=%2.0f, best fit is linear, with COD = %2.0f, and delta %1.2f \n', ...
+                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.numAges, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta)
                 
             elseif strcmp(out{iTr}{iSubTr}{iDir + 1}.lat_fit, 'second')
                 
-                fprintf(' - %s: best fit is second, with COD = %2.0f, and delta: age0-10 = %1.2f, age10-20 = %1.2f, age20-30 = %1.2f, age30-40 = %1.2f, age40-50 = %1.2f \n', ...
-                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta);
+                fprintf(' - %s: n=%2.0f, best fit is second, with COD = %2.0f, and delta: age0-10 = %1.2f, age10-20 = %1.2f, age20-30 = %1.2f, age30-40 = %1.2f, age40-50 = %1.2f \n', ...
+                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.numAges, out{iTr}{iSubTr}{iDir + 1}.lat_cod, out{iTr}{iSubTr}{iDir + 1}.lat_delta);
                 
             end
             
@@ -488,13 +493,13 @@ for iTr = 1:length(rois)
         for iDir = [false true]
 
             if strcmp(out{iTr}{iSubTr}{iDir + 1}.spd_fit, 'linear')
-                fprintf(' - %s: best fit is linear, with COD = %2.0f, and delta %1.2f \n', ...
-                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.spd_cod, out{iTr}{iSubTr}{iDir + 1}.spd_delta)
+                fprintf(' - %s: n=%2.0f, best fit is linear, with COD = %2.0f, and delta %1.2f \n', ...
+                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.numAges, out{iTr}{iSubTr}{iDir + 1}.spd_cod, out{iTr}{iSubTr}{iDir + 1}.spd_delta)
                 
             elseif strcmp(out{iTr}{iSubTr}{iDir + 1}.spd_fit, 'second')
                 
-                fprintf(' - %s: best fit is second, with COD = %2.0f, and delta: age0-10 = %1.2f, age10-20 = %1.2f, age20-30 = %1.2f, age30-40 = %1.2f, age40-50 = %1.2f \n', ...
-                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.spd_cod, out{iTr}{iSubTr}{iDir + 1}.spd_delta);
+                fprintf(' - %s: n=%2.0f, best fit is second, with COD = %2.0f, and delta: age0-10 = %1.2f, age10-20 = %1.2f, age20-30 = %1.2f, age30-40 = %1.2f, age40-50 = %1.2f \n', ...
+                        out{iTr}{iSubTr}{iDir + 1}.name, out{iTr}{iSubTr}{iDir + 1}.numAges, out{iTr}{iSubTr}{iDir + 1}.spd_cod, out{iTr}{iSubTr}{iDir + 1}.spd_delta);
                 
             end
             % get averages
