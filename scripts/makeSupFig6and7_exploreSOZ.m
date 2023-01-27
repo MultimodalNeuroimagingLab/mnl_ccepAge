@@ -259,16 +259,24 @@ disp(['- ', num2str(length(stimSignDecr)), ' subjects have a significantly lower
 %  Generate supplement 6 - Violin plot responses in or outside SOZ
 
 respall = cell(1);
+SEs = cell(1);
 names = cell(1);
 
 count = 1;
 for iSubj = 1:size(n1Latencies, 2)
     
+    % check whether there are N1 latencies in electrodes that were on SOZs and electrodes that were not on SOZs
     if ~isempty(n1Latencies(iSubj).respSOZlatencies) && ~isempty(n1Latencies(iSubj).respNonSOZlatencies)
+        
+        % add N1 latencies for electrodes that were on SOZs to be plotted
         respall{count} = n1Latencies(iSubj).respSOZlatencies * 1000;
+        SEs{count} = std(respall{count}) / sqrt(length(respall{count}));
         names{count} = cellstr(repmat([n1Latencies(iSubj).id ' soz'],size(respall{count}, 2), 1));
         count = count + 1;
+        
+        % add N1 latencies for electrodes that were on SOZs to be plotted
         respall{count} = n1Latencies(iSubj).respNonSOZlatencies * 1000;
+        SEs{count} = std(respall{count}) / sqrt(length(respall{count}));
         names{count} = cellstr(repmat([n1Latencies(iSubj).id ' nsoz'],size(respall{count}, 2), 1));
         count = count + 1;
         
@@ -282,23 +290,30 @@ for iSubj = 1:size(n1Latencies, 2)
        
 end
 
+% open the figure and draw the violins
 close all
 cmap = colormap('parula');
+close(figure(1))
 ymax = ceil(max(horzcat(respall{:})));
 temp = horzcat(respall{:});
 ymin = floor(min(temp(temp > 0)));
-h = figure('position',[0 0 2000 1200]);
-vs = violinplot(horzcat(respall{:}), vertcat(names{:}), 'ViolinColor', cmap(1, :), 'Width', 0.3);
-for iSubj = 1:3:size(vs, 2)
-    vs(iSubj).ViolinPlot.FaceColor = cmap(128, :);
-    vs(iSubj).ScatterPlot.MarkerFaceColor = cmap(128, :);
-    vs(iSubj).ScatterPlot.SizeData = 70;
-    vs(iSubj).MedianPlot.SizeData = 70;
+h = figure('position',[0 0 2400 1200]);
+vs = violinplot(horzcat(respall{:}), vertcat(names{:}), 'ViolinColor', cmap(1, :), 'BoxColor', [0.4 0.4 0.6], 'Width', 0.4, 'BoxWidth', .08, 'ShowData', false);
+
+% for each subject/violin plot pair (non-SOZ violin & SOZ violin)
+for iViolin = 1:3:size(vs, 2)
+    vs(iViolin).ViolinPlot.FaceColor = cmap(128, :);
+    vs(iViolin).ScatterPlot.MarkerFaceColor = cmap(128, :);
+    vs(iViolin).ScatterPlot.SizeData = 70;
+    vs(iViolin).MedianPlot.SizeData = 70;
+    vs(iViolin).ViolinPlot.FaceColor = cmap(128, :);
 end
 
 hold on
 count = 1;
 for iSubj = 1:size(n1Latencies, 2)
+    
+    % check whether there are N1 latencies in electrodes that were on SOZs and electrodes that were not on SOZs
     if ~isempty(n1Latencies(iSubj).respSOZ_pFDR) && ~isnan(n1Latencies(iSubj).respSOZ_pFDR)
         if n1Latencies(iSubj).respSOZ_pFDR < .05
             text(count + 0.3, 1.03 * ymax, '*', 'FontSize', 24)
@@ -306,6 +321,7 @@ for iSubj = 1:size(n1Latencies, 2)
         end
         count = count + 3;
     end
+    
 end
 hold off
 
@@ -316,7 +332,7 @@ ax.FontSize = 20;
 ax.XTickLabelRotation = 0;
 ax.XTick = 1.5:3:size(vs, 2);
 ax.XTickLabel = 1:size([n1Latencies(:).respSOZ_p], 2);
-ax.YLabel.String = 'Latency (ms)';
+ax.YLabel.String = 'N1 Peak Latency (ms)';
 ax.XLabel.String = 'Subjects';
 ax.Title.String = 'Latency of measured electrodes in or outside SOZ';
 lgd = legend([vs(1).ViolinPlot, vs(2).ViolinPlot], 'Responses measured on non-SOZ', 'Responses measured on SOZ');
@@ -340,8 +356,9 @@ names = cell(1);
 count = 1;
 for iSubj = 1:size(n1Latencies, 2)
     
-    % check if there are 
+    % check whether there are N1 latencies in electrodes that were on SOZs and electrodes that were not on SOZs
     if ~isempty(n1Latencies(iSubj).stimSOZlatencies) && ~isempty(n1Latencies(iSubj).stimNonSOZlatencies)
+        
         stimall{count} = n1Latencies(iSubj).stimSOZlatencies * 1000;
         names{count} = cellstr(repmat([n1Latencies(iSubj).id ' soz'],size(stimall{count}, 2), 1));
         count = count + 1;
@@ -359,22 +376,29 @@ for iSubj = 1:size(n1Latencies, 2)
        
 end
 
+% open the figure and draw the violins
 close all
 cmap = colormap('parula');
+close(figure(1))
 ymax = ceil(max(horzcat(stimall{:})));
 temp = horzcat(stimall{:});
 ymin = floor(min(temp(temp > 0)));
 h = figure('position',[0 0 2000 1200]);
-vs = violinplot(horzcat(stimall{:}), vertcat(names{:}), 'ViolinColor', cmap(1, :), 'Width', 0.3);
-for iSubj = 1:3:size(vs, 2)
-    vs(iSubj).ViolinPlot.FaceColor = cmap(128, :);
-    vs(iSubj).ScatterPlot.MarkerFaceColor = cmap(128, :);
-    vs(iSubj).ScatterPlot.SizeData = 70;
+vs = violinplot(horzcat(stimall{:}), vertcat(names{:}), 'ViolinColor', cmap(1, :), 'BoxColor', [0.4 0.4 0.6], 'Width', 0.4, 'BoxWidth', .08, 'ShowData', false);
+
+% for each subject/violin plot pair (non-SOZ violin & SOZ violin)
+for iViolin = 1:3:size(vs, 2)
+    vs(iViolin).ViolinPlot.FaceColor = cmap(128, :);
+    vs(iViolin).ScatterPlot.MarkerFaceColor = cmap(128, :);
+    vs(iViolin).ScatterPlot.SizeData = 70;
+    
 end
 
 hold on
 count = 1;
 for iSubj = 1:size(n1Latencies, 2)
+    
+    % check whether there are N1 latencies in electrodes that were on SOZs and electrodes that were not on SOZs
     if ~isempty(n1Latencies(iSubj).stimSOZ_pFDR) && ~isnan(n1Latencies(iSubj).stimSOZ_pFDR)
         if n1Latencies(iSubj).stimSOZ_pFDR < .05
             text(count + 0.3, 1.03 * ymax, '*', 'FontSize', 24)
@@ -382,6 +406,7 @@ for iSubj = 1:size(n1Latencies, 2)
         end
         count = count + 3;
     end
+    
 end
 hold off
 
@@ -392,7 +417,7 @@ ax.FontSize = 20;
 ax.XTickLabelRotation = 0;
 ax.XTick = 1.5:3:size(vs, 2);
 ax.XTickLabel = 1:size([n1Latencies(:).stimSOZ_p], 2);
-ax.YLabel.String = 'Latency (ms)';
+ax.YLabel.String = 'N1 Peak Latency (ms)';
 ax.XLabel.String = 'Subjects';
 ax.Title.String = 'Latency of stim-pairs when stimulating in or outside SOZ';
 lgd = legend([vs(1).ViolinPlot, vs(2).ViolinPlot], 'Responses when not stimulating SOZ', 'Responses when stimulating SOZ');
