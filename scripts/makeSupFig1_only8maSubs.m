@@ -1,7 +1,8 @@
 %
-% This script outputs supplementary figure 1 - relation between age (years) and latency (ms) at different stimulation currents
+% This script produces supplementary figure 1 - relation between age (years) and latency (ms) at different stimulation currents
 %
-% Dorien van Blooijs, Max van den Boom, 2022
+% Max van den Boom, Dorien van Blooijs, 2023
+
 
 clear
 close all
@@ -24,7 +25,7 @@ end
 
 
 %% 
-%  ...
+%  Extract the different currents from the dataset
 
 all_unique_currents =[];
 all_currents = struct();
@@ -104,7 +105,7 @@ for iSubj = 1:length(ccepData)
             all_currents.(['mA', num2str(subject_unique_currents(iCurrent))]) = [];
         end
         
-        % for this sbuject and current, add the age and latency
+        % for this subject and current, add the age and latency
         ind = length(all_currents.(['mA', num2str(subject_unique_currents(iCurrent))]));
         all_currents.(['mA', num2str(subject_unique_currents(iCurrent))])(ind + 1).age = ccepData(iSubj).age;
         all_currents.(['mA', num2str(subject_unique_currents(iCurrent))])(ind + 1).latency = subject_currents.(['mA', num2str(subject_unique_currents(iCurrent))]);
@@ -178,15 +179,15 @@ for iCurrent = 1:length(all_unique_currents)
     % plot the points
     plot(ages, latencies * 1000, '.', 'Color', curColor, 'MarkerSize', 16, 'DisplayName', [num2str(all_unique_currents(iCurrent)) ' mA (n=', num2str(length(latencies)), ')']);
 
+    % check if there are enough points
     if length(latencies) >= minDataPoints
         
-        [P, S] = polyfit(ages(~isnan(ages) & ~isnan(latencies)), ...
-                         latencies(~isnan(ages) & ~isnan(latencies)) * 1000, 1);
+        [P, S] = polyfit(ages(~isnan(ages) & ~isnan(latencies)), latencies(~isnan(ages) & ~isnan(latencies)) * 1000, 1);
         [y_fit, ~] = polyval(P, ages, S);
 
-        % Plot polyfit throught data points
+        % Plot fit throught data points
         plot(ages, y_fit, 'Color', curColor, 'LineWidth', 2, 'DisplayName', ...
-             ['r=' num2str(all_unique_currents_r(iCurrent), 3) ' p=' num2str(all_unique_currents_p_fdr(iCurrent), 3)]);
+             ['\rho=' num2str(all_unique_currents_r(iCurrent), 3) ' p=' num2str(all_unique_currents_p_fdr(iCurrent), 3)]);
     end
     
 end

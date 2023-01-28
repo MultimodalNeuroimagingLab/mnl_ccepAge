@@ -1,6 +1,6 @@
 % 
 % 
-%  This code is used to create Figure 1C - the normalized CCEPs of all patients in order of age, 
+%  This code is used to the plot for Figure 1C and Figure 3A - the normalized CCEPs of all patients in order of age, 
 %  
 %
 
@@ -71,7 +71,7 @@ end
 
 
 %% 
-% Figure 1C - Plots for each stimulated and responding region with normalized CCEPs + N1 sorted by age
+% Plots for each stimulated and responding region with normalized CCEPs + N1 sorted by age
 
 ttmin = 0.010;
 ttmax = .100;
@@ -101,7 +101,7 @@ for iTr = 1:length(rois)
                 set(gca,'XTick',20:20:80,'YTick',[])
                 axis tight
 
-                strSign = [' (p\_fdr = ', num2str(all_p_fdr{iTr}{iSubTr}(iDir + 1)), ')'];
+                strSign = [' (p\_fdr = ', num2str(all_p_fdr{iTr}{iSubTr}(iDir + 1)), ',  n=', num2str(length(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age)), ')'];
                 if all_p_fdr{iTr}{iSubTr}(iDir + 1) < .05,  strSign = [strSign, ' *'];     end
                 title([rois(iTr).tract_name, ' - ', strSubTitle, strSign]);
 
