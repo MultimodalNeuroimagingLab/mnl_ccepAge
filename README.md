@@ -2,7 +2,7 @@
 
 This repository contains the scripts and functions necessary to reproduce the analyses and figures in this manuscript:
 
-- The development of efficient communication in the human connectome. D. van Blooijs, J.F. van der Aar, G.J.M. Huiskamp, G. Castegnaro, M. Demuru, W.J.E.M. Zweiphenning, P. van Eijsden, K. J. Miller, F.S.S. Leijten, D. Hermes bioRxiv 2022.03.14.484297; doi: https://doi.org/10.1101/2022.03.14.484297
+- The development of efficient communication in the human connectome. D. van Blooijs*, M.A. van den Boom*, J.F. van der Aar, G.J.M. Huiskamp, G. Castegnaro, M. Demuru, W.J.E.M. Zweiphenning, P. van Eijsden, K. J. Miller, F.S.S. Leijten, D. Hermes, bioRxiv 2022.03.14.484297; doi: https://doi.org/10.1101/2022.03.14.484297 *these authors contributed equally.
 
 
 # Generating the figures
