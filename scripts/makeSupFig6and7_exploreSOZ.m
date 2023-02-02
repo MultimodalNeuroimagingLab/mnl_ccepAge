@@ -209,6 +209,10 @@ p_indices_stim = find(~cellfun(@isempty, {n1Latencies.stimSOZ_p}));
 [~, ~, ~, p_vals_resp_FDR]  = fdr_bh([n1Latencies(p_indices_resp).respSOZ_p], 0.05, 'pdep');
 [~, ~, ~, p_vals_stim_FDR]  = fdr_bh([n1Latencies(p_indices_stim).stimSOZ_p], 0.05, 'pdep');
 
+% print the FDR correct p-values
+disp(['Response SOZvsNon-SOZ corrected p-values: ', char(strjoin(string(p_vals_resp_FDR), ', '))]);
+disp(['Stim SOZvsNon-SOZ corrected p-values: ', char(strjoin(string(p_vals_stim_FDR), ', '))]);
+
 % put FDR p-values back into the table
 for respIdx = 1:length(p_indices_resp)
     n1Latencies(p_indices_resp(respIdx)).respSOZ_pFDR = p_vals_resp_FDR(respIdx);
