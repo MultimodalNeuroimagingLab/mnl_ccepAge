@@ -199,11 +199,11 @@ xlim([0 55]), ylim([15 55]);
 legend()
 
 % save
-if ~exist(fullfile(myDataPath.output, 'derivatives', 'age'), 'dir')
-    mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
 end
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS1_corrAgeVslatency_8mA');
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS1_corrAgeVslatency_8mA');
 set(gcf, 'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)

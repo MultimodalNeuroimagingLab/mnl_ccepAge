@@ -72,10 +72,10 @@ for iTr = 3                 % SLF
                 %
                 % save
                 %
-                if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
-                    mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
+                if ~exist(fullfile(myDataPath.output,'derivatives', 'images'), 'dir')
+                    mkdir(fullfile(myDataPath.output,'derivatives', 'images'));
                 end
-                figureName = fullfile(myDataPath.output,'derivatives', 'age', ['CCEPexamples_6subjects', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+                figureName = fullfile(myDataPath.output,'derivatives', 'images', ['CCEPexamples_6subjects', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
 
                 set(gcf, 'renderer', 'Painters')
                 set(gcf, 'PaperPositionMode', 'auto')

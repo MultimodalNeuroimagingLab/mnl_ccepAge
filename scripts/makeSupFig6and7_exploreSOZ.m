@@ -339,7 +339,11 @@ lgd = legend([vs(1).ViolinPlot, vs(2).ViolinPlot], 'Responses measured on non-SO
 lgd.FontSize = 20;
 set(gcf,'color', 'w');
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS6_LatencyRespSOZ');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS6_LatencyRespSOZ');
 set(gcf, 'renderer', 'Painters')
 set(gcf,'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
@@ -424,7 +428,11 @@ lgd = legend([vs(1).ViolinPlot, vs(2).ViolinPlot], 'Responses when not stimulati
 lgd.FontSize = 20;
 set(gcf,'color', 'w');
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS7_LatencyStimSOZ');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS7_LatencyStimSOZ');
 set(gcf, 'renderer', 'Painters')
 set(gcf, 'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)

@@ -82,10 +82,12 @@ xlim([-1 50])
 xlabel('Standard deviation (ms)')
 ylabel('Number of stimulation pairs')
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS8_volumeConductionCheck');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS8_volumeConductionCheck');
 set(gcf, 'PaperPositionMode', 'auto')
 print('-dpng', '-r300', '-painters', figureName)
 print('-depsc2', '-r300', '-painters', figureName)
-
-
 

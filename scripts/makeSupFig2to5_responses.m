@@ -178,12 +178,14 @@ for iRow = 1:size(conn_matrix, 1)
     end
 end
 
-
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS2_AgeVsRatioN1s');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS2_AgeVsRatioN1s');
 set(gcf,'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
-
 
 
 
@@ -218,8 +220,11 @@ for iRow = 1:size(conn_matrix, 1)
     end
 end
 
-
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS3_AgeVsLatVar_N1');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS3_AgeVsLatVar_N1');
 set(gcf,'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
@@ -274,7 +279,11 @@ for iRow = 1:size(conn_matrix, 1)
 end
 set(gca, 'XTick', 20:20:100)
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS4_MeanVsVariance_N1');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS4_MeanVsVariance_N1');
 set(gcf,'PaperPositionMode', 'auto');
 print('-dpng', '-r300', figureName);
 print('-depsc', '-r300', figureName);
@@ -329,10 +338,15 @@ for iRow = 1:size(conn_matrix, 1)
     end
 end
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS5_MeanVsFWHM');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS5_MeanVsFWHM');
 set(gcf,'PaperPositionMode', 'auto');
 print('-dpng', '-r300', figureName);
 print('-depsc', '-r300', figureName);
+
 
 
 % 
