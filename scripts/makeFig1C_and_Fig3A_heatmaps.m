@@ -101,7 +101,7 @@ for iTr = 1:length(rois)
                 set(gca,'XTick',20:20:80,'YTick',[])
                 axis tight
 
-                strSign = [' (p\_fdr = ', num2str(all_p_fdr{iTr}{iSubTr}(iDir + 1)), ',  n=', num2str(length(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age)), ')'];
+                strSign = [' (p\_fdr = ', num2str(all_p_fdr{iTr}{iSubTr}(iDir + 1)), ',  n=', num2str(length(sortedCCEPs{iTr}{iSubTr}{iDir + 1}.age)), ', r=', num2str(all_r{iTr}{iSubTr}(iDir + 1)), ')'];
                 if all_p_fdr{iTr}{iSubTr}(iDir + 1) < .05,  strSign = [strSign, ' *'];     end
                 title([rois(iTr).tract_name, ' - ', strSubTitle, strSign]);
 
