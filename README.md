@@ -13,10 +13,10 @@ Scripts to process the data, detect N1 responses and add tract information:
 - scripts/ccep04_averageConnections.m
 
 Scripts to make the figure panels:
-- makeFig1A_plotMNI.m
+- makeFig1A_and_SupFig9_plotMNI.m
 - makeFig1B_subjectResponses.m
-- makeFig1C_heatmapResponsesAge.m
-- makeFig2and3_transmissionAcrossAge.m
+- makeFig1C_and_Fig3A_heatmaps.m
+- makeFig2_and_Fig3BC_transmissionAges.m
 
 
 To make all functions work, an m-file called personalDataPath.m should be stored in the root dir. This file should have the following content:

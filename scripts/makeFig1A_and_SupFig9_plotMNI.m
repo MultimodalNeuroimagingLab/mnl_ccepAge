@@ -1,5 +1,7 @@
 %
-% This script creates the images for Figure 1A that depict a MNI surface with tracts, subtracts, ROIs and electrodes
+% This script produces the images for:
+%    - Figure 1A - that depict a MNI surface with tracts, subtracts, ROIs and electrodes
+%    - Supplemental Figure 9 - distribution of electrodes over different age groups
 %
 % Max van den Boom, Jaap van der Aar, Giulio Castegnaro, Dora Hermes, Dorien van Blooijs, 2022
 %
@@ -275,7 +277,10 @@ for iTr = 1:length(rois)
         ieeg_viewLight(v_d(1), v_d(2))
         
         % save the image
-        figureName = fullfile(myDataPath.output, 'derivatives', 'render', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
+        if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+            mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+        end
+        figureName = fullfile(myDataPath.output, 'derivatives', 'images', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
         set(gcf, 'PaperPositionMode', 'auto')
         set(hFig, 'Visible', 'on');
         print('-dpng', '-r300', figureName)
@@ -408,7 +413,11 @@ end
 figure(hFigElec);
 set(hFigElec, 'renderer', 'Painters')
 set(hFigElec, 'PaperPositionMode', 'auto')
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS9_ElecCoverage');
+
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS9_ElecCoverage');
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
 %close(hFigElec)

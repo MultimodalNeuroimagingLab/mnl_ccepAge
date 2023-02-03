@@ -94,8 +94,8 @@ for iRow = 1:size(conn_matrix, 1)
         out{iRow, iCol}.subjectsN1Values = subjectsN1Values;
         
         % calculate and store the r and p for the age vs variance in latency
-        [varlat_r, varlat_p] = corr(subjectsN1Values(~isnan(subjectsN1Values(:, 1)) & ~isnan(subjectsN1Values(:, 3)), 1), ...
-                                    subjectsN1Values(~isnan(subjectsN1Values(:, 1)) & ~isnan(subjectsN1Values(:, 3)), 3), 'Type', 'Spearman');
+        [varlat_r, varlat_p] = corr(subjectsN1Values(~isnan(subjectsN1Values(:, 1)) & ~isnan(subjectsN1Values(:, 4)), 1), ...
+                                    subjectsN1Values(~isnan(subjectsN1Values(:, 1)) & ~isnan(subjectsN1Values(:, 4)), 4), 'Type', 'Spearman');
         out{iRow, iCol}.varlat_r = varlat_r;
         out{iRow, iCol}.varlat_p = varlat_p;
         all_varlat_p(end + 1, :) = [iRow, iCol, varlat_p];
@@ -178,12 +178,14 @@ for iRow = 1:size(conn_matrix, 1)
     end
 end
 
-
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS2_AgeVsRatioN1s');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS2_AgeVsRatioN1s');
 set(gcf,'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
-
 
 
 
@@ -198,27 +200,31 @@ for iRow = 1:size(conn_matrix, 1)
 
         % age vs variance latencies
         subplot(size(conn_matrix, 1), size(conn_matrix, 2), outInd);    hold on;
-        plot(subjectsN1Values(:, 1), 1000 * subjectsN1Values(:, 3), 'k.', 'MarkerSize', 10);
+        plot(subjectsN1Values(:, 1), subjectsN1Values(:, 4), 'k.', 'MarkerSize', 10);
 
         % determine the number of samples
         n = sum(~isnan(subjectsN1Values(:, 3)));
         
         %
         title(strrep(out{iRow, iCol}.name, '_', '\_'));
-        xlim([0 60]); ylim([0 1]);
+        xlim([0 60]);
+        ylim([0 (max(subjectsN1Values(:, 4)))])
         if iRow == size(conn_matrix, 1),    xlabel('Age (years)'); end
         if iCol == 1,                       ylabel('Varience in N1 latency (ms)'); end
         
         %
-        text(40, 0.9, ['\rho=', num2str(round(out{iRow, iCol}.varlat_r, 2)), ' (n=', num2str(n, 2), ')']);
-        text(40, 0.8, ['P_f_d_r=', num2str(round(out{iRow, iCol}.varlat_p_fdr, 2))]);
+        text(40, max(subjectsN1Values(:, 4)) * .9, ['\rho=', num2str(round(out{iRow, iCol}.varlat_r, 2)), ' (n=', num2str(n, 2), ')']);
+        text(40, max(subjectsN1Values(:, 4)) * .8, ['P_f_d_r=', num2str(round(out{iRow, iCol}.varlat_p_fdr, 2))]);
 
         hold off;
     end
 end
 
-
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS3_AgeVsLatVar_N1');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS3_AgeVsLatVar_N1');
 set(gcf,'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
 print('-depsc', '-r300', figureName)
@@ -273,7 +279,11 @@ for iRow = 1:size(conn_matrix, 1)
 end
 set(gca, 'XTick', 20:20:100)
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS4_MeanVsVariance_N1');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS4_MeanVsVariance_N1');
 set(gcf,'PaperPositionMode', 'auto');
 print('-dpng', '-r300', figureName);
 print('-depsc', '-r300', figureName);
@@ -328,10 +338,15 @@ for iRow = 1:size(conn_matrix, 1)
     end
 end
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS5_MeanVsFWHM');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS5_MeanVsFWHM');
 set(gcf,'PaperPositionMode', 'auto');
 print('-dpng', '-r300', figureName);
 print('-depsc', '-r300', figureName);
+
 
 
 % 

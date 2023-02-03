@@ -209,6 +209,10 @@ p_indices_stim = find(~cellfun(@isempty, {n1Latencies.stimSOZ_p}));
 [~, ~, ~, p_vals_resp_FDR]  = fdr_bh([n1Latencies(p_indices_resp).respSOZ_p], 0.05, 'pdep');
 [~, ~, ~, p_vals_stim_FDR]  = fdr_bh([n1Latencies(p_indices_stim).stimSOZ_p], 0.05, 'pdep');
 
+% print the FDR correct p-values
+disp(['Response SOZvsNon-SOZ corrected p-values: ', char(strjoin(string(p_vals_resp_FDR), ', '))]);
+disp(['Stim SOZvsNon-SOZ corrected p-values: ', char(strjoin(string(p_vals_stim_FDR), ', '))]);
+
 % put FDR p-values back into the table
 for respIdx = 1:length(p_indices_resp)
     n1Latencies(p_indices_resp(respIdx)).respSOZ_pFDR = p_vals_resp_FDR(respIdx);
@@ -339,7 +343,11 @@ lgd = legend([vs(1).ViolinPlot, vs(2).ViolinPlot], 'Responses measured on non-SO
 lgd.FontSize = 20;
 set(gcf,'color', 'w');
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS6_LatencyRespSOZ');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS6_LatencyRespSOZ');
 set(gcf, 'renderer', 'Painters')
 set(gcf,'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)
@@ -424,7 +432,11 @@ lgd = legend([vs(1).ViolinPlot, vs(2).ViolinPlot], 'Responses when not stimulati
 lgd.FontSize = 20;
 set(gcf,'color', 'w');
 
-figureName = fullfile(myDataPath.output, 'derivatives', 'age', 'SupFigS7_LatencyStimSOZ');
+% save
+if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+    mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+end
+figureName = fullfile(myDataPath.output, 'derivatives', 'images', 'SupFigS7_LatencyStimSOZ');
 set(gcf, 'renderer', 'Painters')
 set(gcf, 'PaperPositionMode', 'auto')
 print('-dpng', '-r300', figureName)

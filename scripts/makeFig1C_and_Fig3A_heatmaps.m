@@ -108,10 +108,10 @@ for iTr = 1:length(rois)
                 %
                 % save
                 %
-                if ~exist(fullfile(myDataPath.output,'derivatives', 'age'), 'dir')
-                    mkdir(fullfile(myDataPath.output,'derivatives', 'age'));
+                if ~exist(fullfile(myDataPath.output,'derivatives', 'images'), 'dir')
+                    mkdir(fullfile(myDataPath.output,'derivatives', 'images'));
                 end
-                figureName = fullfile(myDataPath.output,'derivatives', 'age', ['sortedAge_tmax' int2str(ttmax * 1000), '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+                figureName = fullfile(myDataPath.output,'derivatives', 'images', ['sortedAge_tmax' int2str(ttmax * 1000), '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
 
                 set(gcf, 'PaperPositionMode', 'auto')
                 print('-dpng', '-r300', figureName)

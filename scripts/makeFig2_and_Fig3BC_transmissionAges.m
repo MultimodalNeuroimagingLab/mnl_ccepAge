@@ -368,10 +368,10 @@ for iTr = 1:length(rois)
             set(gca, 'YGrid', 'on', 'XGrid', 'off');
             
             % save latency figure
-            if ~exist(fullfile(myDataPath.output, 'derivatives', 'age'), 'dir')
-                mkdir(fullfile(myDataPath.output, 'derivatives', 'age'));
+            if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+                mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
             end
-            figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVsLatency', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+            figureName = fullfile(myDataPath.output, 'derivatives', 'images', ['ageVsLatency', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
             set(gcf,'PaperPositionMode', 'auto');
             print('-dpng', '-r300', figureName);
             print('-depsc', '-r300', figureName);
@@ -432,7 +432,10 @@ for iTr = 1:length(rois)
             set(gca, 'YGrid', 'on', 'XGrid', 'off');
             
             % save speed figure
-            figureName = fullfile(myDataPath.output, 'derivatives', 'age', ['ageVsSpeed', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
+            if ~exist(fullfile(myDataPath.output, 'derivatives', 'images'), 'dir')
+                mkdir(fullfile(myDataPath.output, 'derivatives', 'images'));
+            end
+            figureName = fullfile(myDataPath.output, 'derivatives', 'images', ['ageVsSpeed', '_', rois(iTr).tract_name, '_', strrep(strSubTitle, ' -> ', '_')]);
             set(gcf,'PaperPositionMode', 'auto');
             print('-dpng', '-r300', figureName);
             print('-depsc', '-r300', figureName);
