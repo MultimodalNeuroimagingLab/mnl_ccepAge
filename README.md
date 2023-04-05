@@ -2,8 +2,10 @@
 
 This repository contains the scripts and functions necessary to reproduce the analyses and figures in this manuscript:
 
-- The development of efficient communication in the human connectome. D. van Blooijs*, M.A. van den Boom*, J.F. van der Aar, G.J.M. Huiskamp, G. Castegnaro, M. Demuru, W.J.E.M. Zweiphenning, P. van Eijsden, K. J. Miller, F.S.S. Leijten, D. Hermes, bioRxiv 2022.03.14.484297; doi: https://doi.org/10.1101/2022.03.14.484297 *these authors contributed equally.
+- **Developmental trajectory of transmission speed in the human brain.** D. van Blooijs*, M.A. van den Boom*, J.F. van der Aar, G.J.M. Huiskamp, G. Castegnaro, M. Demuru, W.J.E.M. Zweiphenning, P. van Eijsden, K. J. Miller, F.S.S. Leijten, D. Hermes, _Nature Neuroscience_, 2023, https://doi.org/10.1038/s41593-023-01272-0 *these authors contributed equally.
 
+# Data availability
+Data are available on OpenNeuro: https://openneuro.org/datasets/ds004080/versions/1.2.2
 
 # Generating the figures
 Scripts to process the data, detect N1 responses and add tract information:
