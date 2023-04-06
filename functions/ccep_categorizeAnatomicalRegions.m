@@ -7,7 +7,7 @@
 %
 %
 %   Note:     Tracts are based on the Yeh HCP YA842 tractography atlas, while their end-point areas were matched based on the Destrieux atlas
-%   Note 2:   Subtracts are definedsubtracts defines SLF parts with endpoint parietal or central, since these have different lengths
+%   Note 2:   Subtracts are defined ...
 %
 %   Also see: Yeh, F. C., Panesar, S., Fernandes, D., Meola, A., Yoshino, M., Fernandez-Miranda, J. C., ... & Verstynen, T. (2018). Population-averaged atlas of the macroscale human structural connectome and its network topology. Neuroimage, 178, 57-68.
 %
@@ -72,12 +72,12 @@ function [tracts] = ccep_categorizeAnatomicalRegions()
 
     %{
     %  Yeh 1065 - VOF tract-segments
-    rois(5).tract_name                  = 'Y1065_VOF';
+    tracts(5).tract_name                  = 'Y1065_VOF';
     
-    rois(5).sub_tract(1).name           = 'Dorsal-Ventral';
-    rois(5).sub_tract(1).roi1           = [19, 20, 58];
-    rois(5).sub_tract(1).roi2           = [2, 21, 59];
-    rois(5).sub_tract(1).allowIntraROI  = 0;
+    tracts(5).sub_tract(1).name           = 'Dorsal-Ventral';
+    tracts(5).sub_tract(1).roi1           = [19, 20, 58];
+    tracts(5).sub_tract(1).roi2           = [2, 21, 59];
+    tracts(5).sub_tract(1).allowIntraROI  = 0;
     %}
     
 end
