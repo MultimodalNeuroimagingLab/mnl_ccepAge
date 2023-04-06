@@ -218,13 +218,17 @@ for iTr = 1:length(rois)
         roi1elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi1);
         roi2elecs = ismember(allmni305_hemi, 'L') & ismember(allmni305_destrLabels, rois(iTr).sub_tract(iSubTr).roi2);
         
-        % open the MNI pial
-        hFig = figure;
+        % open the MNI pial (hide initially)
+        hFig = figure('Position',  [0, 0, 1433, 1032]);
+        set(hFig, 'DefaultFigureRenderer', 'opengl');
         set(hFig, 'Visible', 'off');
-        %tH = ieeg_RenderGifti(gl);
+        tH = ieeg_RenderGifti(gl);
+        
+        % color ROI of the brain and set brain transparency
         vLabels = rois(iTr).sub_tract(iSubTr).Lvert_labels;
         vLabels(isnan(vLabels)) = 0;
         tH = ieeg_RenderGiftiLabels(gl, vLabels', 'jet');
+        %tH = ieeg_RenderGiftiLabels(gl, vLabels', [1 1 0; 0 1 1]);
         set(tH,'FaceAlpha', .2) % make transparent
 
         %{
@@ -272,8 +276,12 @@ for iTr = 1:length(rois)
         
         % plot the electrodes for the end-point ROIs
         subDir = lower(split(rois(iTr).sub_tract(iSubTr).name, '-'));
-        ieeg_elAdd(els(roi1elecs, :), colorMap.(subDir{1}), 7)
-        ieeg_elAdd(els(roi2elecs, :), colorMap.(subDir{2}), 7)
+        
+        % electrodes
+        hold on
+        plot3(els(roi1elecs, 1), els(roi1elecs, 2), els(roi1elecs, 3), '.', 'Color', colorMap.(subDir{1}), 'MarkerSize', 22);
+        plot3(els(roi2elecs, 1), els(roi2elecs, 2), els(roi2elecs, 3), '.', 'Color', colorMap.(subDir{2}), 'MarkerSize', 22);
+        hold off
         ieeg_viewLight(v_d(1), v_d(2))
         
         % save the image
@@ -283,7 +291,8 @@ for iTr = 1:length(rois)
         figureName = fullfile(myDataPath.output, 'derivatives', 'images', ['leftMNIpial_', rois(iTr).tract_name, '_',  strrep(rois(iTr).sub_tract(iSubTr).name, '-', ''), '.png']);
         set(gcf, 'PaperPositionMode', 'auto')
         set(hFig, 'Visible', 'on');
-        print('-dpng', '-r300', figureName)
+        exportgraphics(gcf, figureName)
+        %print('-dpng', figureName)
         close(hFig)
         
     end

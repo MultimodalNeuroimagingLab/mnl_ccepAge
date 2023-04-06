@@ -5,7 +5,7 @@ This repository contains the scripts and functions necessary to reproduce the an
 - **Developmental trajectory of transmission speed in the human brain.** D. van Blooijs*, M.A. van den Boom*, J.F. van der Aar, G.J.M. Huiskamp, G. Castegnaro, M. Demuru, W.J.E.M. Zweiphenning, P. van Eijsden, K. J. Miller, F.S.S. Leijten, D. Hermes, _Nature Neuroscience_, 2023, https://doi.org/10.1038/s41593-023-01272-0 *these authors contributed equally.
 
 # Data availability
-Data are available on OpenNeuro: https://openneuro.org/datasets/ds004080/versions/1.2.2
+Data are available on OpenNeuro: https://openneuro.org/datasets/ds004080/versions/1.2.4
 
 # Generating the figures
 Scripts to process the data, detect N1 responses and add tract information:
